@@ -6,8 +6,8 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 @SpringBootApplication
 public class CucucookApplication {
 
-	public static void main(String[] args) {
-		SpringApplication.run(CucucookApplication.class, args);
-	}
+    public static void main(String[] args) {
+        SpringApplication.run(CucucookApplication.class, args);
+    }
 
 }
