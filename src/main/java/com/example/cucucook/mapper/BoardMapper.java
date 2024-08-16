@@ -1,0 +1,68 @@
+package com.example.cucucook.mapper;
+
+import java.util.List;
+
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
+import com.example.cucucook.domain.Board;
+import com.example.cucucook.domain.BoardCategory;
+
+@Mapper
+public interface BoardMapper {
+
+    // 게시판 글 갯수
+    int getBoardCount(@Param("search") String search, @Param("boardCategoryId") String boardCategoryId);
+
+    // 게시판 목록 (search: 검색어, boardCategoryId: 게시판 카테고리 아이디, start: 페이지 번호, display: 한 페이지에 불러올 갯수)
+    List<Board> getBoardList(@Param("search") String search, @Param("boardCategoryId") String boardCategoryId, @Param("start") int start, @Param("display") int display);
+
+    // 게시판 보기
+    Board getBoard(@Param("boardId") String boardId);
+
+    // 게시판 작성
+    int insertBoard(@Param("board") Board board);
+
+    // 게시판 수정
+    int updateBoard(@Param("board") Board board);
+
+    // 게시판 삭제
+    int deleteBoard(@Param("boardId") String boardId);
+
+    // 답글 갯수
+    int getReplyCount(@Param("pBoardId") String pBoardId);
+
+    // 답글 목록
+    List<Board> getReplyList(@Param("boardId") String boardId, @Param("start") int start, @Param("display") int display);
+
+    // 답글 보기
+    Board getReply(@Param("boardId") String boardId);
+
+    // 답글 작성
+    int insertReply(@Param("board") Board board);
+
+    // 답글 수정
+    int updateReply(@Param("board") Board board);
+
+    // 답글 삭제
+    int deleteReply(@Param("boardId") String boardId);
+
+    // 게시판 카테고리 갯수
+    int getBoardCategoryCount();
+
+    // 게시판 카테고리 목록
+    List<BoardCategory> getBoardCategoryList(@Param("start") int start, @Param("display") int display);
+
+    // 게시판 카테고리 보기
+    BoardCategory getBoardCategory(@Param("boardCategoryId") String boardCategoryId);
+
+    // 게시판 카테고리 추가
+    int insertBoardCategory(@Param("boardCategory") BoardCategory boardCategory);
+
+    // 게시판 카테고리 수정
+    int updateBoardCategory(@Param("boardCategory") BoardCategory boardCategory);
+
+    // 게시판 카테고리 삭제
+    int deleteBoardCategory(@Param("boardCategoryId") String boardCategoryId);
+
+}
