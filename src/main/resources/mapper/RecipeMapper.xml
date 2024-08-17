@@ -1,0 +1,503 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace = "com.example.cucucook.mapper.RecipeMapper">
+  <resultMap id="memberRecipeResultMap" type="MemberRecipe">
+    <result property="recipeId" column="recipe_id"/>
+    <result property="memberId" column="member_id"/>
+    <result property="recipeCategoryId" column="recipe_category_id"/>
+    <result property="title" column="title"/>
+    <result property="method" column="method"/>
+    <result property="imgId" column="img_id"/>
+    <result property="serving" column="serving"/>
+    <result property="level" column="level"/>
+    <result property="time" column="time"/>
+    <result property="calory" column="calory"/>
+    <result property="tip" column="tip"/>
+    <result property="regDt" column="reg_dt"/>
+    <result property="uptDt" column="upt_dt"/>
+    <result property="viewCount" column="view_count"/>
+    <result property="recipeCategoryName" column="recipe_category_name"/>
+    <association property="member" javaType="Member">
+      <result property="userId" column="user_id"/>
+      <result property="name" column="name"/>
+      <result property="phone" column="phone"/>
+      <result property="role" column="role"/>
+      <result property="email" column="email"/>
+    </association>
+</resultMap>
+
+  <resultMap id="recipeCommentResultMap" type="RecipeComment">
+    <result property="commentId" column="comment_id"/>
+    <result property="memberId" column="member_id"/>
+    <result property="comment" column="comment"/>
+    <result property="recipeId" column="recipe_id"/>
+    <result property="rate" column="rate"/>
+    <result property="regDt" column="reg_dt"/>
+    <result property="uptDt" column="upt_dt"/>
+    <result property="status" column="status"/>
+    <result property="pCommentId" column="p_comment_id"/>
+    <association property="member" javaType="Member">
+      <result property="memberId" column="member_id"/>
+      <result property="userId" column="user_id"/>
+      <result property="name" column="name"/>
+      <result property="phone" column="phone"/>
+      <result property="role" column="role"/>
+      <result property="email" column="email"/>
+    </association>
+  </resultMap>
+
+  <!-- 외부레시피 내부레시피 반환 -->
+  <select id="getMemberRecipeDivision" resultType="int">
+    SELECT COUNT(*)
+      FROM member_recipe
+     WHERE recipe_id = #{recipeId}
+  </select>
+
+  <!-- 레시피 수 -->
+  <select id="getMemberRecipeCount" resultType="int">
+    SELECT COUNT(*)
+      FROM member_recipe
+     WHERE recipe_category_id = #{recipeCategoryId}
+  </select>
+
+  <!-- 회원레시피 목록 -->
+  <select id = "getMemberRecipeList" resultMap="memberRecipeResultMap">
+    SELECT a.recipe_id
+          ,a.member_id
+          ,a.recipe_category_id
+          ,a.title
+          ,a.method
+          ,a.img_id
+          ,a.serving
+          ,a.level
+          ,a.time
+          ,a.calory
+          ,a.tip
+          ,a.reg_dt
+          ,a.upt_dt
+          ,a.view_count
+          ,b.name AS recipe_category_name
+          ,c.user_id
+          ,c.name
+          ,c.phone
+          ,c.role
+          ,c.email
+      FROM member_recipe a
+          ,recipe_category b
+          ,member c
+     WHERE a.recipe_category_id = b.recipe_category_id
+       AND a.member_id = c.member_id
+       <if test="search != '' and search != null">
+        AND a.title LIKE CONCAT('%', #{search}, '%')
+       </if>
+       <if test="recipeCategoryId != '' and recipeCategoryId != null">
+        AND a.recipe_category_id = #{recipeCategoryId}
+       </if>
+       <choose>
+        <when test="orderby != '' and orderby != null">
+        ORDER BY ${orderby}
+        </when>
+        <otherwise>
+        ORDER BY a.reg_dt desc
+         </otherwise>
+      </choose>
+    <!-- LIMIT #{start} OFFSET #{display} -->
+  </select>
+
+  <!-- 회원레시피 상세 보기 -->
+  <select id = "getMemberRecipe" resultMap="memberRecipeResultMap">
+    SELECT a.recipe_id
+          ,a.member_id
+          ,a.recipe_category_id
+          ,a.title
+          ,a.method
+          ,a.img_id
+          ,a.serving
+          ,a.level
+          ,a.time
+          ,a.calory
+          ,a.tip
+          ,a.reg_dt
+          ,a.upt_dt
+          ,a.view_count
+          ,b.NAME AS recipeCategoryName
+          ,c.user_id
+          ,c.NAME
+          ,c.phone
+          ,c.role
+          ,c.email
+      FROM member_recipe a
+          ,recipe_category b
+          ,member c
+      WHERE a.recipe_category_id = b.recipe_category_id
+        AND a.member_id = c.member_id
+        AND a.recipe_id = #{recipeId}
+  </select>
+
+  <!-- 회원레시피 추가 -->
+  <insert id="insertMemberRecipe">
+    INSERT INTO member_recipe
+                (recipe_id
+                 ,member_id
+                 ,recipe_category_id
+                 ,title
+                 ,method
+                 ,img_id
+                 ,serving
+                 ,level
+                 ,time
+                 ,calory
+                 ,tip
+                 ,reg_dt
+                 ,view_count)
+         VALUES (#{memberRecipe.recipeId}
+                 ,#{memberRecipe.memberId}
+                 ,#{memberRecipe.recipeCategoryId}
+                 ,#{memberRecipe.title}
+                 ,#{memberRecipe.method}
+                 ,#{memberRecipe.imgId}
+                 ,#{memberRecipe.serving}
+                 ,#{memberRecipe.level}
+                 ,#{memberRecipe.time}
+                 ,#{memberRecipe.tip}
+                 ,#{memberRecipe.calory}
+                 ,TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+                 ,0)
+  </insert>
+
+  <!-- 회원레시피 수정 -->
+  <update id="updateMemberRecipe">
+    UPDATE member_recipe
+       SET recipe_category_id = #{memberRecipe.recipeCategoryId}
+          ,title = #{memberRecipe.title}
+          ,method = #{memberRecipe.method}
+          ,img_id = #{memberRecipe.imgId}
+          ,serving = #{memberRecipe.serving}
+          ,level = #{memberRecipe.level}
+          ,time = #{memberRecipe.time}
+          ,calory = #{memberRecipe.calory}
+          ,tip = #{memberRecipe.tip}
+          ,upt_dt = TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+     WHERE recipe_id = #{memberRecipe.recipeId}
+  </update>
+
+  <!-- 회원 레시피 삭제 -->
+  <delete id="deleteMemberRecipe">
+    DELETE FROM member_recipe
+     WHERE recipe_id = #{recipeId}
+  </delete>
+
+  <!-- 회원 레시피 재료 목록 -->
+  <select id="getMemberRecipeIngredientList" resultType="MemberRecipeIngredient">
+    SELECT ingredient_id
+          ,order_id
+          ,recipe_id
+          ,name
+          ,unit
+          ,amount
+      FROM member_recipe_ingredient
+     WHERE recipe_id = #{recipeId}
+  </select>
+
+  <!-- 회원 레시피 재료 보기 -->
+  <select id="getMemberRecipeIngredient" resultType="MemberRecipeIngredient">
+    SELECT ingredient_id
+          ,order_id
+          ,recipe_id
+          ,name
+          ,unit
+          ,amount
+      FROM member_recipe_ingredient
+     WHERE recipe_id = #{recipeId}
+       AND ingredient_id = #{ingredientId}
+  </select>
+
+  <!-- 회원 레시피 재료 넣기 -->
+  <insert id="insertMemberRecipeIngredient" >
+    INSERT INTO member_recipe_ingredient
+                (ingredient_id
+                ,order_id
+                ,recipe_id
+                ,name
+                ,unit
+                ,amount)
+          VALUES (#{memberRecipeIngredient.ingredientId}
+                  ,#{memberRecipeIngredient.orderId}
+                  ,#{memberRecipeIngredient.recipeId}
+                  ,#{memberRecipeIngredient.name}
+                  ,#{memberRecipeIngredient.unit}
+                  ,#{memberRecipeIngredient.amount})
+  </insert>
+
+  <!-- 회원 레시피 재료 수정 -->
+  <update id="updateMemberRecipeIngredient">
+    UPDATE member_recipe_ingredient
+       SET order_id = #{memberRecipeIngredient.orderId}
+          ,name = #{memberRecipeIngredient.name}
+          ,unit = #{memberRecipeIngredient.unit}
+          ,amount = #{memberRecipeIngredient.amount}
+     WHERE recipe_id = #{recipeId}
+       AND ingredient_id = #{ingredientId}
+  </update>
+
+  <!-- 회원 레시피 재료 삭제 -->
+  <delete id="deleteMemberRecipeIngredient">
+    DELETE FROM member_recipe_ingredient
+     WHERE recipe_id = #{recipeId}
+     <if test="ingredientId != '' and ingredientId != null">
+       AND ingredient_id = #{ingredientId}
+     </if>
+  </delete>
+
+  <!-- 회원 레시피 과정 목록 -->
+  <select id="getMemberRecipeProcessList" resultType="MemberRecipeProcess">
+    SELECT recipe_process_id
+          ,recipe_id
+          ,recipe_number
+          ,img_id
+          ,contents
+      FROM member_recipe_process
+     WHERE recipe_id = #{recipeId}
+  </select>
+
+  <!-- 회원 레시피 과정 보기 -->
+  <select id="getMemberRecipeProcess" resultType="MemberRecipeProcess">
+    SELECT recipe_process_id
+          ,recipe_id
+          ,recipe_number
+          ,img_id
+          ,contents
+      FROM member_recipe_process
+     WHERE recipe_id = #{recipeId}
+       AND recipe_process_id = #{recipeProcessId}
+  </select>
+
+  <!-- 회원 레시피 과정 넣기 -->
+  <insert id="insertMemberRecipeProcess">
+    INSERT INTO member_recipe_process
+                (recipe_process_id
+                ,recipe_id
+                ,recipe_number
+                ,img_id
+                ,contents)
+          VALUES (#{memberRecipeProcess.recipeProcessId}
+                  ,#{memberRecipeProcess.recipeId}
+                  ,#{memberRecipeProcess.recipeNumber}
+                  ,#{memberRecipeProcess.imgId}
+                  ,#{memberRecipeProcess.contents})
+  </insert>
+
+  <!-- 회원레시피 과정 수정 -->
+  <update id="updateMemberRecipeProcess">
+    UPDATE member_recipe_process
+       SET recipe_number = #{memberRecipeProcess.recipeNumber}
+          ,img_id = #{memberRecipeProcess.imgId}
+          ,contents #{memberRecipeProcess.contents}
+     WHERE recipe_id = #{recipeId}
+       AND recipe_process_id = #{recipeProcessId}
+  </update>
+
+  <!-- 회원레시피 과정 삭제 -->
+  <delete id="deleteMemberRecipeProcess">
+    DELETE FROM member_recipe_process
+     WHERE recipe_id = #{recipeId}
+     <if test="recipeProcessId != '' and recipeProcessId != null">
+       AND recipe_process_id = #{recipeProcessId}
+     </if>
+  </delete>
+
+  <!-- 레시피 이미지 보기 -->
+  <select id="getMemberRecipeImages" resultType="MemberRecipeImages">
+    SELECT img_id
+          ,org_img_name
+          ,server_img_name
+          ,extension
+          ,img_file_size
+          ,server_img_path
+          ,web_img_path
+      FROM member_recipe_images
+     WHERE img_id = #{imgId}
+  </select>
+
+  <!-- 레시피 이미지 넣기 -->
+  <insert id="insertMemberRecipeImages">
+    INSERT INTO member_recipe_images
+                (img_id
+                ,org_img_name
+                ,server_img_name
+                ,extension
+                ,img_file_size
+                ,server_img_path
+                ,web_img_path)
+          VALUES (#{memberRecipeImages.imgId}
+                  ,#{memberRecipeImages.orgImgName}
+                  ,#{memberRecipeImages.serverImgName}
+                  ,#{memberRecipeImages.extension}
+                  ,#{memberRecipeImages.imgFileSize}
+                  ,#{memberRecipeImages.serverImgPath}
+                  ,#{memberRecipeImages.memberRecipe})
+  </insert>
+
+  <!-- 레시피 이미지 수정 -->
+  <update id="updateMemberRecipeImages">
+    UPDATE member_recipe_images
+       SET org_img_name = #{memberRecipeImages.orgImgName}
+          ,server_img_name = #{memberRecipeImages.serverImgName}
+          ,extension = #{memberRecipeImages.extension}
+          ,img_file_size = #{memberRecipeImages.imgFileSize}
+          ,server_img_path = #{memberRecipeImages.serverImgPath}
+          ,web_img_path = #{memberRecipeImages.memberRecipe})
+     WHERE img_id = #{imgId}
+  </update>
+
+  <!-- 레시피 이미지 삭제 -->
+  <delete id="deleteMemberRecipeImages">
+    DELETE FROM member_recipe_images
+     WHERE img_id = #{imgId}
+  </delete>
+
+  <!-- 레시피 댓글 수 -->
+  <select id="getRecipeCommentCount" resultType="int">
+    SELECT COUNT(*)
+      FROM recipe_comment
+     WHERE recipe_id = #{recipe_id}
+  </select>
+
+  <!-- 회원레시피 댓글목록 -->
+  <select id="getRecipeCommentList" resultMap="recipeCommentResultMap">
+    SELECT a.comment_id
+          ,a.member_id
+          ,a.comment
+          ,a.recipe_id
+          ,a.rate
+          ,a.reg_dt
+          ,a.upt_dt
+          ,a.status
+          ,a.p_comment_id
+          ,b.user_id
+          ,b.NAME
+          ,b.phone
+          ,b.role
+          ,b.email
+      FROM recipe_comment a
+          ,member b
+     WHERE a.recipe_id = ${recipeId}
+       AND a.member_id = b.member_id
+     <if test="pCommentid != '' and pCommentid != null">
+       AND p_comment_id = #{pCommentid}
+     </if>
+     <if test="pCommentid = '' or pCommentid = null">
+      AND p_comment_id IS NOT NULL
+    </if>
+    ORDER BY a.reg_dt DESC
+    LIMIT #{start}, #{display}
+  </select>
+
+  <!-- 회원레시피 댓글 보기 -->
+  <select id="getRecipeComment" resultMap="recipeCommentResultMap">
+    SELECT comment_id
+          ,member_id
+          ,comment
+          ,recipe_id
+          ,rate
+          ,reg_dt
+          ,upt_dt
+          ,status
+          ,p_comment_id
+      FROM recipe_comment
+     WHERE recipe_id = ${recipeId}
+       AND comment_id = ${commentId}
+  </select>
+
+  <!-- 회원레시피 댓글 쓰기 -->
+  <insert id="insertRecipeComment">
+    INSERT INTO recipe_comment
+                (comment_id
+                ,member_id
+                ,comment
+                ,recipe_id
+                ,rate
+                ,reg_dt
+                ,status
+                ,p_comment_id)
+          VALUES (#{recipeComment.commentId}
+                  ,#{recipeComment.memberId}
+                  ,#{recipeComment.comment}
+                  ,#{recipeComment.recipeId}
+                  ,#{recipeComment.rate}
+                  ,TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+                  ,#{recipeComment.status}
+                  ,#{recipeComment.pCommentId})
+  </insert>
+
+  <!-- 회원레시피 댓글 수정 -->
+  <update id="updateRecipeComment">
+    UPDATE recipe_comment
+       SET comment = #{recipeComment.comment}
+          ,rate = #{recipeComment.rate}
+          ,upt_dt = TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS')
+     WHERE comment_id = #{recipeComment.commentId}
+       AND recipe_id = #{recipeComment.recipeId}
+  </update>
+
+  <!-- 회원레시피 댓글 삭제 -->
+  <delete id="deleteRecipeComment">
+    DELETE FROM recipe_comment
+     WHERE comment_id = #{recipeComment.commentId}
+       AND recipe_id = #{recipeComment.recipeId}
+  </delete>
+
+  <!-- 레시피 카테고리 수 -->
+  <select id="getRecipeCategoryCount" resultType="int">
+    SELECT COUNT(*)
+      FROM recipe_category
+  </select>
+
+  <!-- 레시피 카테고리 목록 -->
+  <select id="getRecipeCategoryList" resultType="RecipeCategory">
+    SELECT recipe_category_id
+          ,name
+      FROM recipe_category
+    LIMIT #{start}, #{display}
+  </select>
+
+  <!-- 레시피 카테고리 보기-->
+  <select id="getRecipeCategory" resultType="RecipeCategory">
+    SELECT recipe_category_id
+          ,name
+      FROM recipe_category
+     WHERE recipe_category_id = #{recipeCategoryId}
+  </select>
+
+  <!-- 레시피 카테고리 추가 -->
+  <insert id="insertRecipeCategory">
+    INSERT INTO recipe_category
+                (recipe_category_id
+                ,name)
+            VALUES #{recipeCategory.recipe_category_id}
+                  ,#{recipeCategory.name}
+  </insert>
+
+  <!-- 레시피 카테고리 수정 -->
+  <update id="updateRecipeCategory">
+    UPDATE recipe_category
+       SET name = #{name}
+     WHERE recipe_category_id = #{recipeCategoryId}
+  </update>
+
+  <!-- 레시피 카테고리 삭제 -->
+  <delete id="deleteRecipeCategory">
+    DELETE FROM recipe_category
+     WHERE recipe_category_id = #{recipeCategoryId}
+  </delete>
+
+  <!-- 레시피 찜 수 -->
+  <select id="getMemberRecipeLikeCount" resultType="int">
+    SELECT COUNT(*)
+      FROM recipe_like
+     WHERE recipe_id = #{recipeId}
+  </select>
+
+</mapper>
