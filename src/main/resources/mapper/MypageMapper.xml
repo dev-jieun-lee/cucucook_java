@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="com.example.cucucook.mapper.MypageMapper">
+
+    <!-- 회원이 쓴 글 갯수 -->
+    <select id="getMemberBoardCount" resultType="int">
+        SELECT COUNT(*)
+        FROM board
+        WHERE memberId = #{memberId}
+    </select>
+
+    <!-- 회원이 쓴 글 목록 -->
+    <select id="getMemberBoardList" resultType="com.example.cucucook.domain.Board">
+        SELECT *
+        FROM board
+        WHERE memberId = #{memberId}
+        ORDER BY created_at DESC
+        LIMIT #{start}, #{display}
+    </select>
+
+    <!-- 회원이 쓴 댓글 갯수 -->
+    <select id="getRecipeCommentCount" resultType="int">
+        SELECT COUNT(*)
+        FROM recipe_comment
+        WHERE memberId = #{memberId}
+    </select>
+
+    <!-- 회원이 쓴 댓글 목록 -->
+    <select id="getRecipeCommentList" resultType="com.example.cucucook.domain.RecipeComment">
+        SELECT *
+        FROM recipe_comment
+        WHERE memberId = #{memberId}
+        ORDER BY created_at DESC
+        LIMIT #{start}, #{display}
+    </select>
+
+    <!-- 회원이 찜한 레시피 갯수 -->
+    <select id="getMemberRecipeLikeCount" resultType="int">
+        SELECT COUNT(*)
+        FROM recipe_like
+        WHERE memberId = #{memberId}
+    </select>
+
+    <!-- 회원 레시피 찜 목록 -->
+    <select id="getRecipeLikeList" resultType="com.example.cucucook.domain.RecipeLike">
+        SELECT *
+        FROM recipe_like
+        WHERE memberId = #{memberId}
+        ORDER BY created_at DESC
+        LIMIT #{start}, #{display}
+    </select>
+
+    <!-- 회원 레시피 찜 보기 -->
+    <select id="getRecipeLike" resultType="com.example.cucucook.domain.RecipeLike">
+        SELECT *
+        FROM recipe_like
+        WHERE memberId = #{memberId}
+        AND recipeId = #{recipeId}
+    </select>
+
+    <!-- 회원 레시피 찜 추가 -->
+    <insert id="insertRecipeLike">
+        INSERT INTO recipe_like (memberId, recipeId)
+        VALUES (#{recipeLike.memberId}, #{recipeLike.recipeId})
+    </insert>
+
+    <!-- 회원 레시피 찜 삭제 -->
+    <delete id="deleteRecipeLike">
+        DELETE FROM recipe_like
+        WHERE memberId = #{memberId}
+        AND recipeId = #{recipeId}
+    </delete>
+
+</mapper>

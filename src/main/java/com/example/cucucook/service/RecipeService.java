@@ -10,6 +10,7 @@ import com.example.cucucook.domain.RecipeComment;
 
 public interface RecipeService {
 
+
     //회원 레시피 목록 분기
     public ApiResponse<List<MemberRecipe>> getMemberRecipeList(String search, String recipeCategoryId, int start, int display, String orderby, String division);
 
