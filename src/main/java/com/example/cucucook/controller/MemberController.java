@@ -3,12 +3,15 @@ package com.example.cucucook.controller;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.service.MemberService;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import jakarta.servlet.http.HttpSession;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
@@ -34,8 +37,10 @@ public class MemberController {
     public ResponseEntity<String> login(@RequestBody Member loginRequest) {
         Member member = memberService.login(loginRequest.getUserId(), loginRequest.getPassword());
         if (member != null) {
+             System.out.println("로그인 성공");
             return ResponseEntity.ok("Login successful");
         } else {
+            System.out.println("로그인 실패");
             return ResponseEntity.status(401).body("Invalid credentials");
         }
     }
@@ -47,7 +52,33 @@ public class MemberController {
         if (auth != null) {
             new SecurityContextLogoutHandler().logout(request, response, auth);
         }
+        System.out.println("로그아웃 성공");
+        System.out.println("auth: " + auth.getPrincipal() + " " + auth.getDetails());
     }
+
+    //로그인 체크
+    @GetMapping("/check-login")
+    public void  checkLoginStatus(HttpServletRequest request, HttpServletResponse response) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        HttpSession session = request.getSession(false); // 기존 세션이 없으면 null 반환
+
+        if (auth == null
+            || !auth.isAuthenticated()
+            || (auth.getPrincipal() instanceof UserDetails && ((UserDetails) auth.getPrincipal()).getUsername().equals("anonymousUser"))
+            || session == null) {
+            // 인증되지 않은 경우
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 상태 코드 반환
+            System.out.println("인증되지 않은 경우 401");
+        } else {
+            // 인증된 경우
+            response.setStatus(HttpServletResponse.SC_OK); // 200 상태 코드 반환
+            System.out.println("인증된 경우 200");
+            System.out.println("200의 경우: " + HttpServletResponse.SC_OK);
+            System.out.println("auth: " + auth.getPrincipal() + " " + auth.getDetails());
+        }
+    }
+
+
 
     // 회원 등록
     @PostMapping("/register")
