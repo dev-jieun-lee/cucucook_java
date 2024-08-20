@@ -14,6 +14,7 @@ public interface MemberService {
     Member getMember(Long memberId);
 
     //회원가입
+    boolean checkPhoneExists(String phone);
     void registerMember(Member member);
     boolean checkUserIdExists(String userId);
     boolean checkEmailExists(String email);

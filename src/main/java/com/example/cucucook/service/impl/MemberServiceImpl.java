@@ -34,6 +34,13 @@ public class MemberServiceImpl implements MemberService {
         return null; // 로그인 실패 시 null 반환
     }
 
+    //회원가입
+    @Override
+    public boolean checkPhoneExists(String phone) {
+        Member member = memberMapper.findByPhone(phone);
+        return member != null;
+    }
+
     @Override
     public void registerMember(Member member) {
         // 아이디 중복 확인

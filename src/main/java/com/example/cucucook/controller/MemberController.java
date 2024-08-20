@@ -2,9 +2,16 @@ package com.example.cucucook.controller;
 
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.service.MemberService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.security.core.Authentication;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.http.ResponseEntity;
@@ -33,6 +40,15 @@ public class MemberController {
         }
     }
 
+    //로그아웃
+    @PostMapping("/logout")
+    public void logout(HttpServletRequest request, HttpServletResponse response) {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth != null) {
+            new SecurityContextLogoutHandler().logout(request, response, auth);
+        }
+    }
+
     // 회원 등록
     @PostMapping("/register")
     public ResponseEntity<String> registerMember(@RequestBody Member member) {
@@ -43,6 +59,15 @@ public class MemberController {
             return ResponseEntity.badRequest().body(e.getMessage());
         }
     }
+
+    //핸드폰번호 중복 확인
+    @PostMapping("/check-phone")
+    public ResponseEntity<Boolean> checkPhoneNumber(@RequestBody PhoneRequest request) {
+        boolean exists = memberService.checkPhoneExists(request.getPhone());
+        System.out.println("응답값 : "+exists);
+        return ResponseEntity.ok(exists);
+    }
+
 
     // 아이디 중복 체크
     @GetMapping("/check-id/{userId}")
