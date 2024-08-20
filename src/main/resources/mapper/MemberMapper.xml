@@ -10,6 +10,11 @@
         SELECT * FROM member WHERE user_id = #{userId}
     </select>
 
+    <!-- 사용자 핸드폰번호를 기준으로 사용자를 조회 (암호화된 비밀번호 포함) -->
+    <select id="findByPhone" parameterType="String" resultType="com.example.cucucook.domain.Member">
+        SELECT * FROM member WHERE phone = #{phone}
+    </select>
+
     <!-- 회원 수 조회 -->
     <select id="getMemberCount" parameterType="String" resultType="int">
         SELECT COUNT(*)

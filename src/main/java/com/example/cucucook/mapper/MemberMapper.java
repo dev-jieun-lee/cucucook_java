@@ -13,6 +13,8 @@ public interface MemberMapper {
 
     Member findByUserId(@Param("userId") String userId);
 
+    Member findByPhone(String phone);
+
     int getMemberCount(@Param("search") String search);
 
     List<Member> getMemberList(@Param("search") String search, @Param("start") int start, @Param("display") int display);
