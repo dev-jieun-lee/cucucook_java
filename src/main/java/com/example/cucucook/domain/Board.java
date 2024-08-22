@@ -18,7 +18,7 @@ public class Board {
     private String boardDivision;
 
     //회원 고유번호
-    private String memberId;
+    private int memberId;
 
     //제목
     private String title;
@@ -27,7 +27,7 @@ public class Board {
     private String contents;
 
     //카테고리아이디
-    private String categoryId;
+    private String boardCategoryId;
 
     //등록일
     private String regDt;
