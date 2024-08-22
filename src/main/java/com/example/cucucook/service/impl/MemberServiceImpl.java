@@ -1,9 +1,6 @@
 package com.example.cucucook.service.impl;
 
-import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.Member;
-import com.example.cucucook.domain.RecipeComment;
-import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.mapper.MemberMapper;
 import com.example.cucucook.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -24,39 +21,35 @@ public class MemberServiceImpl implements MemberService {
         this.passwordEncoder = passwordEncoder;
     }
 
-    //로그인
+
     @Override
     public Member login(String userId, String password) {
-        Member member = memberMapper.findByUserId(userId);
-        if (member != null && passwordEncoder.matches(password, member.getPassword())) {
-            return member; // 로그인 성공 시 Member 객체 반환
-        }
-        return null; // 로그인 실패 시 null 반환
+        return validateMember(userId, password); // 로그인은 validateMember 메서드를 사용
     }
 
-    //회원가입
+    @Override
+    public Member validateMember(String userId, String password) {
+        Member member = memberMapper.findByUserId(userId);
+        if (member != null && passwordEncoder.matches(password, member.getPassword())) {
+            return member;
+        }
+        return null;
+    }
+
     @Override
     public boolean checkPhoneExists(String phone) {
-        Member member = memberMapper.findByPhone(phone);
-        return member != null;
+        return memberMapper.findByPhone(phone) != null;
     }
 
     @Override
     public void registerMember(Member member) {
-        // 아이디 중복 확인
         if (memberMapper.existsByUserId(member.getUserId())) {
             throw new IllegalArgumentException("User ID is already taken.");
         }
-
-        // 이메일 중복 확인
         if (memberMapper.existsByEmail(member.getEmail())) {
             throw new IllegalArgumentException("Email is already in use.");
         }
-
-        // 비밀번호 암호화
         member.setPassword(passwordEncoder.encode(member.getPassword()));
-
-        // 회원 데이터 저장
         memberMapper.insertMember(member);
     }
 
@@ -88,12 +81,8 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void updateMemberPassword(Member member) {
         member.setPassword(passwordEncoder.encode(member.getPassword()));
-        memberMapper.updateMemberPassword(member);
+      //  memberMapper.updateMemberPassword(member);
     }
-
-
-
-
 
     @Override
     public int getMemberCount(String search) {

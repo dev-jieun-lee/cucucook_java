@@ -1,23 +1,24 @@
 package com.example.cucucook.controller;
 
+import com.example.cucucook.config.JwtTokenProvider;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.service.MemberService;
 
-import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
-import jakarta.servlet.http.HttpSession;
-
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
+
+import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
+
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
-import org.springframework.http.ResponseEntity;
 
 @RestController
 @RequestMapping("/api/members")
@@ -28,56 +29,40 @@ public class MemberController {
     @Autowired
     private MemberService memberService;
 
-    public MemberController(MemberService memberService) {
-        this.memberService = memberService;
-    }
+    @Autowired
+    private JwtTokenProvider tokenProvider;
 
-        //로그인
+    // 로그인 API
     @PostMapping("/login")
-    public ResponseEntity<String> login(@RequestBody Member loginRequest) {
-        Member member = memberService.login(loginRequest.getUserId(), loginRequest.getPassword());
+    public ResponseEntity<?> login(@RequestBody Member loginRequest) {
+        Member member = memberService.validateMember(loginRequest.getUserId(), loginRequest.getPassword());
         if (member != null) {
-             System.out.println("로그인 성공");
-            return ResponseEntity.ok("Login successful");
+             String token = tokenProvider.createToken(member.getUserId(), member.getRole());
+            String userId = member.getUserId();
+            String name = member.getName();
+
+            // 여러 값을 포함하는 Map 생성
+            Map<String, Object> response = new HashMap<>();
+            response.put("token", token);
+            response.put("userId", userId);
+            response.put("name", name);
+
+            return ResponseEntity.ok().body(response); // JWT 토큰과 사용자 ID 반환
         } else {
-            System.out.println("로그인 실패");
-            return ResponseEntity.status(401).body("Invalid credentials");
+            return ResponseEntity.status(401).body(Collections.singletonMap("message", "Authentication failed")); // 로그인 실패
         }
     }
 
-    //로그아웃
+
+    // 로그아웃 API
     @PostMapping("/logout")
-    public void logout(HttpServletRequest request, HttpServletResponse response) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        if (auth != null) {
-            new SecurityContextLogoutHandler().logout(request, response, auth);
+    public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
+        if (authentication != null) {
+            new SecurityContextLogoutHandler().logout(request, response, authentication);
         }
-        System.out.println("로그아웃 성공");
-        System.out.println("auth: " + auth.getPrincipal() + " " + auth.getDetails());
+        return ResponseEntity.ok().body("Logged out successfully");
     }
-
-    //로그인 체크
-    @GetMapping("/check-login")
-    public void  checkLoginStatus(HttpServletRequest request, HttpServletResponse response) {
-        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
-        HttpSession session = request.getSession(false); // 기존 세션이 없으면 null 반환
-
-        if (auth == null
-            || !auth.isAuthenticated()
-            || (auth.getPrincipal() instanceof UserDetails && ((UserDetails) auth.getPrincipal()).getUsername().equals("anonymousUser"))
-            || session == null) {
-            // 인증되지 않은 경우
-            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED); // 401 상태 코드 반환
-            System.out.println("인증되지 않은 경우 401");
-        } else {
-            // 인증된 경우
-            response.setStatus(HttpServletResponse.SC_OK); // 200 상태 코드 반환
-            System.out.println("인증된 경우 200");
-            System.out.println("200의 경우: " + HttpServletResponse.SC_OK);
-            System.out.println("auth: " + auth.getPrincipal() + " " + auth.getDetails());
-        }
-    }
-
 
 
     // 회원 등록
@@ -103,9 +88,9 @@ public class MemberController {
     // 아이디 중복 체크
     @GetMapping("/check-id/{userId}")
     public ResponseEntity<Boolean> checkUserId(@PathVariable String userId) {
-        logger.info("아이디 '{}' 중복 여부를 확인하는 요청을 받았습니다.", userId);
+        logger.info("아이디 '{}' 중복 여부를 확인하는 요청을 받음.", userId);
 
-        logger.debug("memberService.checkUserIdExists 메서드를 호출합니다. userId: {}", userId);
+        logger.debug("memberService.checkUserIdExists 메서드를 호출. userId: {}", userId);
         boolean userIdExists = memberService.checkUserIdExists(userId);
 
         logger.debug("memberService.checkUserIdExists 호출 결과 - userId '{}': {}", userId, userIdExists);
@@ -113,9 +98,9 @@ public class MemberController {
         boolean isAvailable = !userIdExists;
 
         if (isAvailable) {
-            logger.info("아이디 '{}'는 사용 가능합니다.", userId);
+            logger.info("아이디 '{}'는 사용 가능.", userId);
         } else {
-            logger.warn("아이디 '{}'는 이미 사용 중입니다.", userId);
+            logger.warn("아이디 '{}'는 이미 사용 중.", userId);
         }
 
         logger.debug("userId '{}'에 대한 응답 값: {}", userId, isAvailable);
