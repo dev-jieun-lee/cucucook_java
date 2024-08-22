@@ -1,6 +1,5 @@
 package com.example.cucucook.service;
 
-import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
