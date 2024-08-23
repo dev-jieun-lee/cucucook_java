@@ -1,6 +1,8 @@
 package com.example.cucucook.service;
 
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.PasswordFindResponse;
+
 import java.util.List;
 
 public interface MemberService {
@@ -20,5 +22,5 @@ public interface MemberService {
     //아이디 찾기
     Member findId(Member member);
     //비밀번호 찾기
-    boolean findPassword(Member member) throws Exception;
+    PasswordFindResponse findPassword(Member member) throws Exception;
 }

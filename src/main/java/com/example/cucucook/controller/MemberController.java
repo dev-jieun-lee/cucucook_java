@@ -4,6 +4,7 @@ import com.example.cucucook.config.JwtTokenProvider;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.service.MemberService;
 import com.example.cucucook.util.ValidationException;
+import com.example.cucucook.domain.PasswordFindResponse;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -149,21 +150,13 @@ public class MemberController {
             this.foundId = foundId;
         }
     }
-
     @PostMapping("/find-pw")
-    public ResponseEntity<?> findPassword(@RequestBody Member member) {
-        logger.info("Received Member(요청데이터) : ", member); // 로그에 Member 객체 출력
+    public ResponseEntity<PasswordFindResponse> findPassword(@RequestBody Member member) {
         try {
-            boolean result = memberService.findPassword(member);
-            if (result) {
-                return ResponseEntity.ok().body("등록한 휴대폰번호로 임시비밀번호를 발급하였습니다. 로그인 후 반드시 비밀번호를 변경해주세요.");
-            } else {
-                return ResponseEntity.status(404).body("등록한 회원 정보가 없습니다.");
-            }
-        } catch (ValidationException e) {
-            return ResponseEntity.badRequest().body(e.getMessage());
+            PasswordFindResponse response = memberService.findPassword(member);
+            return ResponseEntity.ok(response);
         } catch (Exception e) {
-            return ResponseEntity.status(500).body("서버 오류가 발생했습니다.");
+            return ResponseEntity.status(500).body(new PasswordFindResponse(false, "서버 오류가 발생했습니다.", null, null));
         }
     }
 }

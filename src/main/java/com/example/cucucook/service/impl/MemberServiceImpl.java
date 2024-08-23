@@ -1,6 +1,7 @@
 package com.example.cucucook.service.impl;
 
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.PasswordFindResponse;
 import com.example.cucucook.mapper.MemberMapper;
 import com.example.cucucook.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +12,7 @@ import com.example.cucucook.service.EmailService;
 import java.security.SecureRandom;
 import java.util.Base64;
 import java.util.List;
+import org.mindrot.jbcrypt.BCrypt;
 
 @Service
 public class MemberServiceImpl implements MemberService {
@@ -106,21 +108,25 @@ public class MemberServiceImpl implements MemberService {
 
     //비밀번호 찾기
     @Override
-    public boolean findPassword(Member member) throws Exception {
+    public PasswordFindResponse findPassword(Member member) throws Exception {
         Member existingMember = memberMapper.findMemberByIdNameAndPhone(member);
-        if (existingMember != null) {
-            // 임시 비밀번호 발급
-            String tempPassword = generateTempPassword();
-            existingMember.setPassword(tempPassword);
-            memberMapper.updatePassword(existingMember);
+    if (existingMember != null) {
+        // 임시 비밀번호 발급
+        String tempPassword = generateTempPassword();
+        String hashedPassword = passwordEncoder.encode(tempPassword); // bcrypt로 암호화
 
-            // 비밀번호 전송 로직 구현
-            sendTempPassword(existingMember);
+        existingMember.setPassword(hashedPassword);
+        memberMapper.updatePassword(existingMember);
 
-            return true;
-        }
-        return false;
+        // 비밀번호 전송 로직 구현
+        sendTempPassword(existingMember, tempPassword); // 원본 비밀번호를 이메일로 전송
+
+        // 응답 객체 생성
+        return new PasswordFindResponse(true, "Temporary password has been sent to the email.", existingMember.getUserId(), tempPassword);
+    } else {
+        return new PasswordFindResponse(false, "No member found with the provided details.", null, null);
     }
+}
 
     private String generateTempPassword() {
         SecureRandom random = new SecureRandom();
@@ -129,9 +135,9 @@ public class MemberServiceImpl implements MemberService {
         return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
-    private void sendTempPassword(Member member) {
+    private void sendTempPassword(Member member, String tempPassword) {
         String subject = "임시 비밀번호 발급 안내";
-        String body = "안녕하세요,\n\n임시 비밀번호가 발급되었습니다. 로그인 후 반드시 비밀번호를 변경해주세요.\n\n임시 비밀번호: " + member.getPassword();
+        String body = "안녕하세요,\n\n임시 비밀번호가 발급되었습니다. 로그인 후 반드시 비밀번호를 변경해주세요.\n\n임시 비밀번호: " + tempPassword;
 
         // 이메일 발송
         emailService.send(member.getEmail(), subject, body);
