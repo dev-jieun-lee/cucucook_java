@@ -1,16 +1,14 @@
 package com.example.cucucook.service.impl;
 
-import com.example.cucucook.domain.Board;
-import com.example.cucucook.domain.Member;
-import com.example.cucucook.domain.RecipeComment;
-import com.example.cucucook.domain.RecipeLike;
-import com.example.cucucook.mapper.MemberMapper;
-import com.example.cucucook.service.MemberService;
+import java.util.List;
+
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.example.cucucook.domain.Member;
+import com.example.cucucook.mapper.MemberMapper;
+import com.example.cucucook.service.MemberService;
 
 @Service
 public class MemberServiceImpl implements MemberService {
@@ -90,10 +88,6 @@ public class MemberServiceImpl implements MemberService {
         member.setPassword(passwordEncoder.encode(member.getPassword()));
         memberMapper.updateMemberPassword(member);
     }
-
-
-
-
 
     @Override
     public int getMemberCount(String search) {
