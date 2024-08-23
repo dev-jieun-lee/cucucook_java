@@ -6,7 +6,10 @@ import com.example.cucucook.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import com.example.cucucook.service.EmailService;
 
+import java.security.SecureRandom;
+import java.util.Base64;
 import java.util.List;
 
 @Service
@@ -14,13 +17,14 @@ public class MemberServiceImpl implements MemberService {
 
     private final MemberMapper memberMapper;
     private final PasswordEncoder passwordEncoder;
+    private final EmailService emailService;
 
     @Autowired
-    public MemberServiceImpl(MemberMapper memberMapper, PasswordEncoder passwordEncoder) {
+    public MemberServiceImpl(MemberMapper memberMapper, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.memberMapper = memberMapper;
         this.passwordEncoder = passwordEncoder;
+        this.emailService = emailService;
     }
-
 
     @Override
     public Member login(String userId, String password) {
@@ -98,5 +102,38 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public Member findId(Member member) {
         return memberMapper.findId(member);
+    }
+
+    //비밀번호 찾기
+    @Override
+    public boolean findPassword(Member member) throws Exception {
+        Member existingMember = memberMapper.findMemberByIdNameAndPhone(member);
+        if (existingMember != null) {
+            // 임시 비밀번호 발급
+            String tempPassword = generateTempPassword();
+            existingMember.setPassword(tempPassword);
+            memberMapper.updatePassword(existingMember);
+
+            // 비밀번호 전송 로직 구현
+            sendTempPassword(existingMember);
+
+            return true;
+        }
+        return false;
+    }
+
+    private String generateTempPassword() {
+        SecureRandom random = new SecureRandom();
+        byte[] bytes = new byte[16];
+        random.nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
+    }
+
+    private void sendTempPassword(Member member) {
+        String subject = "임시 비밀번호 발급 안내";
+        String body = "안녕하세요,\n\n임시 비밀번호가 발급되었습니다. 로그인 후 반드시 비밀번호를 변경해주세요.\n\n임시 비밀번호: " + member.getPassword();
+
+        // 이메일 발송
+        emailService.send(member.getEmail(), subject, body);
     }
 }

@@ -90,4 +90,19 @@
         FROM member
         WHERE name = #{name} AND phone = #{phone}
     </select>
+
+    <!-- 비밀번호 찾기 -->
+    <select id="findMemberByIdNameAndPhone" parameterType="com.example.cucucook.domain.Member" resultType="com.example.cucucook.domain.Member">
+        SELECT * FROM member
+        WHERE user_id = #{userId} AND name = #{name} AND phone = #{phone}
+    </select>
+
+    <!--비밀번호 업데이트-->
+        <update id="updatePassword" parameterType="com.example.cucucook.domain.Member">
+        UPDATE member
+        SET password = #{password}
+        WHERE user_id = #{userId}
+          AND name = #{name}
+          AND phone = #{phone}
+    </update>
 </mapper>
