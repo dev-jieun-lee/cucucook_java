@@ -2,6 +2,8 @@ package com.example.cucucook.config;
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+
+import io.jsonwebtoken.JwtBuilder;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.SignatureAlgorithm;
 import io.jsonwebtoken.security.Keys;
@@ -30,13 +32,15 @@ public class JwtTokenProvider {
         Date now = new Date();
         Date validity = new Date(now.getTime() + 3600000); // 토큰 유효 시간: 1시간
 
-        return Jwts.builder()
-            .setSubject(userId) // 사용자 ID 설정
+        // JwtBuilder를 사용하여 JWT 생성
+        JwtBuilder builder = Jwts.builder()
+            .subject(userId) // 사용자 ID 설정
             .claim("roles", role) // 역할 설정
-            .setIssuedAt(now) // 발급 시간 설정
-            .setExpiration(validity) // 만료 시간 설정
-            .signWith(getKey(), SignatureAlgorithm.HS256) // Key 객체와 알고리즘을 사용하여 서명
-            .compact();
+            .issuedAt(now) // 발급 시간 설정
+            .expiration(validity) // 만료 시간 설정
+            .signWith(this.getKey()); // Key 객체와 알고리즘을 사용하여 서명
+
+        return builder.compact(); // JWT 문자열 반환
     }
 
     // JWT 토큰 유효성 검사 메서드
