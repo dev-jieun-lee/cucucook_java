@@ -21,4 +21,6 @@ public interface MemberMapper {
     boolean existsByUserId(@Param("userId") String userId);
     boolean existsByEmail(@Param("email") String email);
     void updateMemberPassword(Member member);
+    //아이디찾기
+    Member findId(Member member);
 }

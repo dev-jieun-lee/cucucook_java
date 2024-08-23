@@ -117,4 +117,37 @@ public class MemberController {
     }
 
 
+    // 아이디 찾기
+    @PostMapping("/find-id")
+    public ResponseEntity<?> findId(@RequestBody Member member) {
+        logger.info("Received Member(요청데이터) : ", member); // 로그에 Member 객체 출력
+        try {
+            Member foundMember = memberService.findId(member);
+            if (foundMember != null && foundMember.getUserId() != null) {
+                return ResponseEntity.ok().body(new FindIdResponse(foundMember.getUserId()));
+            } else {
+                return ResponseEntity.ok().body(new FindIdResponse(null));
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("아이디 찾기 오류");
+        }
+    }
+
+
+    public static class FindIdResponse {
+        private String foundId;
+
+        public FindIdResponse(String foundId) {
+            this.foundId = foundId;
+        }
+
+        public String getFoundId() {
+            return foundId;
+        }
+
+        public void setFoundId(String foundId) {
+            this.foundId = foundId;
+        }
+    }
+
 }

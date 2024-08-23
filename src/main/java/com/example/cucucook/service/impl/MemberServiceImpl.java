@@ -93,4 +93,10 @@ public class MemberServiceImpl implements MemberService {
     public List<Member> getMemberList(String search, int start, int display) {
         return memberMapper.getMemberList(search, start, display);
     }
+
+    //아이디찾기
+    @Override
+    public Member findId(Member member) {
+        return memberMapper.findId(member);
+    }
 }
