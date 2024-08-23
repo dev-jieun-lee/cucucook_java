@@ -4,7 +4,9 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -26,7 +28,7 @@ public class RecipeController {
     private RecipeService recipeService;
 
     @GetMapping(value = "/getMemberRecipeList")
-    public ApiResponse<List<MemberRecipe>> getMemberRecipeList(@RequestParam String search, @RequestParam String recipeCategoryId, @RequestParam int start, @RequestParam int display, @RequestParam String orderby, @RequestParam String division) {
+    public ApiResponse<List<MemberRecipe>> getMemberRecipeList(@RequestParam String search, @RequestParam String recipeCategoryId, @RequestParam(value = "start", required = false, defaultValue = "1") int start, @RequestParam(value = "display", required = true, defaultValue = "20") int display, @RequestParam String orderby, @RequestParam String division) {
         return recipeService.getMemberRecipeList(search, recipeCategoryId, start, display, orderby, division);
     }
 
@@ -40,12 +42,12 @@ public class RecipeController {
         return recipeService.insertMemberRecipe(memberRecipe);
     }
 
-    @PostMapping(value = "/updateMemberRecipe")
+    @PatchMapping(value = "/updateMemberRecipe")
     public ApiResponse<Integer> updateMemberRecipe(@RequestBody MemberRecipe memberRecipe) {
         return recipeService.updateMemberRecipe(memberRecipe);
     }
 
-    @PostMapping(value = "/deleteMemberRecipe")
+    @DeleteMapping(value = "/deleteMemberRecipe")
     public ApiResponse<Integer> updateMemberRecipe(@RequestParam String recipeId) {
         return recipeService.deleteMemberRecipe(recipeId);
     }

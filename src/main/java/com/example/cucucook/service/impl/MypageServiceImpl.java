@@ -1,19 +1,16 @@
 package com.example.cucucook.service.impl;
 
-import com.example.cucucook.domain.Board;
-import com.example.cucucook.domain.Member;
-import com.example.cucucook.domain.RecipeComment;
-import com.example.cucucook.domain.RecipeLike;
-import com.example.cucucook.mapper.MemberMapper;
-import com.example.cucucook.mapper.MypageMapper;
-import com.example.cucucook.service.MemberService;
-import com.example.cucucook.service.MypageService;
+import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
-import java.util.List;
+import com.example.cucucook.domain.Board;
+import com.example.cucucook.domain.RecipeComment;
+import com.example.cucucook.domain.RecipeLike;
+import com.example.cucucook.mapper.MypageMapper;
+import com.example.cucucook.service.MypageService;
 
 @Service
 public class MypageServiceImpl implements MypageService {
@@ -71,6 +68,5 @@ public class MypageServiceImpl implements MypageService {
     public void removeRecipeLike(Long memberId, String recipeId) {
         mypageMapper.deleteRecipeLike(memberId.intValue(), recipeId);
     }
-
 
 }

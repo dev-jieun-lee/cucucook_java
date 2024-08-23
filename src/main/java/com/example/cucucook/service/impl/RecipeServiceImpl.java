@@ -27,9 +27,6 @@ public class RecipeServiceImpl implements RecipeService {
     @Override
     public ApiResponse<List<MemberRecipe>> getMemberRecipeList(String search, String recipeCategoryId, int start, int display, String orderby, String division) {
 
-        start = start > 0 ? start : 1;
-        display = display > 0 ? display : 10;
-
         List<MemberRecipe> memberRecipeList = !"OPEN".equals(division) ? getMemberRecipePrivateApiList(search, recipeCategoryId, start, display, orderby) : getMemberRecipeOpenApiList(search, start, display);
         String message = (memberRecipeList == null || memberRecipeList.isEmpty()) ? "회원 레시피 목록이 없습니다." : "회원 레시피 목록 조회 성공";
         boolean success = memberRecipeList != null && !memberRecipeList.isEmpty();
