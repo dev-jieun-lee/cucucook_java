@@ -1,18 +1,18 @@
 package com.example.cucucook.mapper;
 
-import java.util.List;
-
+import com.example.cucucook.domain.Member;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
-
-import com.example.cucucook.domain.Member;
+import java.util.List;
 
 @Mapper
 public interface MemberMapper {
 
     Member findByUserId(@Param("userId") String userId);
 
-    Member findByPhone(String phone);
+    Member findByPhone(@Param("phone") String phone);
+
+    Member findByEmail(@Param("email") String email);
 
     int getMemberCount(@Param("search") String search);
 
@@ -34,4 +34,6 @@ public interface MemberMapper {
 
     void updateMemberPassword(Member member);
 
+    //아이디찾기
+    Member findId(Member member);
 }

@@ -7,12 +7,12 @@
 
     <!-- 사용자 아이디를 기준으로 사용자를 조회 (암호화된 비밀번호 포함) -->
     <select id="findByUserId" parameterType="String" resultType="com.example.cucucook.domain.Member">
-        SELECT * FROM member WHERE user_id = #{userId}
+        SELECT member_id, user_id,name,phone,password,role,email,sms_noti,email_noti FROM member WHERE user_id = #{userId}
     </select>
 
     <!-- 사용자 핸드폰번호를 기준으로 사용자를 조회 (암호화된 비밀번호 포함) -->
     <select id="findByPhone" parameterType="String" resultType="com.example.cucucook.domain.Member">
-        SELECT * FROM member WHERE phone = #{phone}
+        SELECT  member_id, user_id,name,phone,password,role,email,sms_noti,email_noti FROM member WHERE phone = #{phone}
     </select>
 
     <!-- 회원 수 조회 -->
@@ -24,7 +24,7 @@
 
     <!-- 회원 목록 조회 -->
     <select id="getMemberList" parameterType="map" resultType="com.example.cucucook.domain.Member">
-        SELECT *
+        SELECT  member_id, user_id,name,phone,password,role,email,sms_noti,email_noti
         FROM member
         WHERE name LIKE CONCAT('%', #{search}, '%')
         ORDER BY member_id
@@ -33,7 +33,7 @@
 
     <!-- 회원 보기 -->
     <select id="getMember" parameterType="int" resultType="com.example.cucucook.domain.Member">
-        SELECT *
+        SELECT  member_id, user_id,name,phone,password,role,email,sms_noti,email_noti
         FROM member
         WHERE member_id = #{memberId}
     </select>
@@ -84,4 +84,10 @@
         WHERE email = #{email}
     </select>
 
+     <!-- 아이디 찾기 -->
+    <select id="findId" parameterType="com.example.cucucook.domain.Member" resultType="com.example.cucucook.domain.Member">
+        SELECT user_id AS userId
+        FROM member
+        WHERE name = #{name} AND phone = #{phone}
+    </select>
 </mapper>
