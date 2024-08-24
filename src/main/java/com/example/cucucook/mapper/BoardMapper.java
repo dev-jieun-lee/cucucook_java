@@ -20,6 +20,9 @@ public interface BoardMapper {
     // 게시판 보기
     Board getBoard(@Param("boardId") String boardId);
 
+    //게시판 조회수 증가
+    void updateViewCount(@Param("boardId") String boardId);
+
     // 게시판 작성
     int insertBoard(@Param("board") Board board);
 
@@ -64,5 +67,6 @@ public interface BoardMapper {
 
     // 게시판 카테고리 삭제
     int deleteBoardCategory(@Param("boardCategoryId") String boardCategoryId);
+
 
 }
