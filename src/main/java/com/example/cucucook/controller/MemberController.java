@@ -37,7 +37,7 @@ public class MemberController {
     public ResponseEntity<?> login(@RequestBody Member loginRequest) {
         Member member = memberService.validateMember(loginRequest.getUserId(), loginRequest.getPassword());
         if (member != null) {
-             String token = tokenProvider.createToken(member.getUserId(), member.getRole());
+            String token = tokenProvider.createToken(member.getUserId(), member.getRole());
             String userId = member.getUserId();
             String name = member.getName();
 
