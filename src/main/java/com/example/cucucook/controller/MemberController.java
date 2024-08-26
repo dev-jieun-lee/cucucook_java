@@ -43,6 +43,7 @@ public class MemberController {
             String userId = member.getUserId();
             String name = member.getName();
             String role = member.getRole();
+            int memberId = member.getMemberId();
 
             // 여러 값을 포함하는 Map 생성
             Map<String, Object> response = new HashMap<>();
@@ -50,6 +51,7 @@ public class MemberController {
             response.put("userId", userId);
             response.put("name", name);
             response.put("role", role);
+            response.put("memberId", memberId);
 
             return ResponseEntity.ok().body(response); // JWT 토큰과 사용자 ID 반환
         } else {
