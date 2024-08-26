@@ -42,12 +42,14 @@ public class MemberController {
              String token = tokenProvider.createToken(member.getUserId(), member.getRole());
             String userId = member.getUserId();
             String name = member.getName();
+            String role = member.getRole();
 
             // 여러 값을 포함하는 Map 생성
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);
             response.put("userId", userId);
             response.put("name", name);
+            response.put("role", role);
 
             return ResponseEntity.ok().body(response); // JWT 토큰과 사용자 ID 반환
         } else {
