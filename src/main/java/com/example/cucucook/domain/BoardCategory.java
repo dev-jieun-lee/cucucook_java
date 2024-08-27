@@ -19,4 +19,14 @@ public class BoardCategory {
 
     //카테고리구분 (QNA, FAQ, BOARD)
     private String division;
+
+    //카테고리 색깔
+    private String color;
+
+    //등록일
+    private String regDt;
+
+    //수정일
+    private String udtDt;
+    
 }
