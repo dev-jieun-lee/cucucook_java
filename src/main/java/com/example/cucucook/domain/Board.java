@@ -20,6 +20,9 @@ public class Board {
     //회원 고유번호
     private int memberId;
 
+    //작성자
+    private String userName;
+
     //제목
     private String title;
 

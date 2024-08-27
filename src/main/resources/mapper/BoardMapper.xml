@@ -35,6 +35,7 @@
           ,p_board_id
           ,udt_dt
           ,reg_dt
+          ,user_name
     FROM Board
     <where>
       <!-- 조건이 있을 때만 검색 조건을 추가 -->
@@ -62,6 +63,7 @@
           ,contents
           ,udt_dt
           ,reg_dt
+          ,user_name
     FROM Board
     WHERE board_id = #{boardId}
 </select>
@@ -91,7 +93,8 @@
         board_category_id,
         reg_dt,
         udt_dt,
-        status
+        status,
+        user_name
     ) VALUES (
         #{board.memberId},
         #{board.boardId},
@@ -101,7 +104,8 @@
         #{board.boardCategoryId},
         #{board.regDt},
         #{board.udtDt},
-        #{board.status}
+        #{board.status},
+        #{board.userName}
     )
 </insert>
 
@@ -122,10 +126,38 @@
     SELECT board_category_id
           ,name
           ,division
+          ,color
     FROM board_category
 </select>
 
+<!-- 카테고리 상세 조회 -->
+<select id="getBoardCategory" resultMap="CategoryResultMap">
+    SELECT board_category_id
+          ,name
+          ,division
+          ,color
+    FROM board_category
+    WHERE board_category_id = #{boardCategoryId}
+</select>
 
+<!-- 카테고리 등록 -->
+<insert id="insertBoardCategory" parameterType="BoardCategory">
+    INSERT INTO board_category (
+        board_category_id,
+        name,
+        division,
+        color,
+        reg_dt,
+        udt_dt
+    ) VALUES (
+        #{boardCategory.boardCategoryId},
+        #{boardCategory.name},
+        #{boardCategory.division},
+        #{boardCategory.color},
+        #{boardCategory.regDt},
+        #{boardCategory.udtDt}
+    )
+</insert>
 
 
 </mapper>

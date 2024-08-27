@@ -28,6 +28,7 @@ public class BoardController {
   @Autowired
   private BoardService boardService;
 
+  //*********게시판 */
   // 게시판 목록 조회
   @GetMapping(value = "/getBoardList")
   public ApiResponse<List<Board>> getBoardList(@RequestParam String search, @RequestParam String boardCategoryId,
@@ -59,11 +60,26 @@ public class BoardController {
     return boardService.deleteBoard(boardId);
   }
 
+
+  // ****************카테고리
   // 카테고리 목록 조회
   @GetMapping(value = "/getBoardCategoryList")
   public ApiResponse<List<BoardCategory>> getBoardCategoryList( 
       @RequestParam(value = "start", required = false, defaultValue="1") int start, @RequestParam(value = "display", required = true, defaultValue = "20") int display) {
     return boardService.getBoardCategoryList(start, display);
   }
+
+  //카테고리 상세 조회
+  @GetMapping(value = "/getBoardCategory")
+  public HashMap<String, Object> getBoardCategory(@RequestParam String boardCategoryId) {
+    return boardService.getBoardCategory(boardCategoryId);
+  }
+
+  //카테고리 등록
+  @PostMapping(value = "/insertBoardCategory")
+  public HashMap<String, Object> insertBoardCategory(@RequestBody BoardCategory boardCategory) {
+    return boardService.insertBoardCategory(boardCategory);
+  }
+  
 
 }

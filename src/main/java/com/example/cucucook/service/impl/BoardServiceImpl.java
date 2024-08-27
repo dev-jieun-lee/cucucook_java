@@ -62,7 +62,7 @@ public class BoardServiceImpl implements BoardService {
   public HashMap<String, Object> insertBoard(Board board) {
     HashMap<String, Object> result = new HashMap<>();
 
-    try {
+
       // UUID 생성 및 설정
       String uuid = UUID.randomUUID().toString();
       board.setBoardId(uuid);
@@ -87,12 +87,6 @@ public class BoardServiceImpl implements BoardService {
         result.put("success", false);
         result.put("message", "게시물 등록에 실패했습니다.");
       }
-
-    } catch (Exception e) {
-      // 예외 처리
-      result.put("success", false);
-      result.put("message", "게시물 등록 중 오류가 발생했습니다: " + e.getMessage());
-    }
     return result;
   }
 
@@ -103,6 +97,15 @@ public class BoardServiceImpl implements BoardService {
 
     //게시판 아이디 설정
     board.setBoardId(boardId);
+
+    // 현재 시간 설정
+    LocalDateTime now = LocalDateTime.now();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    String formattedNow = now.format(formatter);
+
+    // 수정 시간 설정
+    board.setUdtDt(formattedNow);
+
     
     // 게시글 수정 
     int updateCount = boardMapper.updateBoard(board);
@@ -151,4 +154,57 @@ public class BoardServiceImpl implements BoardService {
     boolean success = boardCategoryList != null && !boardCategoryList.isEmpty();
     return new ApiResponse<>(success, message, boardCategoryList);
   }
+
+  //카테고리 상세 조회
+  @Override
+  public HashMap<String, Object> getBoardCategory(String boardCategoryId) {
+    HashMap<String, Object> result = new HashMap<>();
+
+    BoardCategory boardCategory = boardMapper.getBoardCategory(boardCategoryId);
+
+    if(boardCategory == null){
+      result.put("success", false);
+      result.put("message", "카테고리가 존재하지 않습니다.");
+      return result;
+    }else{
+      result.put("success", true);
+      result.put("message", "카테고리 조회 성공.");
+      result.put("data", boardCategory);
+    }
+    
+    return result;
+  }
+
+  //카테고리 등록
+  @Override
+  public HashMap<String, Object> insertBoardCategory(BoardCategory boardCategory) {
+      HashMap<String, Object> result = new HashMap<>();
+  
+      // UUID 생성 및 설정
+      String uuid = UUID.randomUUID().toString();
+      boardCategory.setBoardCategoryId(uuid);
+
+      // 현재 시간 설정
+      LocalDateTime now = LocalDateTime.now();
+      DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+      String formattedNow = now.format(formatter);
+
+      // 등록 및 수정 시간 설정
+      boardCategory.setRegDt(formattedNow);
+      boardCategory.setUdtDt(formattedNow);
+
+      // 실제 데이터베이스에 insert 처리 호출
+      int rowsAffected = boardMapper.insertBoardCategory(boardCategory);
+
+      // 성공 여부에 따른 결과 처리
+      if (rowsAffected > 0) {
+        result.put("success", true);
+        result.put("message", "카테고리가 성공적으로 등록되었습니다.");
+      } else {
+        result.put("success", false);
+        result.put("message", "카테고리 등록에 실패했습니다.");
+      }
+
+      return result;
+    }
 }

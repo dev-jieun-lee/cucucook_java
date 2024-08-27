@@ -26,4 +26,10 @@ public interface BoardService {
   
   // 카테고리 목록
   public ApiResponse<List<BoardCategory>> getBoardCategoryList( int start, int display);
+
+  // 카테고리 상세
+  public HashMap<String, Object> getBoardCategory(String boardCategoryId);
+
+  //카테고리 등록
+  public HashMap<String, Object> insertBoardCategory(BoardCategory boardCategory);
 }
