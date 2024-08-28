@@ -93,6 +93,14 @@
             <artifactId>jbcrypt</artifactId>
             <version>0.4</version>
         </dependency>
+
+        <!--보안코드 Twilio-->
+        <dependency>
+            <groupId>com.twilio.sdk</groupId>
+            <artifactId>twilio</artifactId>
+            <version>10.4.2</version>
+        </dependency>
+
     </dependencies>
     <build>
         <plugins>
