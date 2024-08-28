@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.domain.MemberRecipe;
+import com.example.cucucook.domain.PublicRecipe;
 import com.example.cucucook.service.RecipeService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -28,13 +29,31 @@ public class RecipeController {
     private RecipeService recipeService;
 
     @GetMapping(value = "/getMemberRecipeList")
-    public ApiResponse<List<MemberRecipe>> getMemberRecipeList(@RequestParam String search, @RequestParam String recipeCategoryId, @RequestParam(value = "start", required = false, defaultValue = "1") int start, @RequestParam(value = "display", required = true, defaultValue = "20") int display, @RequestParam String orderby, @RequestParam String division) {
-        return recipeService.getMemberRecipeList(search, recipeCategoryId, start, display, orderby, division);
+    public ApiResponse<List<MemberRecipe>> getMemberRecipeList(@RequestParam String search,
+            @RequestParam String recipeCategoryId,
+            @RequestParam(value = "start", required = false, defaultValue = "1") int start,
+            @RequestParam(value = "display", required = true, defaultValue = "20") int display,
+            @RequestParam String orderby) {
+        return recipeService.getMemberRecipeList(search, recipeCategoryId, start, display, orderby);
+    }
+
+    @GetMapping(value = "/getPublicRecipeList")
+    public ApiResponse<List<PublicRecipe>> getPublicRecipeList(@RequestParam String search,
+            @RequestParam(value = "start", required = false, defaultValue = "1") int start,
+            @RequestParam(value = "display", required = true, defaultValue = "20") int display) {
+        return recipeService.getPublicRecipeList(search, start, display);
     }
 
     @GetMapping(value = "/getMemberRecipe")
     public ApiResponse<HashMap<String, Object>> getMemberRecipe(@RequestParam String recipeId) {
         return recipeService.getMemberRecipe(recipeId);
+    }
+
+    @GetMapping(value = "/getPublicRecipe")
+    public ApiResponse<PublicRecipe> getPublicRecipe(@RequestParam String search,
+            @RequestParam(value = "start", required = false, defaultValue = "1") int start,
+            @RequestParam(value = "display", required = true, defaultValue = "20") int display) {
+        return recipeService.getPublicRecipe(search, start, display);
     }
 
     @PostMapping(value = "/insertMemberRecipe")

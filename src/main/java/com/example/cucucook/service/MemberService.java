@@ -30,5 +30,9 @@ public interface MemberService {
 
     List<Member> getMemberList(String search, int start, int display);
 
+    //아이디 찾기
     Member findId(Member member);
+
+    //비밀번호 찾기
+    boolean findPassword(Member member) throws Exception;
 }
