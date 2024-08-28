@@ -15,10 +15,13 @@ public interface BoardMapper {
     int getBoardCount(@Param("search") String search, @Param("boardCategoryId") String boardCategoryId);
 
     // 게시판 목록 (search: 검색어, boardCategoryId: 게시판 카테고리 아이디, start: 페이지 번호, display: 한 페이지에 불러올 갯수)
-    List<Board> getBoardList(@Param("search") String search, @Param("boardCategoryId") String boardCategoryId, @Param("start") int start, @Param("display") int display);
+    List<Board> getBoardList(@Param("search") String search, @Param("boardCategoryId") String boardCategoryId, @Param("start") Integer start, @Param("display") Integer display);
 
     // 게시판 보기
     Board getBoard(@Param("boardId") String boardId);
+
+    //게시판 조회수 증가
+    void updateViewCount(@Param("boardId") String boardId);
 
     // 게시판 작성
     int insertBoard(@Param("board") Board board);
@@ -64,5 +67,6 @@ public interface BoardMapper {
 
     // 게시판 카테고리 삭제
     int deleteBoardCategory(@Param("boardCategoryId") String boardCategoryId);
+
 
 }
