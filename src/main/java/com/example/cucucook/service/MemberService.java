@@ -23,4 +23,8 @@ public interface MemberService {
     Member findId(Member member);
     //비밀번호 찾기
     PasswordFindResponse findPassword(Member member) throws Exception;
+
+    //본인인증
+    boolean verifyCode(String phone, String code);
+    void sendVerificationCode(String phone, String carrier);
 }

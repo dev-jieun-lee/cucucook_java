@@ -3,6 +3,8 @@ package com.example.cucucook.mapper;
 import com.example.cucucook.domain.Member;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
+
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Mapper
@@ -31,5 +33,8 @@ public interface MemberMapper {
     //임시비밀번호 발급 후 임시비밀번호로 멤버테이블 업데이트
     void updatePassword(Member member);
 
-
+    //본인인증
+    void insertVerificationCode(@Param("phoneNumber") String phoneNumber, @Param("code") String code, @Param("expiresAt") LocalDateTime expiresAt);
+    String selectVerificationCode(@Param("phoneNumber") String phoneNumber);
+    void deleteExpiredVerificationCodes(); // 만료된 인증 코드 삭제
 }

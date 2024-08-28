@@ -9,6 +9,7 @@ import com.example.cucucook.domain.PasswordFindResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
@@ -161,6 +162,34 @@ public class MemberController {
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.status(500).body(new PasswordFindResponse(false, "서버 오류가 발생했습니다.", null, null));
+        }
+    }
+
+    @PostMapping("/sendVerificationCode")
+    public ResponseEntity<?> sendVerificationCode(@RequestBody Map<String, String> payload) {
+        String phone = payload.get("phone");
+        String carrier = payload.get("carrier");
+        try {
+            memberService.sendVerificationCode(phone, carrier);
+            return ResponseEntity.ok("인증 코드 전송 성공");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("인증 코드 전송 실패: " + e.getMessage());
+        }
+    }
+
+    @PostMapping("/verify")
+    public ResponseEntity<?> verifyCode(@RequestBody Map<String, String> payload) {
+        String phone = payload.get("phone");
+        String code = payload.get("code");
+        try {
+            boolean verified = memberService.verifyCode(phone, code);
+            if (verified) {
+                return ResponseEntity.ok("Code verified successfully!");
+            } else {
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid verification code");
+            }
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("인증 코드 검증 실패: " + e.getMessage());
         }
     }
 }
