@@ -98,11 +98,35 @@
     </select>
 
     <!--비밀번호 업데이트-->
-        <update id="updatePassword" parameterType="com.example.cucucook.domain.Member">
+    <update id="updatePassword" parameterType="com.example.cucucook.domain.Member">
         UPDATE member
         SET password = #{password}
         WHERE user_id = #{userId}
           AND name = #{name}
           AND phone = #{phone}
     </update>
+
+    <!-- 인증 코드 저장 -->
+    <insert id="insertVerificationCode">
+        INSERT INTO verification_code (phone_number, code, expires_at)
+        VALUES (#{phoneNumber}, #{code}, #{expiresAt})
+        ON CONFLICT (phone_number) DO UPDATE SET
+            code = EXCLUDED.code,
+            expires_at = EXCLUDED.expires_at;
+    </insert>
+
+
+    <!-- 인증 코드 조회 -->
+    <select id="selectVerificationCode" resultType="String">
+        SELECT code
+        FROM verification_code
+        WHERE phone_number = #{phoneNumber}
+          AND expires_at > NOW(); <!-- 코드가 만료되지 않은 경우에만 조회 -->
+    </select>
+
+    <!-- 인증 코드 삭제 (만료된 코드 자동 삭제) -->
+    <delete id="deleteExpiredVerificationCodes">
+        DELETE FROM verification_code
+        WHERE expires_at &lt; NOW();
+    </delete>
 </mapper>

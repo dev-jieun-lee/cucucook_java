@@ -10,8 +10,12 @@ import org.springframework.stereotype.Service;
 import com.example.cucucook.service.EmailService;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
+import java.util.Random;
+
 import org.mindrot.jbcrypt.BCrypt;
 
 @Service
@@ -141,5 +145,57 @@ public class MemberServiceImpl implements MemberService {
 
         // 이메일 발송
         emailService.send(member.getEmail(), subject, body);
+    }
+
+
+  @Override
+    public void sendVerificationCode(String phone, String carrier) {
+        // 인증 코드 생성
+        String verificationCode = String.valueOf((int) (Math.random() * 900000) + 100000);
+
+        // 만료 시간 설정 (예: 5분 후)
+        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(5);
+
+        // DB에 인증 코드 저장
+        memberMapper.insertVerificationCode(phone, verificationCode, expiresAt);
+
+        // 만료된 코드 삭제
+        memberMapper.deleteExpiredVerificationCodes();
+
+        // 이메일 도메인 설정
+        String emailDomain = getCarrierEmailDomain(carrier);
+
+        if (emailDomain != null) {
+            String toEmail = phone + "@" + emailDomain;
+            sendEmailVerificationCode(toEmail, verificationCode);
+        }
+    }
+
+    private String getCarrierEmailDomain(String carrier) {
+        switch (carrier) {
+            case "SKT":
+                return "vmms.nate.com";
+            case "KT":
+                return "ktfmmms.magicn.com";
+            case "LGU":
+                return "lguplus.com";
+            default:
+                return null;
+        }
+    }
+
+    private void sendEmailVerificationCode(String toEmail, String verificationCode) {
+        String subject = "인증 코드 발송";
+        String body = "인증 코드: " + verificationCode;
+        emailService.send(toEmail, subject, body);
+    }
+
+    @Override
+    public boolean verifyCode(String phone, String code) {
+        // DB에서 인증 코드 조회
+        String storedCode = memberMapper.selectVerificationCode(phone);
+
+        // 입력한 코드와 DB의 코드를 비교
+        return storedCode != null && storedCode.equals(code);
     }
 }
