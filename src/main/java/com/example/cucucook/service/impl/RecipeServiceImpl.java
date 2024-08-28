@@ -1,9 +1,15 @@
 package com.example.cucucook.service.impl;
 
+import java.lang.reflect.Type;
+import java.net.URI;
+import java.net.http.HttpClient;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
 import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -12,87 +18,116 @@ import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.MemberRecipeImages;
 import com.example.cucucook.domain.MemberRecipeIngredient;
 import com.example.cucucook.domain.MemberRecipeProcess;
+import com.example.cucucook.domain.PublicRecipe;
 import com.example.cucucook.domain.RecipeCategory;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.mapper.RecipeMapper;
 import com.example.cucucook.service.RecipeService;
+import com.google.gson.Gson;
+import com.google.gson.JsonArray;
+import com.google.gson.JsonElement;
+import com.google.gson.JsonObject;
+import com.google.gson.reflect.TypeToken;
 
 @Service
 public class RecipeServiceImpl implements RecipeService {
+    // ·¹½ÃÇÇ °ø°øapi°¡Á®¿À±â
+    @Value("${recipe.open.api.url}")
+    private String openApiUrl;
+    @Value("${recipe.open.api.key}")
+    private String openApiKey;
 
     @Autowired
     private RecipeMapper recipeMapper;
 
-    //íšŒì› ë ˆì‹œí”¼ ëª©ë¡ (ë‚´ë¶€ ì™¸ë¶€ ë¶„ê¸°)
+    // È¸¿ø ·¹½ÃÇÇ ¸ñ·Ï
     @Override
-    public ApiResponse<List<MemberRecipe>> getMemberRecipeList(String search, String recipeCategoryId, int start, int display, String orderby, String division) {
+    public ApiResponse<List<MemberRecipe>> getMemberRecipeList(String search, String recipeCategoryId, int start,
+            int display, String orderby) {
 
-        List<MemberRecipe> memberRecipeList = !"OPEN".equals(division) ? getMemberRecipePrivateApiList(search, recipeCategoryId, start, display, orderby) : getMemberRecipeOpenApiList(search, start, display);
-        String message = (memberRecipeList == null || memberRecipeList.isEmpty()) ? "íšŒì› ë ˆì‹œí”¼ ëª©ë¡ì´ ì—†ìŠµë‹ˆë‹¤." : "íšŒì› ë ˆì‹œí”¼ ëª©ë¡ ì¡°íšŒ ì„±ê³µ";
+        List<MemberRecipe> memberRecipeList = recipeMapper.getMemberRecipeList(search, recipeCategoryId, start, display,
+                orderby);
+        String message = (memberRecipeList == null || memberRecipeList.isEmpty()) ? "È¸¿ø ·¹½ÃÇÇ ¸ñ·ÏÀÌ ¾ø½À´Ï´Ù."
+                : "È¸¿ø ·¹½ÃÇÇ ¸ñ·Ï Á¶È¸ ¼º°ø";
         boolean success = memberRecipeList != null && !memberRecipeList.isEmpty();
 
         return new ApiResponse<>(success, message, memberRecipeList);
     }
 
-    //íšŒì› ë ˆì‹œí”¼ ëª©ë¡ ë‚´ë¶€API
+    // È¸¿ø ·¹½ÃÇÇ ¸ñ·Ï ¿ÜºÎAPI
     @Override
-    public List<MemberRecipe> getMemberRecipePrivateApiList(String search, String recipeCategoryId, int start, int display, String orderby) {
-        return recipeMapper.getMemberRecipeList(search, recipeCategoryId, start, display, orderby);
+    public ApiResponse<List<PublicRecipe>> getPublicRecipeList(String search, int start, int display) {
+        String result_json = "";
+        String rcpNm = "".equals(search) ? "" : "/RCP_NM=" + search;
+
+        try {
+            String urlString = openApiUrl + "/" + openApiKey + "/COOKRCP01/json/" + start + "/" + display + rcpNm;
+            URI uri = new URI(urlString);
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            result_json = response.body();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Gson gson = new Gson();
+        JsonElement jsonElement = gson.fromJson(result_json, JsonElement.class);
+
+        JsonObject jsonObject = jsonElement.getAsJsonObject();
+        JsonObject cookRcp01 = jsonObject.getAsJsonObject("COOKRCP01");
+        JsonArray rowArray = cookRcp01.getAsJsonArray("row");
+        JsonObject result = cookRcp01.getAsJsonObject("RESULT");
+        Type recipeListType = new TypeToken<List<PublicRecipe>>() {
+        }.getType();
+
+        List<PublicRecipe> publicRecipeList = gson.fromJson(rowArray, recipeListType);
+
+        String message = result.get("MSG").getAsString();
+        String code = result.get("CODE").getAsString();
+        boolean success = "INFO-000".equals(code);
+
+        return new ApiResponse<>(success, message, publicRecipeList);
     }
 
-    //íšŒì› ë ˆì‹œí”¼ ëª©ë¡ ì™¸ë¶€API
-    @Override
-    public List<MemberRecipe> getMemberRecipeOpenApiList(String search, int start, int display) {
-        return null;
-    }
-
-    //íšŒì› ë ˆì‹œí”¼ ìƒì„¸ë³´ê¸°
-    // 1. ë‚´ë¶€,ì™¸ë¶€ì— ë”°ë¼ ì²˜ë¦¬ë°©ì‹ ë‹¤ë¥´ê²Œë¨
-    // 2. ë ˆì‹œí”¼, ì¬ë£Œ, ê³¼ì •, ì´ë¯¸ì§€, ë ˆì‹œí”¼ ì°œìˆ˜ ë‹¤ í¬í•¨ë˜ì–´ì•¼í•¨
+    // È¸¿ø ·¹½ÃÇÇ »ó¼¼º¸±â
+    // 1. ³»ºÎ,¿ÜºÎ¿¡ µû¶ó Ã³¸®¹æ½Ä ´Ù¸£°ÔµÊ
+    // 2. ·¹½ÃÇÇ, Àç·á, °úÁ¤, ÀÌ¹ÌÁö, ·¹½ÃÇÇ Âò¼ö ´Ù Æ÷ÇÔµÇ¾î¾ßÇÔ
     @Override
     public ApiResponse<HashMap<String, Object>> getMemberRecipe(String recipeId) {
-        //recipeExist == 0 ë‚´ë¶€ recipeExist > 0 ì™¸ë¶€
+        // recipeExist == 0 ³»ºÎ recipeExist > 0 ¿ÜºÎ
         int recipeExist = recipeMapper.getMemberRecipeDivision(recipeId);
-
-        HashMap<String, Object> memberRecipe = recipeExist == 1 ? getMemberRecipePrivateApi(recipeId) : getMemberRecipeOpenApi(recipeId);
-
-        String message = (memberRecipe == null || memberRecipe.isEmpty()) ? "ë“±ë¡ëœ íšŒì› ë ˆì‹œí”¼ê°€ ì—†ìŠµë‹ˆë‹¤" : "íšŒì› ë ˆì‹œí”¼ ì¡°íšŒ ì„±ê³µ";
-        boolean success = memberRecipe != null && !memberRecipe.isEmpty();
-
-        return new ApiResponse<>(success, message, memberRecipe);
-    }
-
-    //íšŒì› ë ˆì‹œí”¼ ìƒì„¸ë³´ê¸° ë‚´ë¶€API
-    @Override
-    public HashMap<String, Object> getMemberRecipePrivateApi(String recipeId) {
 
         HashMap<String, Object> result = new HashMap<>();
 
         MemberRecipe memberRecipe = recipeMapper.getMemberRecipe(recipeId);
 
-        if (memberRecipe == null) {
-            return result;
-        }
-
         result.put("memberRecipe", memberRecipe);
 
-        //ì´ë¯¸ì§€ ìˆìœ¼ë©´ ë„£ì–´ì£¼ê¸°
+        // ÀÌ¹ÌÁö ÀÖÀ¸¸é ³Ö¾îÁÖ±â
         MemberRecipeImages memberRecipeImages = recipeMapper.getMemberRecipeImages(memberRecipe.getImgId());
         if (memberRecipeImages != null) {
             result.put("memberRecipeImages", memberRecipeImages);
         }
 
-        //ì¬ë£Œ ìˆìœ¼ë©´ ë„£ì–´ì£¼ê¸°
+        // Àç·á ÀÖÀ¸¸é ³Ö¾îÁÖ±â
         List<MemberRecipeIngredient> memberRecipeIngredient = recipeMapper.getMemberRecipeIngredientList(recipeId);
         if (memberRecipeIngredient != null && !memberRecipeIngredient.isEmpty()) {
             result.put("memberRecipeIngredient", memberRecipeIngredient);
         }
 
-        //ê³¼ì • ìˆìœ¼ë©´ ë„£ì–´ì£¼ê¸°
+        // °úÁ¤ ÀÖÀ¸¸é ³Ö¾îÁÖ±â
         List<MemberRecipeProcess> memberRecipeProcessList = recipeMapper.getMemberRecipeProcessList(recipeId);
         if (memberRecipeProcessList != null && !memberRecipeProcessList.isEmpty()) {
             HashMap<String, Object> memberRecipeProcessHashMap = new HashMap<>();
-            // ê° ê³¼ì •ë§ˆë‹¤ ì¸ë„¤ì¼ì´ ìˆì–´ì„œ ë¦¬ìŠ¤íŠ¸ forë¬¸ ëŒë ¤ ìƒˆë¡œìš´ hashmap ë§Œë“¤ì–´ì„œ ë„£ê¸°
+            // °¢ °úÁ¤¸¶´Ù ½æ³×ÀÏÀÌ ÀÖ¾î¼­ ¸®½ºÆ® for¹® µ¹·Á »õ·Î¿î hashmap ¸¸µé¾î¼­ ³Ö±â
             for (MemberRecipeProcess memberRecipeProcess : memberRecipeProcessList) {
                 memberRecipeProcessHashMap.put("memberRecipeProcess", memberRecipeProcess);
                 String recipeProcessImgId = memberRecipeProcess.getImgId();
@@ -104,95 +139,135 @@ public class RecipeServiceImpl implements RecipeService {
             result.put("memberRecipeProcessList", memberRecipeProcessHashMap);
         }
 
-        //ë ˆì‹œí”¼ ì°œìˆ˜ ë„£ì–´ì£¼ê¸°
+        // ·¹½ÃÇÇ Âò¼ö ³Ö¾îÁÖ±â
         result.put("recipeLike", recipeMapper.getMemberRecipeLikeCount(recipeId));
 
-        return result;
+        HashMap<String, Object> memberRecipeHashMap = result;
+
+        String message = (memberRecipeHashMap == null || memberRecipeHashMap.isEmpty()) ? "µî·ÏµÈ È¸¿ø ·¹½ÃÇÇ°¡ ¾ø½À´Ï´Ù"
+                : "È¸¿ø ·¹½ÃÇÇ Á¶È¸ ¼º°ø";
+        boolean success = memberRecipeHashMap != null && !memberRecipeHashMap.isEmpty();
+
+        return new ApiResponse<>(success, message, memberRecipeHashMap);
     }
 
-    //íšŒì› ë ˆì‹œí”¼ ìƒì„¸ë³´ê¸° ì™¸ë¶€API
+    // È¸¿ø ·¹½ÃÇÇ ¸ñ·Ï ¿ÜºÎAPI
     @Override
-    public HashMap<String, Object> getMemberRecipeOpenApi(String recipeId) {
-        HashMap<String, Object> result = new HashMap<>();
-        return result;
+    public ApiResponse<PublicRecipe> getPublicRecipe(String search, int start,
+            int display) {
+        String result_json = "";
+        String rcpNm = "".equals(search) ? "" : "/RCP_NM=" + search;
+
+        try {
+            String urlString = openApiUrl + "/" + openApiKey + "/COOKRCP01/json/" + 1 + "/" + 1 + rcpNm;
+            URI uri = new URI(urlString);
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            result_json = response.body();
+
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+
+        Gson gson = new Gson();
+        JsonElement jsonElement = gson.fromJson(result_json, JsonElement.class);
+
+        JsonObject jsonObject = jsonElement.getAsJsonObject();
+        JsonObject cookRcp01 = jsonObject.getAsJsonObject("COOKRCP01");
+        JsonArray rowArray = cookRcp01.getAsJsonArray("row");
+        JsonObject result = cookRcp01.getAsJsonObject("RESULT");
+
+        PublicRecipe publicRecipe = gson.fromJson(rowArray.get(0), PublicRecipe.class);
+        String message = result.get("MSG").getAsString();
+        String code = result.get("CODE").getAsString();
+        boolean success = "INFO-000".equals(code);
+
+        return new ApiResponse<>(success, message, publicRecipe);
     }
 
-    //íšŒì› ë ˆì‹œí”¼ ê¸€ì“°ê¸° ë ˆì‹œí”¼, ì¬ë£Œ, ê³¼ì •, ì´ë¯¸ì§€, ë ˆì‹œí”¼ ì°œìˆ˜ ë‹¤ í¬í•¨ë˜ì–´ì•¼í•¨
+    // È¸¿ø ·¹½ÃÇÇ ±Û¾²±â ·¹½ÃÇÇ, Àç·á, °úÁ¤, ÀÌ¹ÌÁö, ·¹½ÃÇÇ Âò¼ö ´Ù Æ÷ÇÔµÇ¾î¾ßÇÔ
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ApiResponse<Integer> insertMemberRecipe(MemberRecipe memberRecipe) {
 
         int insertMemberRecipe = recipeMapper.insertMemberRecipe(memberRecipe);
-        String message = (insertMemberRecipe == 0) ? "íšŒì› ë ˆì‹œí”¼ ë“±ë¡ ì‹¤íŒ¨" : "íšŒì› ë ˆì‹œí”¼ ë“±ë¡ ì„±ê³µ";
+        String message = (insertMemberRecipe == 0) ? "È¸¿ø ·¹½ÃÇÇ µî·Ï ½ÇÆĞ" : "È¸¿ø ·¹½ÃÇÇ µî·Ï ¼º°ø";
         boolean success = insertMemberRecipe == 1;
 
         return new ApiResponse<>(success, message, 1);
 
     }
 
-    //íšŒì› ë ˆì‹œí”¼ ìˆ˜ì • ë ˆì‹œí”¼, ì¬ë£Œ, ê³¼ì •, ì´ë¯¸ì§€ ë‹¤ í¬í•¨ë˜ì–´ì•¼í•¨
+    // È¸¿ø ·¹½ÃÇÇ ¼öÁ¤ ·¹½ÃÇÇ, Àç·á, °úÁ¤, ÀÌ¹ÌÁö ´Ù Æ÷ÇÔµÇ¾î¾ßÇÔ
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ApiResponse<Integer> updateMemberRecipe(MemberRecipe memberRecipe) {
         int updateMemberRecipe = recipeMapper.updateMemberRecipe(memberRecipe);
-        String message = (updateMemberRecipe == 0) ? "íšŒì› ë ˆì‹œí”¼ ìˆ˜ì • ì‹¤íŒ¨" : "íšŒì› ë ˆì‹œí”¼ ìˆ˜ì • ì„±ê³µ";
+        String message = (updateMemberRecipe == 0) ? "È¸¿ø ·¹½ÃÇÇ ¼öÁ¤ ½ÇÆĞ" : "È¸¿ø ·¹½ÃÇÇ ¼öÁ¤ ¼º°ø";
         boolean success = updateMemberRecipe == 1;
         return new ApiResponse<>(success, message, updateMemberRecipe);
     }
 
-    //íšŒì› ë ˆì‹œí”¼ ì‚­ì œ ë ˆì‹œí”¼, ì¬ë£Œ, ê³¼ì •, ì´ë¯¸ì§€, ëŒ“ê¸€, ë ˆì‹œí”¼ ì°œìˆ˜ ë‹¤ í¬í•¨ë˜ì–´ì•¼í•¨
+    // È¸¿ø ·¹½ÃÇÇ »èÁ¦ ·¹½ÃÇÇ, Àç·á, °úÁ¤, ÀÌ¹ÌÁö, ´ñ±Û, ·¹½ÃÇÇ Âò¼ö ´Ù Æ÷ÇÔµÇ¾î¾ßÇÔ
     @Override
     @Transactional(rollbackFor = Exception.class)
     public ApiResponse<Integer> deleteMemberRecipe(String recipeId) {
         int deleteMemberRecipe = recipeMapper.deleteMemberRecipe(recipeId);
-        String message = (deleteMemberRecipe == 0) ? "íšŒì› ë ˆì‹œí”¼ ì‚­ì œ ì‹¤íŒ¨" : "íšŒì› ë ˆì‹œí”¼ ì‚­ì œ ì„±ê³µ";
+        String message = (deleteMemberRecipe == 0) ? "È¸¿ø ·¹½ÃÇÇ »èÁ¦ ½ÇÆĞ" : "È¸¿ø ·¹½ÃÇÇ »èÁ¦ ¼º°ø";
         boolean success = deleteMemberRecipe == 1;
         return new ApiResponse<>(success, message, deleteMemberRecipe);
     }
 
-    //íšŒì›ë ˆì‹œí”¼ ëŒ“ê¸€ëª©ë¡(ëŒ€ëŒ“ê¸€, ì¹´ìš´í„°ìˆ˜ ë‹¤ ë„£ì–´ì•¼í•¨)
+    // È¸¿ø·¹½ÃÇÇ ´ñ±Û¸ñ·Ï(´ë´ñ±Û, Ä«¿îÅÍ¼ö ´Ù ³Ö¾î¾ßÇÔ)
     @Override
     public HashMap<String, Object> getRecipeCommentList(String recipeId, int start, int display, String pCommentid) {
         HashMap<String, Object> result = new HashMap<>();
         return result;
     }
 
-    //íšŒì›ë ˆì‹œí”¼ ëŒ“ê¸€ ì“°ê¸°
+    // È¸¿ø·¹½ÃÇÇ ´ñ±Û ¾²±â
     @Override
     public HashMap<String, Object> insertRecipeComment(RecipeComment recipeComment) {
         HashMap<String, Object> result = new HashMap<>();
         return result;
     }
 
-    //íšŒì›ë ˆì‹œí”¼ ëŒ“ê¸€ ìˆ˜ì •
+    // È¸¿ø·¹½ÃÇÇ ´ñ±Û ¼öÁ¤
     @Override
     public HashMap<String, Object> updateRecipeComment(RecipeComment recipeComment) {
         HashMap<String, Object> result = new HashMap<>();
         return result;
     }
 
-    //íšŒì›ë ˆì‹œí”¼ ëŒ“ê¸€ ì‚­ì œ
+    // È¸¿ø·¹½ÃÇÇ ´ñ±Û »èÁ¦
     @Override
     public HashMap<String, Object> deleteRecipeComment(String recipeId) {
         HashMap<String, Object> result = new HashMap<>();
         return result;
     }
 
-    //ë ˆì‹œí”¼ ì¹´í…Œê³ ë¦¬ ëª©ë¡(ì¹´ìš´í„°ìˆ˜ ë„£ì–´ì•¼í•¨)
+    // ·¹½ÃÇÇ Ä«Å×°í¸® ¸ñ·Ï(Ä«¿îÅÍ¼ö ³Ö¾î¾ßÇÔ)
     @Override
     public HashMap<String, Object> getRecipeCategoryList(int start, int display) {
         HashMap<String, Object> result = new HashMap<>();
         return result;
     }
 
-    // ë ˆì‹œí”¼ ì¹´í…Œê³ ë¦¬ ìˆ˜ì •
+    // ·¹½ÃÇÇ Ä«Å×°í¸® ¼öÁ¤
     @Override
     public HashMap<String, Object> insertRecipeCategory(RecipeCategory recipeCategory) {
         HashMap<String, Object> result = new HashMap<>();
         return result;
     }
 
-    // ë ˆì‹œí”¼ ì¹´í…Œê³ ë¦¬ ì‚­ì œ
+    // ·¹½ÃÇÇ Ä«Å×°í¸® »èÁ¦
     @Override
     public HashMap<String, Object> updateRecipeCategory(RecipeCategory recipeCategory) {
         HashMap<String, Object> result = new HashMap<>();
