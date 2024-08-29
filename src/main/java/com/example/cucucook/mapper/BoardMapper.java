@@ -15,7 +15,7 @@ public interface BoardMapper {
     int getBoardCount(@Param("search") String search, @Param("boardCategoryId") String boardCategoryId);
 
     // 게시판 목록 (search: 검색어, boardCategoryId: 게시판 카테고리 아이디, start: 페이지 번호, display: 한 페이지에 불러올 갯수)
-    List<Board> getBoardList(@Param("search") String search, @Param("boardCategoryId") String boardCategoryId, @Param("start") Integer start, @Param("display") Integer display);
+    List<Board> getBoardList(@Param("search") String search, @Param("searchType") String searchType, @Param("boardCategoryId") String boardCategoryId, @Param("start") Integer start, @Param("display") Integer display);
 
     // 게시판 보기
     Board getBoard(@Param("boardId") String boardId);
