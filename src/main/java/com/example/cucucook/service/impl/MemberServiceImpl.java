@@ -2,12 +2,14 @@ package com.example.cucucook.service.impl;
 
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
+import com.example.cucucook.domain.VerificationCode;
 import com.example.cucucook.mapper.MemberMapper;
 import com.example.cucucook.service.MemberService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import com.example.cucucook.service.EmailService;
+import com.example.cucucook.domain.VerificationCode;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
@@ -24,6 +26,7 @@ public class MemberServiceImpl implements MemberService {
     private final MemberMapper memberMapper;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private VerificationCode VerificationCode;
 
     @Autowired
     public MemberServiceImpl(MemberMapper memberMapper, PasswordEncoder passwordEncoder, EmailService emailService) {
@@ -91,7 +94,7 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void updateMemberPassword(Member member) {
         member.setPassword(passwordEncoder.encode(member.getPassword()));
-      //  memberMapper.updateMemberPassword(member);
+        //  memberMapper.updateMemberPassword(member);
     }
 
     @Override
@@ -110,27 +113,28 @@ public class MemberServiceImpl implements MemberService {
         return memberMapper.findId(member);
     }
 
-    //비밀번호 찾기
+    //비밀번호 찾기a
     @Override
     public PasswordFindResponse findPassword(Member member) throws Exception {
         Member existingMember = memberMapper.findMemberByIdNameAndPhone(member);
-    if (existingMember != null) {
-        // 임시 비밀번호 발급
-        String tempPassword = generateTempPassword();
-        String hashedPassword = passwordEncoder.encode(tempPassword); // bcrypt로 암호화
+        if (existingMember != null) {
+            // 임시 비밀번호 발급
+            String tempPassword = generateTempPassword();
+            String hashedPassword = passwordEncoder.encode(tempPassword); // bcrypt로 암호화
 
-        existingMember.setPassword(hashedPassword);
-        memberMapper.updatePassword(existingMember);
+            existingMember.setPassword(hashedPassword);
+            memberMapper.updatePassword(existingMember);
 
-        // 비밀번호 전송 로직 구현
-        sendTempPassword(existingMember, tempPassword); // 원본 비밀번호를 이메일로 전송
+            // 비밀번호 전송 로직 구현
+            sendTempPassword(existingMember, tempPassword); // 원본 비밀번호를 이메일로 전송
 
-        // 응답 객체 생성
-        return new PasswordFindResponse(true, "Temporary password has been sent to the email.", existingMember.getUserId(), tempPassword);
-    } else {
-        return new PasswordFindResponse(false, "No member found with the provided details.", null, null);
+            // 응답 객체 생성
+            return new PasswordFindResponse(true, "Temporary password has been sent to the email.",
+                    existingMember.getUserId(), tempPassword);
+        } else {
+            return new PasswordFindResponse(false, "No member found with the provided details.", null, null);
+        }
     }
-}
 
     private String generateTempPassword() {
         SecureRandom random = new SecureRandom();
@@ -147,55 +151,55 @@ public class MemberServiceImpl implements MemberService {
         emailService.send(member.getEmail(), subject, body);
     }
 
-
-  @Override
-    public void sendVerificationCode(String phone, String carrier) {
-        // 인증 코드 생성
-        String verificationCode = String.valueOf((int) (Math.random() * 900000) + 100000);
-
-        // 만료 시간 설정 (예: 5분 후)
-        LocalDateTime expiresAt = LocalDateTime.now().plusMinutes(5);
-
-        // DB에 인증 코드 저장
-        memberMapper.insertVerificationCode(phone, verificationCode, expiresAt);
-
-        // 만료된 코드 삭제
-        memberMapper.deleteExpiredVerificationCodes();
-
-        // 이메일 도메인 설정
-        String emailDomain = getCarrierEmailDomain(carrier);
-
-        if (emailDomain != null) {
-            String toEmail = phone + "@" + emailDomain;
-            sendEmailVerificationCode(toEmail, verificationCode);
-        }
-    }
-
-    private String getCarrierEmailDomain(String carrier) {
-        switch (carrier) {
-            case "SKT":
-                return "vmms.nate.com";
-            case "KT":
-                return "ktfmmms.magicn.com";
-            case "LGU":
-                return "lguplus.com";
-            default:
-                return null;
-        }
-    }
-
-    private void sendEmailVerificationCode(String toEmail, String verificationCode) {
-        String subject = "인증 코드 발송";
-        String body = "인증 코드: " + verificationCode;
-        emailService.send(toEmail, subject, body);
-    }
-
+        //이메일 인증코드 발송
     @Override
-    public boolean verifyCode(String phone, String code) {
-        // DB에서 인증 코드 조회
-        String storedCode = memberMapper.selectVerificationCode(phone);
+    public void sendVerificationCode(String email) {
+        String code = generateVerificationCode();
+        VerificationCode existingCode = memberMapper.findVerificationCodeByEmail(email);
 
-        // 입력한 코드와 DB의 코드를 비교
-        return storedCode != null && storedCode.equals(code);
+        if (existingCode != null) {
+            // 이미 존재하는 이메일이 있다면 인증 코드를 업데이트합니다.
+            existingCode.setCode(code);
+            existingCode.setCreatedAt(LocalDateTime.now());
+            existingCode.setExpiresAt(LocalDateTime.now().plusMinutes(15));
+            memberMapper.updateVerificationCode(existingCode);
+        } else {
+            // 이메일이 없으면 새로운 인증 코드를 생성합니다.
+            VerificationCode newCode = new VerificationCode(email, code, LocalDateTime.now().plusMinutes(15));
+            memberMapper.saveVerificationCode(newCode);
+        }
+
+        // 이메일 발송
+        emailService.send(email, "Your verification code", "Your code: " + code);
     }
+
+    //이메일코드 검증
+    @Override
+    public boolean verifyEmailCode(String email, String code) {
+        // 이메일과 코드로 데이터베이스에서 인증 코드 조회
+        VerificationCode verificationCode = memberMapper.findByEmailAndCode(email, code);
+
+        if (verificationCode == null) {
+            // 인증 코드가 존재하지 않음
+            System.out.println("인증 코드 검증 실패: 인증 코드가 존재하지 않습니다.");
+            return false;
+        }
+
+        if (verificationCode.getExpiresAt().isBefore(LocalDateTime.now())) {
+            // 인증 코드가 만료됨
+            System.out.println("인증 코드 검증 실패: 인증 코드가 만료되었습니다.");
+            return false;
+        }
+
+        // 인증 성공
+        System.out.println("인증 코드 검증 성공: 인증 코드가 유효합니다.");
+        return true;
+    }
+
+
+    private String generateVerificationCode() {
+        return String.valueOf(new Random().nextInt(900000) + 100000);
+    }
+
+
 }

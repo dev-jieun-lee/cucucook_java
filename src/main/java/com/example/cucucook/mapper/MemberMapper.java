@@ -1,6 +1,8 @@
 package com.example.cucucook.mapper;
 
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.VerificationCode;
+
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -33,8 +35,15 @@ public interface MemberMapper {
     //임시비밀번호 발급 후 임시비밀번호로 멤버테이블 업데이트
     void updatePassword(Member member);
 
-    //본인인증
-    void insertVerificationCode(@Param("phoneNumber") String phoneNumber, @Param("code") String code, @Param("expiresAt") LocalDateTime expiresAt);
-    String selectVerificationCode(@Param("phoneNumber") String phoneNumber);
-    void deleteExpiredVerificationCodes(); // 만료된 인증 코드 삭제
+    // 이메일과 코드로 인증 코드 찾기
+    VerificationCode findByEmailAndCode(@Param("email") String email, @Param("code") String code);
+
+    // 기존 인증 코드를 이메일로 찾기
+    VerificationCode findVerificationCodeByEmail(String email);
+
+    // 기존 인증 코드를 업데이트
+    void updateVerificationCode(VerificationCode verificationCode);
+
+    // 새로운 인증 코드를 저장
+    void saveVerificationCode(VerificationCode verificationCode);
 }

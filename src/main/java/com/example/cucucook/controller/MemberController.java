@@ -5,6 +5,7 @@ import com.example.cucucook.domain.Member;
 import com.example.cucucook.service.MemberService;
 import com.example.cucucook.util.ValidationException;
 import com.example.cucucook.domain.PasswordFindResponse;
+import com.example.cucucook.domain.VerificationCode;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -13,9 +14,11 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 
+import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
@@ -165,31 +168,35 @@ public class MemberController {
         }
     }
 
+    // 이메일 인증 코드 발송
     @PostMapping("/sendVerificationCode")
     public ResponseEntity<?> sendVerificationCode(@RequestBody Map<String, String> payload) {
-        String phone = payload.get("phone");
-        String carrier = payload.get("carrier");
+        String email = payload.get("email");
         try {
-            memberService.sendVerificationCode(phone, carrier);
-            return ResponseEntity.ok("인증 코드 전송 성공");
+            memberService.sendVerificationCode(email);
+            return ResponseEntity.ok("Verification code sent successfully");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("인증 코드 전송 실패: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to send verification code: " + e.getMessage());
         }
     }
 
-    @PostMapping("/verify")
-    public ResponseEntity<?> verifyCode(@RequestBody Map<String, String> payload) {
-        String phone = payload.get("phone");
-        String code = payload.get("code");
-        try {
-            boolean verified = memberService.verifyCode(phone, code);
-            if (verified) {
-                return ResponseEntity.ok("Code verified successfully!");
-            } else {
-                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Invalid verification code");
-            }
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("인증 코드 검증 실패: " + e.getMessage());
-        }
+    // 이메일 인증 코드 검증
+@PostMapping("/verify")
+public ResponseEntity<Map<String, Object>> verifyEmail(@RequestBody Map<String, String> payload) {
+    String email = payload.get("email");
+    String code = payload.get("code");
+    Map<String, Object> response = new HashMap<>();
+    try {
+        boolean isVerified = memberService.verifyEmailCode(email, code);
+        response.put("success", isVerified);
+        response.put("message", isVerified ? "Email verified successfully" : "Invalid verification code");
+        return ResponseEntity.ok(response);
+    } catch (Exception e) {
+        response.put("success", false);
+        response.put("message", "Error verifying email: " + e.getMessage());
+        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
     }
+}
+
+
 }
