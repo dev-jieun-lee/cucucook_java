@@ -24,7 +24,7 @@ public interface MemberService {
     //비밀번호 찾기
     PasswordFindResponse findPassword(Member member) throws Exception;
 
-    //본인인증
-    boolean verifyCode(String phone, String code);
-    void sendVerificationCode(String phone, String carrier);
+    //이메일 인증코드 발송
+    void sendVerificationCode(String email);
+    boolean verifyEmailCode(String email, String code);
 }

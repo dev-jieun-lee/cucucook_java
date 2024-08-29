@@ -105,28 +105,29 @@
           AND name = #{name}
           AND phone = #{phone}
     </update>
+<!-- 이메일과 코드로 인증 코드 찾기 -->
+<select id="findByEmailAndCode" resultType="com.example.cucucook.domain.VerificationCode">
+    SELECT * FROM verification_code WHERE email = #{email} AND code = #{code}
+</select>
 
-    <!-- 인증 코드 저장 -->
-    <insert id="insertVerificationCode">
-        INSERT INTO verification_code (phone_number, code, expires_at)
-        VALUES (#{phoneNumber}, #{code}, #{expiresAt})
-        ON CONFLICT (phone_number) DO UPDATE SET
-            code = EXCLUDED.code,
-            expires_at = EXCLUDED.expires_at;
-    </insert>
+<!-- 이메일로 인증 코드 찾기 -->
+<select id="findVerificationCodeByEmail" resultType="com.example.cucucook.domain.VerificationCode">
+    SELECT * FROM verification_code WHERE email = #{email}
+</select>
 
+<!-- 기존 인증 코드 업데이트 -->
+<update id="updateVerificationCode">
+    UPDATE verification_code
+    SET code = #{code},
+        created_at = #{createdAt},
+        expires_at = #{expiresAt}
+    WHERE email = #{email}
+</update>
 
-    <!-- 인증 코드 조회 -->
-    <select id="selectVerificationCode" resultType="String">
-        SELECT code
-        FROM verification_code
-        WHERE phone_number = #{phoneNumber}
-          AND expires_at > NOW(); <!-- 코드가 만료되지 않은 경우에만 조회 -->
-    </select>
+<!-- 새로운 인증 코드 저장 -->
+<insert id="saveVerificationCode">
+    INSERT INTO verification_code (email, code, created_at, expires_at)
+    VALUES (#{email}, #{code}, #{createdAt}, #{expiresAt})
+</insert>
 
-    <!-- 인증 코드 삭제 (만료된 코드 자동 삭제) -->
-    <delete id="deleteExpiredVerificationCodes">
-        DELETE FROM verification_code
-        WHERE expires_at &lt; NOW();
-    </delete>
 </mapper>
