@@ -10,7 +10,7 @@ import com.example.cucucook.domain.BoardCategory;
 public interface BoardService {
 
   // 게시판 목록
-  public ApiResponse<List<Board>> getBoardList(String search, String boardCategoryId, int start, int display);
+  public ApiResponse<List<Board>> getBoardList(String search, String searchType, String boardCategoryId, int start, int display);
 
   // 게시판 상세
   public HashMap<String, Object> getBoard(String boardId);
