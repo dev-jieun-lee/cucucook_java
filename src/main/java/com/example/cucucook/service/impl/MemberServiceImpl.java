@@ -113,10 +113,10 @@ public class MemberServiceImpl implements MemberService {
         return memberMapper.findId(member);
     }
 
-    //비밀번호 찾기a
+    //비밀번호 찾기
     @Override
     public PasswordFindResponse findPassword(Member member) throws Exception {
-        Member existingMember = memberMapper.findMemberByIdNameAndPhone(member);
+        Member existingMember = memberMapper.findMemberByIdNameAndEmail(member);
         if (existingMember != null) {
             // 임시 비밀번호 발급
             String tempPassword = generateTempPassword();
@@ -151,7 +151,7 @@ public class MemberServiceImpl implements MemberService {
         emailService.send(member.getEmail(), subject, body);
     }
 
-        //이메일 인증코드 발송
+    //이메일 인증코드 발송
     @Override
     public void sendVerificationCode(String email) {
         String code = generateVerificationCode();

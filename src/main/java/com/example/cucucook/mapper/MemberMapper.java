@@ -30,7 +30,7 @@ public interface MemberMapper {
     Member findId(Member member);
 
     //비밀번호 찾기
-    Member findMemberByIdNameAndPhone(Member member);
+    Member findMemberByIdNameAndEmail(Member member);
 
     //임시비밀번호 발급 후 임시비밀번호로 멤버테이블 업데이트
     void updatePassword(Member member);

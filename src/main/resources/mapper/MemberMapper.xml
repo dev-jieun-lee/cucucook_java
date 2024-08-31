@@ -92,9 +92,9 @@
     </select>
 
     <!-- 비밀번호 찾기 -->
-    <select id="findMemberByIdNameAndPhone" parameterType="com.example.cucucook.domain.Member" resultType="com.example.cucucook.domain.Member">
+    <select id="findMemberByIdNameAndEmail" parameterType="com.example.cucucook.domain.Member" resultType="com.example.cucucook.domain.Member">
         SELECT * FROM member
-        WHERE user_id = #{userId} AND name = #{name} AND phone = #{phone}
+        WHERE user_id = #{userId} AND name = #{name} AND email   = #{email}
     </select>
 
     <!--비밀번호 업데이트-->
