@@ -88,7 +88,7 @@
     <select id="findId" parameterType="com.example.cucucook.domain.Member" resultType="com.example.cucucook.domain.Member">
         SELECT user_id AS userId
         FROM member
-        WHERE name = #{name} AND phone = #{phone}
+        WHERE name = #{name} AND email = #{email}
     </select>
 
     <!-- 비밀번호 찾기 -->
