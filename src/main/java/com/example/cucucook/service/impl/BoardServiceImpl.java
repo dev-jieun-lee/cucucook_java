@@ -23,11 +23,12 @@ public class BoardServiceImpl implements BoardService {
 
   // 게시판 목록 조회
   @Override
-  public ApiResponse<List<Board>> getBoardList(String search, String searchType, String boardCategoryId, int start, int display) {
+  public ApiResponse<List<Board>> getBoardList(String division,String search, String searchType, String boardCategoryId, int start, int display) {
     start = start > 0 ? start : 1;
     display = display > 0 ? display : 10;
 
-    List<Board> boardList = boardMapper.getBoardList(search,searchType, boardCategoryId, start, display);
+
+    List<Board> boardList = boardMapper.getBoardList(division, search,searchType, boardCategoryId, start, display);
     String message = (boardList == null || boardList.isEmpty()) ? "게시판 목록이 없습니다." : "게시판 목록 조회 성공";
     boolean success = boardList != null && !boardList.isEmpty();
     return new ApiResponse<>(success, message, boardList);
