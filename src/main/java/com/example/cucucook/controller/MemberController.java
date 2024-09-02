@@ -3,9 +3,7 @@ package com.example.cucucook.controller;
 import com.example.cucucook.config.JwtTokenProvider;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.service.MemberService;
-import com.example.cucucook.util.ValidationException;
 import com.example.cucucook.domain.PasswordFindResponse;
-import com.example.cucucook.domain.VerificationCode;
 
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -14,11 +12,9 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
-import org.springframework.stereotype.Service;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.security.core.Authentication;
 
-import java.time.LocalDateTime;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
