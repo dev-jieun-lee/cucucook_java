@@ -24,6 +24,7 @@ import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
 import com.example.cucucook.service.MemberService;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -41,20 +42,27 @@ public class MemberController {
 
     // 로그인 API
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Member loginRequest) {
+    public ResponseEntity<?> login(@RequestBody Member loginRequest, HttpServletResponse response) {
         try {
             Member member = memberService.validateMember(loginRequest.getUserId(), loginRequest.getPassword());
             String token = tokenProvider.createToken(member.getUserId(), member.getRole());
 
-            // 여러 값을 포함하는 Map 생성
-            Map<String, Object> response = new HashMap<>();
-            response.put("token", token);
-            response.put("userId", member.getUserId());
-            response.put("name", member.getName());
-            response.put("role", member.getRole());
-            response.put("memberId", member.getMemberId());
+            // 쿠키에 JWT 토큰 저장
+            Cookie authCookie = new Cookie("auth_token", token);
+            authCookie.setHttpOnly(true);
+            authCookie.setSecure(true); // HTTPS에서만 사용
+            authCookie.setPath("/"); // 전체 경로에 대해 유효
+            response.addCookie(authCookie);
 
-            return ResponseEntity.ok().body(response);
+            // 여러 값을 포함하는 Map 생성
+            Map<String, Object> responseBody = new HashMap<>();
+            responseBody.put("token", token);
+            responseBody.put("userId", member.getUserId());
+            responseBody.put("name", member.getName());
+            responseBody.put("role", member.getRole());
+            responseBody.put("memberId", member.getMemberId());
+
+            return ResponseEntity.ok().body(responseBody);
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("message", e.getMessage()));
@@ -77,6 +85,14 @@ public class MemberController {
     // 로그아웃 API
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
+        // JWT 토큰 쿠키 삭제
+        Cookie authCookie = new Cookie("auth_token", null);
+        authCookie.setHttpOnly(true);
+        authCookie.setSecure(true); // HTTPS에서만 사용
+        authCookie.setPath("/"); // 전체 경로에 대해 유효
+        authCookie.setMaxAge(0); // 쿠키 삭제
+        response.addCookie(authCookie);
+
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null) {
             new SecurityContextLogoutHandler().logout(request, response, authentication);
