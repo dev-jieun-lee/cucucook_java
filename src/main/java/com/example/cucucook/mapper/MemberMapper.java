@@ -61,9 +61,10 @@ public interface MemberMapper {
     void saveVerificationCode(VerificationCode verificationCode);
 
     // 로그인 실패 시 처리 로직 추가
-    void updateFailedAttempts(@Param("userId") String userId);
+    void updateFailedAttempts(@Param("userId") String userId, @Param("failedAttempts") int failedAttempts);
 
     void resetFailedAttempts(@Param("userId") String userId);
 
     void lockAccount(@Param("userId") String userId, @Param("lockoutTime") LocalDateTime lockoutTime);
+
 }
