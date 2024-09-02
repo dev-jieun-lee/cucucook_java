@@ -1,24 +1,20 @@
 package com.example.cucucook.service.impl;
 
-import com.example.cucucook.domain.Member;
-import com.example.cucucook.domain.PasswordFindResponse;
-import com.example.cucucook.domain.VerificationCode;
-import com.example.cucucook.mapper.MemberMapper;
-import com.example.cucucook.service.MemberService;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Service;
-import com.example.cucucook.service.EmailService;
-import com.example.cucucook.domain.VerificationCode;
-
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
-import java.time.format.DateTimeFormatter;
 import java.util.Base64;
 import java.util.List;
 import java.util.Random;
 
-import org.mindrot.jbcrypt.BCrypt;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Service;
+
+import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.PasswordFindResponse;
+import com.example.cucucook.domain.VerificationCode;
+import com.example.cucucook.mapper.MemberMapper;
+import com.example.cucucook.service.EmailService;
+import com.example.cucucook.service.MemberService;
 
 @Service
 public class MemberServiceImpl implements MemberService {
@@ -26,9 +22,7 @@ public class MemberServiceImpl implements MemberService {
     private final MemberMapper memberMapper;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
-    private VerificationCode VerificationCode;
 
-    @Autowired
     public MemberServiceImpl(MemberMapper memberMapper, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.memberMapper = memberMapper;
         this.passwordEncoder = passwordEncoder;
@@ -94,7 +88,7 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void updateMemberPassword(Member member) {
         member.setPassword(passwordEncoder.encode(member.getPassword()));
-        //  memberMapper.updateMemberPassword(member);
+        // memberMapper.updateMemberPassword(member);
     }
 
     @Override
@@ -107,13 +101,13 @@ public class MemberServiceImpl implements MemberService {
         return memberMapper.getMemberList(search, start, display);
     }
 
-    //아이디찾기
+    // 아이디찾기
     @Override
     public Member findId(Member member) {
         return memberMapper.findId(member);
     }
 
-    //비밀번호 찾기
+    // 비밀번호 찾기
     @Override
     public PasswordFindResponse findPassword(Member member) throws Exception {
         Member existingMember = memberMapper.findMemberByIdNameAndEmail(member);
@@ -151,7 +145,7 @@ public class MemberServiceImpl implements MemberService {
         emailService.send(member.getEmail(), subject, body);
     }
 
-    //이메일 인증코드 발송
+    // 이메일 인증코드 발송
     @Override
     public void sendVerificationCode(String email) {
         String code = generateVerificationCode();
@@ -173,7 +167,7 @@ public class MemberServiceImpl implements MemberService {
         emailService.send(email, "Your verification code", "Your code: " + code);
     }
 
-    //이메일코드 검증
+    // 이메일코드 검증
     @Override
     public boolean verifyEmailCode(String email, String code) {
         // 이메일과 코드로 데이터베이스에서 인증 코드 조회
@@ -196,10 +190,8 @@ public class MemberServiceImpl implements MemberService {
         return true;
     }
 
-
     private String generateVerificationCode() {
         return String.valueOf(new Random().nextInt(900000) + 100000);
     }
-
 
 }
