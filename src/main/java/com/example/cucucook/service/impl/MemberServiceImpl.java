@@ -6,6 +6,8 @@ import java.util.Base64;
 import java.util.List;
 import java.util.Random;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -18,6 +20,8 @@ import com.example.cucucook.service.MemberService;
 
 @Service
 public class MemberServiceImpl implements MemberService {
+
+    private static final Logger logger = LoggerFactory.getLogger(MemberServiceImpl.class);
 
     private final MemberMapper memberMapper;
     private final PasswordEncoder passwordEncoder;
@@ -41,13 +45,16 @@ public class MemberServiceImpl implements MemberService {
         if (member != null) {
             // 계정이 잠금 상태인지 확인
             if (member.getLockoutTime() != null && member.getLockoutTime().isAfter(LocalDateTime.now())) {
-                throw new RuntimeException("Account is locked until " + member.getLockoutTime());
+                String lockoutMessage = "계정이 잠금 상태입니다. 잠금 해제 시간: " + member.getLockoutTime();
+                logger.warn(lockoutMessage);
+                throw new RuntimeException(lockoutMessage);
             }
 
             // 비밀번호 검증
             if (passwordEncoder.matches(password, member.getPassword())) {
                 // 로그인 성공 시 실패 횟수 초기화
                 resetFailedAttempts(userId);
+                logger.info("사용자 '{}'의 로그인 성공", userId);
                 return member;
             } else {
                 // 실패 시 처리
@@ -56,29 +63,38 @@ public class MemberServiceImpl implements MemberService {
                 if (member.getFailedAttempts() >= 5) {
                     // 5번 이상 실패 시 계정 잠금
                     lockMemberAccount(userId);
-                    throw new RuntimeException("Too many failed login attempts. Account is locked.");
+                    String lockMessage = "로그인 시도가 너무 많아 계정이 잠금되었습니다.";
+                    logger.warn(lockMessage);
+                    throw new RuntimeException(lockMessage);
                 } else {
-                    throw new RuntimeException("Invalid password. Attempts: " + member.getFailedAttempts());
+                    String attemptMessage = "비밀번호가 잘못되었습니다. 실패 횟수: " + member.getFailedAttempts();
+                    logger.warn(attemptMessage);
+                    throw new RuntimeException(attemptMessage);
                 }
             }
         }
-        throw new RuntimeException("User not found");
+        String notFoundMessage = "사용자를 찾을 수 없습니다.";
+        logger.warn(notFoundMessage);
+        throw new RuntimeException(notFoundMessage);
     }
 
     @Override
     public void increaseFailedAttempts(String userId) {
         memberMapper.updateFailedAttempts(userId);
+        logger.info("사용자 '{}'의 실패 횟수가 증가했습니다.", userId);
     }
 
     @Override
     public void resetFailedAttempts(String userId) {
         memberMapper.resetFailedAttempts(userId);
+        logger.info("사용자 '{}'의 실패 횟수가 초기화되었습니다.", userId);
     }
 
     @Override
     public void lockMemberAccount(String userId) {
         LocalDateTime lockoutTime = LocalDateTime.now().plusMinutes(10); // 10분 동안 계정 잠금
         memberMapper.lockAccount(userId, lockoutTime);
+        logger.info("사용자 '{}'의 계정이 '{}'까지 잠금되었습니다.", userId, lockoutTime);
     }
 
     @Override
