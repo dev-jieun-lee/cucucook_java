@@ -37,10 +37,48 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public Member validateMember(String userId, String password) {
         Member member = memberMapper.findByUserId(userId);
-        if (member != null && passwordEncoder.matches(password, member.getPassword())) {
-            return member;
+
+        if (member != null) {
+            // 계정이 잠금 상태인지 확인
+            if (member.getLockoutTime() != null && member.getLockoutTime().isAfter(LocalDateTime.now())) {
+                throw new RuntimeException("Account is locked until " + member.getLockoutTime());
+            }
+
+            // 비밀번호 검증
+            if (passwordEncoder.matches(password, member.getPassword())) {
+                // 로그인 성공 시 실패 횟수 초기화
+                resetFailedAttempts(userId);
+                return member;
+            } else {
+                // 실패 시 처리
+                increaseFailedAttempts(userId);
+
+                if (member.getFailedAttempts() >= 5) {
+                    // 5번 이상 실패 시 계정 잠금
+                    lockMemberAccount(userId);
+                    throw new RuntimeException("Too many failed login attempts. Account is locked.");
+                } else {
+                    throw new RuntimeException("Invalid password. Attempts: " + member.getFailedAttempts());
+                }
+            }
         }
-        return null;
+        throw new RuntimeException("User not found");
+    }
+
+    @Override
+    public void increaseFailedAttempts(String userId) {
+        memberMapper.updateFailedAttempts(userId);
+    }
+
+    @Override
+    public void resetFailedAttempts(String userId) {
+        memberMapper.resetFailedAttempts(userId);
+    }
+
+    @Override
+    public void lockMemberAccount(String userId) {
+        LocalDateTime lockoutTime = LocalDateTime.now().plusMinutes(10); // 10분 동안 계정 잠금
+        memberMapper.lockAccount(userId, lockoutTime);
     }
 
     @Override

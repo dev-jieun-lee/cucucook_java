@@ -1,26 +1,31 @@
 package com.example.cucucook.controller;
 
-import com.example.cucucook.config.JwtTokenProvider;
-import com.example.cucucook.domain.Member;
-import com.example.cucucook.service.MemberService;
-import com.example.cucucook.domain.PasswordFindResponse;
-
-import jakarta.servlet.http.HttpServletRequest;
-import jakarta.servlet.http.HttpServletResponse;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.security.core.context.SecurityContextHolder;
-import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
-import org.springframework.web.bind.annotation.*;
-import org.springframework.security.core.Authentication;
-
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RestController;
+
+import com.example.cucucook.config.JwtTokenProvider;
+import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.PasswordFindResponse;
+import com.example.cucucook.service.MemberService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @RestController
 @RequestMapping("/api/members")
@@ -37,28 +42,37 @@ public class MemberController {
     // 로그인 API
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Member loginRequest) {
-        Member member = memberService.validateMember(loginRequest.getUserId(), loginRequest.getPassword());
-        if (member != null) {
+        try {
+            Member member = memberService.validateMember(loginRequest.getUserId(), loginRequest.getPassword());
             String token = tokenProvider.createToken(member.getUserId(), member.getRole());
-            String userId = member.getUserId();
-            String name = member.getName();
-            String role = member.getRole();
-            int memberId = member.getMemberId();
 
             // 여러 값을 포함하는 Map 생성
             Map<String, Object> response = new HashMap<>();
             response.put("token", token);
-            response.put("userId", userId);
-            response.put("name", name);
-            response.put("role", role);
-            response.put("memberId", memberId);
+            response.put("userId", member.getUserId());
+            response.put("name", member.getName());
+            response.put("role", member.getRole());
+            response.put("memberId", member.getMemberId());
 
-            return ResponseEntity.ok().body(response); // JWT 토큰과 사용자 ID 반환
-        } else {
-            return ResponseEntity.status(401).body(Collections.singletonMap("message", "Authentication failed")); // 로그인 실패
+            return ResponseEntity.ok().body(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Collections.singletonMap("message", e.getMessage()));
         }
     }
 
+    // 로그인 실패 횟수 증가 요청
+    @PostMapping("/increaseFailedAttempts")
+    public ResponseEntity<?> increaseFailedAttempts(@RequestBody Map<String, String> payload) {
+        String userId = payload.get("userId");
+        try {
+            memberService.increaseFailedAttempts(userId);
+            return ResponseEntity.ok("Failed attempts increased");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("Failed to increase failed attempts: " + e.getMessage());
+        }
+    }
 
     // 로그아웃 API
     @PostMapping("/logout")
@@ -69,7 +83,6 @@ public class MemberController {
         }
         return ResponseEntity.ok().body("Logged out successfully");
     }
-
 
     // 회원 등록
     @PostMapping("/register")
@@ -82,14 +95,13 @@ public class MemberController {
         }
     }
 
-    //핸드폰번호 중복 확인
+    // 핸드폰번호 중복 확인
     @PostMapping("/check-phone")
     public ResponseEntity<Boolean> checkPhoneNumber(@RequestBody PhoneRequest request) {
         boolean exists = memberService.checkPhoneExists(request.getPhone());
-        System.out.println("응답값 : "+exists);
+        System.out.println("응답값 : " + exists);
         return ResponseEntity.ok(exists);
     }
-
 
     // 아이디 중복 체크
     @GetMapping("/check-id/{userId}")
@@ -114,14 +126,11 @@ public class MemberController {
         return ResponseEntity.ok(isAvailable);
     }
 
-
-
     // 이메일 중복 체크
     @GetMapping("/check-email/{email}")
     public ResponseEntity<Boolean> checkEmail(@PathVariable String email) {
         return ResponseEntity.ok(memberService.checkEmailExists(email));
     }
-
 
     // 아이디 찾기
     @PostMapping("/find-id")
@@ -138,7 +147,8 @@ public class MemberController {
             return ResponseEntity.status(500).body("아이디 찾기 오류");
         }
     }
-    //아이다찾기 응답부분
+
+    // 아이다찾기 응답부분
     public static class FindIdResponse {
         private String foundId;
 
@@ -154,6 +164,7 @@ public class MemberController {
             this.foundId = foundId;
         }
     }
+
     @PostMapping("/find-pw")
     public ResponseEntity<PasswordFindResponse> findPassword(@RequestBody Member member) {
         try {
@@ -172,27 +183,27 @@ public class MemberController {
             memberService.sendVerificationCode(email);
             return ResponseEntity.ok("Verification code sent successfully");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("Failed to send verification code: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("Failed to send verification code: " + e.getMessage());
         }
     }
 
     // 이메일 인증 코드 검증
-@PostMapping("/verify")
-public ResponseEntity<Map<String, Object>> verifyEmail(@RequestBody Map<String, String> payload) {
-    String email = payload.get("email");
-    String code = payload.get("code");
-    Map<String, Object> response = new HashMap<>();
-    try {
-        boolean isVerified = memberService.verifyEmailCode(email, code);
-        response.put("success", isVerified);
-        response.put("message", isVerified ? "Email verified successfully" : "Invalid verification code");
-        return ResponseEntity.ok(response);
-    } catch (Exception e) {
-        response.put("success", false);
-        response.put("message", "Error verifying email: " + e.getMessage());
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+    @PostMapping("/verify")
+    public ResponseEntity<Map<String, Object>> verifyEmail(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String code = payload.get("code");
+        Map<String, Object> response = new HashMap<>();
+        try {
+            boolean isVerified = memberService.verifyEmailCode(email, code);
+            response.put("success", isVerified);
+            response.put("message", isVerified ? "Email verified successfully" : "Invalid verification code");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error verifying email: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
     }
-}
-
 
 }

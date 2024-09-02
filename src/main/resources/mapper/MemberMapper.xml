@@ -130,4 +130,27 @@
     VALUES (#{email}, #{code}, #{createdAt}, #{expiresAt})
 </insert>
 
+ <update id="updateFailedAttempts">
+        UPDATE public."member"
+        SET failed_attempts = failed_attempts + 1
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="resetFailedAttempts">
+        UPDATE public."member"
+        SET failed_attempts = 0
+        WHERE user_id = #{userId}
+    </update>
+
+    <update id="lockAccount">
+        UPDATE public."member"
+        SET lockout_time = #{lockoutTime}
+        WHERE user_id = #{userId}
+    </update>
+
+<update id="updateMemberLockoutTime">
+    UPDATE public.member
+    SET lockout_time = #{lockoutTime}
+    WHERE user_id = #{userId}
+</update>
 </mapper>
