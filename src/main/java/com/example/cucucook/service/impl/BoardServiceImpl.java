@@ -41,6 +41,8 @@ public class BoardServiceImpl implements BoardService {
 
     Board board = boardMapper.getBoard(boardId);
 
+    System.out.println("--------------------------------------");
+    System.out.println(board);
     if(board == null){
       result.put("success", false);
       result.put("message", "게시물이 존재하지 않습니다.");
@@ -76,6 +78,8 @@ public class BoardServiceImpl implements BoardService {
       // 등록 및 수정 시간 설정
       board.setRegDt(formattedNow);
       board.setUdtDt(formattedNow);
+
+      System.out.println(board);
 
       // 실제 데이터베이스에 insert 처리 호출
       int rowsAffected = boardMapper.insertBoard(board);

@@ -45,6 +45,8 @@ public class BoardController {
   //게시판 글 등록
   @PostMapping(value = "/insertBoard")
   public HashMap<String, Object> insertBoard(@RequestBody Board board) {
+    System.out.println("Board Object: " + board);
+      
     return boardService.insertBoard(board);
   }
 
