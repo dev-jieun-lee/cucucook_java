@@ -31,9 +31,9 @@ public class BoardController {
   //*********게시판 */
   // 게시판 목록 조회
   @GetMapping(value = "/getBoardList")
-  public ApiResponse<List<Board>> getBoardList(@RequestParam String search, @RequestParam String boardCategoryId,
+  public ApiResponse<List<Board>> getBoardList(@RequestParam String division, @RequestParam String search, @RequestParam String searchType, @RequestParam String boardCategoryId,
       @RequestParam(value = "start", required = false, defaultValue="1") int start, @RequestParam(value = "display", required = true, defaultValue = "20") int display) {
-    return boardService.getBoardList(search, boardCategoryId, start, display);
+    return boardService.getBoardList(division, search, searchType, boardCategoryId, start, display);
   }
 
   //게시판 글 상세 조회

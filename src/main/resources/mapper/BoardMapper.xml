@@ -33,22 +33,39 @@
           ,status
           ,view_count
           ,p_board_id
+          ,contents
           ,udt_dt
           ,reg_dt
           ,user_name
     FROM Board
     <where>
+      <!-- NOTICE만 조회 -->
+      <if test="division != '' and division != null">
+          AND board_division = #{division}
+      </if>
       <!-- 조건이 있을 때만 검색 조건을 추가 -->
       <if test="search != '' and search != null">
-          AND title LIKE CONCAT('%', #{search}, '%')
+          <choose>
+              <when test="searchType == 'title'">
+                  AND title LIKE CONCAT('%', #{search}, '%')
+              </when>
+              <when test="searchType == 'contents'">
+                  AND contents LIKE CONCAT('%', #{search}, '%')
+              </when>
+              <when test="searchType == 'all'">
+                  AND (title LIKE CONCAT('%', #{search}, '%')
+                  OR contents LIKE CONCAT('%', #{search}, '%'))
+              </when>
+          </choose>
       </if>
-      <if test="boardCategoryId != '' and boardCategoryId != null">
+      <if test="boardCategoryId != '' and boardCategoryId != null and boardCategoryId != 'all'">
           AND board_category_id = #{boardCategoryId}
       </if>
     </where>
     <!-- 기본 정렬은 최신 게시물 우선 -->
-    ORDER BY board_id DESC
+    ORDER BY udt_dt DESC
 </select>
+
 
 <!-- 게시판 글 상세 조회 -->
 <select id="getBoard" resultMap="BoardResultMap">
