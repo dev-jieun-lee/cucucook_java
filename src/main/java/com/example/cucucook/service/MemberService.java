@@ -47,4 +47,5 @@ public interface MemberService {
     void resetFailedAttempts(String userId);
 
     void lockMemberAccount(String userId);
+
 }

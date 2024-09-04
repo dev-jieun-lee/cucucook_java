@@ -69,19 +69,6 @@ public class MemberController {
         }
     }
 
-    // 로그인 실패 횟수 증가 요청
-    @PostMapping("/increaseFailedAttempts")
-    public ResponseEntity<?> increaseFailedAttempts(@RequestBody Map<String, String> payload) {
-        String userId = payload.get("userId");
-        try {
-            memberService.increaseFailedAttempts(userId);
-            return ResponseEntity.ok("Failed attempts increased");
-        } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
-                    .body("Failed to increase failed attempts: " + e.getMessage());
-        }
-    }
-
     // 로그아웃 API
     @PostMapping("/logout")
     public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
@@ -181,13 +168,61 @@ public class MemberController {
         }
     }
 
+    // 비밀번호찾기
     @PostMapping("/find-pw")
     public ResponseEntity<PasswordFindResponse> findPassword(@RequestBody Member member) {
         try {
+            logger.info("비밀번호 찾기 요청: UserId={}, Email={}", member.getUserId(), member.getEmail());
+
+            // 회원 존재 여부 확인
+            if (!memberService.checkEmailExists(member.getEmail())) {
+                logger.warn("등록된 회원이 존재하지 않음: Email={}", member.getEmail());
+                return ResponseEntity.status(404).body(
+                        new PasswordFindResponse(false, "등록된 회원이 존재하지 않습니다.", null, null));
+            }
+
+            // 사용자 아이디로 회원 정보 조회
+            Member existingMember = memberService.validateMemberByUserId(member.getUserId());
+            if (existingMember == null) {
+                logger.warn("해당 아이디로 등록된 회원이 존재하지 않음: UserId={}", member.getUserId());
+                return ResponseEntity.status(404).body(
+                        new PasswordFindResponse(false, "해당 아이디로 등록된 회원이 존재하지 않습니다.", null, null));
+            }
+
+            // 아이디와 이메일 일치 여부 확인
+            if (!existingMember.getEmail().equals(member.getEmail())) {
+                logger.warn("아이디와 이메일 불일치: UserId={}, 입력된 Email={}, 실제 Email={}",
+                        member.getUserId(), member.getEmail(), existingMember.getEmail());
+                return ResponseEntity.status(400).body(
+                        new PasswordFindResponse(false, "아이디와 이메일이 일치하지 않습니다.", null, null));
+            }
+
+            // 인증 코드 검증
+            boolean isCodeValid = memberService.verifyEmailCode(member.getEmail(), member.getVerificationCode());
+            if (!isCodeValid) {
+                logger.warn("인증 코드 검증 실패: Email={}, 입력된 코드={}", member.getEmail(), member.getVerificationCode());
+                return ResponseEntity.status(400).body(
+                        new PasswordFindResponse(false, "인증 코드가 올바르지 않습니다.", null, null));
+            }
+
+            // 비밀번호 찾기 로직
             PasswordFindResponse response = memberService.findPassword(member);
-            return ResponseEntity.ok(response);
+
+            // 비밀번호 찾기 성공 여부에 따라 응답
+            if (response.isSuccess()) {
+                logger.info("비밀번호 찾기 성공: UserId={}, 임시 비밀번호가 이메일로 전송되었습니다.", member.getUserId());
+                return ResponseEntity.ok(response);
+            } else {
+                logger.error("비밀번호 찾기 실패: UserId={}", member.getUserId());
+                return ResponseEntity.status(500).body(
+                        new PasswordFindResponse(false, "비밀번호 찾기에 실패했습니다.", null, null));
+            }
         } catch (Exception e) {
-            return ResponseEntity.status(500).body(new PasswordFindResponse(false, "서버 오류가 발생했습니다.", null, null));
+            // 예외 발생 시 상세 로그 기록
+            logger.error("비밀번호 찾기 중 오류 발생: UserId={}, Email={}, 오류={}",
+                    member.getUserId(), member.getEmail(), e.getMessage(), e);
+            return ResponseEntity.status(500).body(
+                    new PasswordFindResponse(false, "서버 오류가 발생했습니다.", null, null));
         }
     }
 
