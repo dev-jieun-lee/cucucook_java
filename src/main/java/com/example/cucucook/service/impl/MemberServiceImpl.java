@@ -10,6 +10,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
@@ -38,69 +39,50 @@ public class MemberServiceImpl implements MemberService {
         return validateMember(userId, password); // 로그인은 validateMember 메서드를 사용
     }
 
-    @Override
     public Member validateMember(String userId, String password) {
         Member member = memberMapper.findByUserId(userId);
-
         if (member != null) {
-            // 계정이 잠금 상태인지 확인
             if (member.getLockoutTime() != null && member.getLockoutTime().isAfter(LocalDateTime.now())) {
-                String lockoutMessage = "계정이 잠금 상태입니다. 잠금 해제 시간: " + member.getLockoutTime();
-                logger.warn(lockoutMessage);
-                throw new RuntimeException(lockoutMessage);
+                logger.warn("계정이 잠금 상태입니다. 잠금 해제 시간: {}", member.getLockoutTime());
+                throw new RuntimeException("계정이 잠금 상태입니다. 잠금 해제 시간: " + member.getLockoutTime());
             }
-
-            // 비밀번호 검증
-            if (passwordEncoder.matches(password, member.getPassword())) {
-                // 로그인 성공 시 실패 횟수 초기화
-                resetFailedAttempts(userId);
-                logger.info("사용자 '{}'의 로그인 성공", userId);
-                return member;
-            } else {
-                // 실패 시 처리
-                increaseFailedAttempts(userId);
-                if (member.getFailedAttempts() >= 5) {
-                    // 5번 이상 실패 시 계정 잠금
-                    lockMemberAccount(userId);
-                    String lockMessage = "로그인 시도가 너무 많아 계정이 잠금되었습니다.";
-                    logger.warn(lockMessage);
-                    throw new RuntimeException(lockMessage);
-                } else {
-                    String attemptMessage = "비밀번호가 잘못되었습니다. 실패 횟수: " + member.getFailedAttempts();
-                    logger.warn(attemptMessage);
-                    throw new RuntimeException(attemptMessage);
-                }
+            if (!passwordEncoder.matches(password, member.getPassword())) {
+                increaseFailedAttempts(userId); // 비밀번호 불일치 시 실패 횟수 증가
+                throw new RuntimeException("비밀번호가 잘못되었습니다.");
             }
+            resetFailedAttempts(userId); // 로그인 성공 시 실패 횟수 초기화
+            return member;
         }
-        String notFoundMessage = "사용자를 찾을 수 없습니다.";
-        logger.warn(notFoundMessage);
-        throw new RuntimeException(notFoundMessage);
+        throw new RuntimeException("사용자를 찾을 수 없습니다.");
     }
 
-    @Override
+    @Transactional
     public void increaseFailedAttempts(String userId) {
         Member member = memberMapper.findByUserId(userId);
         if (member != null) {
-            int attempts = member.getFailedAttempts() + 1;
-            memberMapper.updateFailedAttempts(userId, attempts);
-            if (attempts >= 5) {
-                LocalDateTime lockoutTime = LocalDateTime.now().plusMinutes(10); // 10분 동안 계정 잠금
+            // DB에서 바로 실패 횟수를 증가시키고 재조회
+            memberMapper.updateFailedAttempts(userId, member.getFailedAttempts());
+            member = memberMapper.findByUserId(userId); // 업데이트된 상태 재조회
+            logger.info("사용자 '{}'의 실패 횟수가 '{}'로 업데이트되었습니다.", userId, member.getFailedAttempts());
+
+            if (member.getFailedAttempts() >= 5) {
+                int lockMinutes = 10 + 5 * (member.getFailedAttempts() - 5);
+                LocalDateTime lockoutTime = LocalDateTime.now().plusMinutes(lockMinutes);
                 memberMapper.lockAccount(userId, lockoutTime);
-                logger.info("사용자 '{}'의 계정이 '{}'까지 잠금되었습니다.", userId, lockoutTime);
+                logger.info("사용자 '{}'의 계정이 '{}'까지 잠금됩니다.", userId, lockoutTime);
             }
-            logger.info("사용자 '{}'의 실패 횟수가 증가했습니다.", userId);
         } else {
-            logger.warn("사용자 '{}'를 찾을 수 없습니다. 실패 횟수를 증가시킬 수 없습니다.", userId);
+            logger.warn("사용자 '{}'를 데이터베이스에서 찾을 수 없습니다. 실패 횟수를 증가시킬 수 없습니다.", userId);
         }
     }
 
-    @Override
+    @Transactional
     public void resetFailedAttempts(String userId) {
         memberMapper.resetFailedAttempts(userId);
         logger.info("사용자 '{}'의 실패 횟수가 초기화되었습니다.", userId);
     }
 
-    @Override
+    @Transactional
     public void lockMemberAccount(String userId) {
         LocalDateTime lockoutTime = LocalDateTime.now().plusMinutes(10); // 10분 동안 계정 잠금
         memberMapper.lockAccount(userId, lockoutTime);
@@ -258,4 +240,7 @@ public class MemberServiceImpl implements MemberService {
         return String.valueOf(new Random().nextInt(900000) + 100000);
     }
 
+    public Member validateMemberByUserId(String userId) {
+        return memberMapper.findByUserId(userId);
+    }
 }
