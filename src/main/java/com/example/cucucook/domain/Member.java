@@ -78,4 +78,9 @@ public class Member implements Serializable {
         this.failedAttempts = failedAttempts;
     }
 
+    public String getVerificationCode() {
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getVerificationCode'");
+    }
+
 }

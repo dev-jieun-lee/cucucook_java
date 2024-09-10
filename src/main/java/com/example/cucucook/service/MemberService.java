@@ -48,4 +48,6 @@ public interface MemberService {
 
     void lockMemberAccount(String userId);
 
+    Member validateMemberByUserId(String userId);
+
 }
