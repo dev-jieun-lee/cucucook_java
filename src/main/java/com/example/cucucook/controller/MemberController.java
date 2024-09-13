@@ -32,6 +32,20 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping("/api/members")
 public class MemberController {
 
+    // 로그인 예외처리1
+    public static class InvalidPasswordException extends RuntimeException {
+        public InvalidPasswordException(String message) {
+            super(message);
+        }
+    }
+
+    // 로그인 예외처리2
+    public static class AccountLockedException extends RuntimeException {
+        public AccountLockedException(String message) {
+            super(message);
+        }
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(MemberController.class);
 
     @Autowired
@@ -47,14 +61,12 @@ public class MemberController {
             Member member = memberService.validateMember(loginRequest.getUserId(), loginRequest.getPassword());
             String token = tokenProvider.createToken(member.getUserId(), member.getRole());
 
-            // 쿠키에 JWT 토큰 저장
             Cookie authCookie = new Cookie("auth_token", token);
             authCookie.setHttpOnly(true);
-            authCookie.setSecure(true); // HTTPS에서만 사용
-            authCookie.setPath("/"); // 전체 경로에 대해 유효
+            authCookie.setSecure(true);
+            authCookie.setPath("/");
             response.addCookie(authCookie);
 
-            // 여러 값을 포함하는 Map 생성
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("token", token);
             responseBody.put("userId", member.getUserId());
@@ -63,6 +75,12 @@ public class MemberController {
             responseBody.put("memberId", member.getMemberId());
 
             return ResponseEntity.ok().body(responseBody);
+        } catch (AccountLockedException e) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(Collections.singletonMap("message", e.getMessage()));
+        } catch (InvalidPasswordException e) {
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(Collections.singletonMap("message", e.getMessage()));
         } catch (RuntimeException e) {
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
                     .body(Collections.singletonMap("message", e.getMessage()));
