@@ -78,4 +78,8 @@ public class Member implements Serializable {
         this.failedAttempts = failedAttempts;
     }
 
+    public String getVerificationCode() {
+        throw new UnsupportedOperationException("Not supported yet.");
+    }
+
 }
