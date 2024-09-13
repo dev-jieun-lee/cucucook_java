@@ -2,8 +2,11 @@ package com.example.cucucook.service.impl;
 
 import java.security.SecureRandom;
 import java.time.LocalDateTime;
+import java.time.temporal.ChronoUnit;
 import java.util.Base64;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Random;
 
 import org.slf4j.Logger;
@@ -15,6 +18,8 @@ import org.springframework.transaction.annotation.Transactional;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
 import com.example.cucucook.domain.VerificationCode;
+import com.example.cucucook.exception.AccountLockedException;
+import com.example.cucucook.exception.InvalidPasswordException; // 올바른 import 경로
 import com.example.cucucook.mapper.MemberMapper;
 import com.example.cucucook.service.EmailService;
 import com.example.cucucook.service.MemberService;
@@ -27,6 +32,9 @@ public class MemberServiceImpl implements MemberService {
     private final MemberMapper memberMapper;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+
+    // 추가된 필드 - 로그인 실패 기록 저장
+    private final Map<String, Integer> failedAttemptsMap = new HashMap<>();
 
     public MemberServiceImpl(MemberMapper memberMapper, PasswordEncoder passwordEncoder, EmailService emailService) {
         this.memberMapper = memberMapper;
@@ -43,14 +51,20 @@ public class MemberServiceImpl implements MemberService {
         Member member = memberMapper.findByUserId(userId);
         if (member != null) {
             if (member.getLockoutTime() != null && member.getLockoutTime().isAfter(LocalDateTime.now())) {
-                logger.warn("계정이 잠금 상태입니다. 잠금 해제 시간: {}", member.getLockoutTime());
-                throw new RuntimeException("계정이 잠금 상태입니다. 잠금 해제 시간: " + member.getLockoutTime());
+                throw new AccountLockedException("계정이 잠금 상태입니다.", member.getFailedAttempts(),
+                        ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime()));
             }
+
             if (!passwordEncoder.matches(password, member.getPassword())) {
-                increaseFailedAttempts(userId); // 비밀번호 불일치 시 실패 횟수 증가
-                throw new RuntimeException("비밀번호가 잘못되었습니다.");
+                increaseFailedAttempts(userId);
+                member = memberMapper.findByUserId(userId);
+                throw new InvalidPasswordException("비밀번호가 잘못되었습니다.", member.getFailedAttempts(),
+                        member.getLockoutTime() != null
+                                ? ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime())
+                                : 0);
             }
-            resetFailedAttempts(userId); // 로그인 성공 시 실패 횟수 초기화
+
+            resetFailedAttempts(userId);
             return member;
         }
         throw new RuntimeException("사용자를 찾을 수 없습니다.");
@@ -60,16 +74,18 @@ public class MemberServiceImpl implements MemberService {
     public void increaseFailedAttempts(String userId) {
         Member member = memberMapper.findByUserId(userId);
         if (member != null) {
-            // DB에서 바로 실패 횟수를 증가시키고 재조회
-            memberMapper.updateFailedAttempts(userId, member.getFailedAttempts());
-            member = memberMapper.findByUserId(userId); // 업데이트된 상태 재조회
-            logger.info("사용자 '{}'의 실패 횟수가 '{}'로 업데이트되었습니다.", userId, member.getFailedAttempts());
+            // 실패 기록을 메모리에서도 관리하여 이전에 입력한 아이디 추적
+            int failedAttempts = failedAttemptsMap.getOrDefault(userId, member.getFailedAttempts()) + 1;
 
-            if (member.getFailedAttempts() >= 5) {
-                int lockMinutes = 10 + 5 * (member.getFailedAttempts() - 5);
-                LocalDateTime lockoutTime = LocalDateTime.now().plusMinutes(lockMinutes);
-                memberMapper.lockAccount(userId, lockoutTime);
-                logger.info("사용자 '{}'의 계정이 '{}'까지 잠금됩니다.", userId, lockoutTime);
+            // 실패 횟수 데이터베이스 업데이트
+            memberMapper.updateFailedAttempts(userId, failedAttempts);
+            failedAttemptsMap.put(userId, failedAttempts); // 메모리에서도 업데이트
+
+            logger.info("사용자 '{}'의 실패 횟수가 '{}'로 업데이트되었습니다.", userId, failedAttempts);
+
+            // 실패 횟수가 5회 이상이면 계정 잠금
+            if (failedAttempts >= 5) {
+                lockMemberAccount(userId);
             }
         } else {
             logger.warn("사용자 '{}'를 데이터베이스에서 찾을 수 없습니다. 실패 횟수를 증가시킬 수 없습니다.", userId);
@@ -79,13 +95,17 @@ public class MemberServiceImpl implements MemberService {
     @Transactional
     public void resetFailedAttempts(String userId) {
         memberMapper.resetFailedAttempts(userId);
+        failedAttemptsMap.remove(userId); // 메모리에서도 초기화
         logger.info("사용자 '{}'의 실패 횟수가 초기화되었습니다.", userId);
     }
 
     @Transactional
     public void lockMemberAccount(String userId) {
         LocalDateTime lockoutTime = LocalDateTime.now().plusMinutes(10); // 10분 동안 계정 잠금
-        memberMapper.lockAccount(userId, lockoutTime);
+        Map<String, Object> params = new HashMap<>();
+        params.put("userId", userId);
+        params.put("lockoutTime", lockoutTime);
+        memberMapper.lockAccount(params);
         logger.info("사용자 '{}'의 계정이 '{}'까지 잠금되었습니다.", userId, lockoutTime);
     }
 
@@ -95,14 +115,13 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
+    // 비밀번호를 암호화하여 저장하는 예시
     public void registerMember(Member member) {
-        if (memberMapper.existsByUserId(member.getUserId())) {
-            throw new IllegalArgumentException("User ID is already taken.");
-        }
-        if (memberMapper.existsByEmail(member.getEmail())) {
-            throw new IllegalArgumentException("Email is already in use.");
-        }
-        member.setPassword(passwordEncoder.encode(member.getPassword()));
+        // 비밀번호를 BCrypt로 암호화
+        String encodedPassword = passwordEncoder.encode(member.getPassword());
+        member.setPassword(encodedPassword);
+
+        // 회원 등록 로직
         memberMapper.insertMember(member);
     }
 
@@ -243,4 +262,5 @@ public class MemberServiceImpl implements MemberService {
     public Member validateMemberByUserId(String userId) {
         return memberMapper.findByUserId(userId);
     }
+
 }

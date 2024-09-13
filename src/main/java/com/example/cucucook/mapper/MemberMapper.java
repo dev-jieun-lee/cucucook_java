@@ -1,7 +1,7 @@
 package com.example.cucucook.mapper;
 
-import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
@@ -76,10 +76,9 @@ public interface MemberMapper {
     // 실패 횟수 초기화
     void resetFailedAttempts(@Param("userId") String userId);
 
-    // 실패 횟수 업데이트
-    int updateFailedAttempts(@Param("userId") String userId, @Param("failedAttempts") int failedAttempts);
+    // 실패 횟수 업데이트 메서드 (새로운 실패 횟수를 파라미터로 받음)
+    void updateFailedAttempts(@Param("userId") String userId, @Param("failedAttempts") int failedAttempts);
 
     // 계정 잠금
-    int lockAccount(@Param("userId") String userId, @Param("lockoutTime") LocalDateTime lockoutTime);
-
+    void lockAccount(Map<String, Object> params);
 }
