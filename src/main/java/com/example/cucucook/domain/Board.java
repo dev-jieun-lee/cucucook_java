@@ -55,5 +55,4 @@ public class Board {
 
     // 답글 갯수
     private int replyCount;
-
 }
