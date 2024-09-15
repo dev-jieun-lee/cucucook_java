@@ -56,34 +56,44 @@ public class MemberController {
 
     // 로그인 API
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Member loginRequest, HttpServletResponse response) {
-        try {
-            Member member = memberService.validateMember(loginRequest.getUserId(), loginRequest.getPassword());
-            String token = tokenProvider.createToken(member.getUserId(), member.getRole());
+    public ResponseEntity<?> login(@RequestBody Member loginRequest, HttpServletResponse response,
+            HttpServletRequest request) {
+        String userId = loginRequest.getUserId(); // 로그인 시도하는 사용자 ID
 
+        try {
+            Member member = memberService.validateMember(userId, loginRequest.getPassword());
+            String token = tokenProvider.createToken(userId, member.getRole());
+
+            // 쿠키 설정
             Cookie authCookie = new Cookie("auth_token", token);
             authCookie.setHttpOnly(true);
-            authCookie.setSecure(true);
+            authCookie.setSecure(request.isSecure());
             authCookie.setPath("/");
             response.addCookie(authCookie);
 
+            // 로그인 성공 로그, 한글로 기록
+            logger.info("사용자 '{}' 로그인 성공", userId);
+
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("token", token);
-            responseBody.put("userId", member.getUserId());
+            responseBody.put("userId", userId);
             responseBody.put("name", member.getName());
             responseBody.put("role", member.getRole());
             responseBody.put("memberId", member.getMemberId());
 
             return ResponseEntity.ok().body(responseBody);
         } catch (AccountLockedException e) {
+            logger.warn("사용자 '{}' 로그인 실패: 계정 잠김", userId);
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(Collections.singletonMap("message", e.getMessage()));
+                    .body(Collections.singletonMap("message", "계정 잠김: " + e.getMessage()));
         } catch (InvalidPasswordException e) {
+            logger.warn("사용자 '{}' 로그인 실패: 비밀번호 오류", userId);
             return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Collections.singletonMap("message", e.getMessage()));
+                    .body(Collections.singletonMap("message", "비밀번호 오류: " + e.getMessage()));
         } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Collections.singletonMap("message", e.getMessage()));
+            logger.error("사용자 '{}' 로그인 실패: {}", userId, e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body(Collections.singletonMap("message", "로그인 오류: " + e.getMessage()));
         }
     }
 
