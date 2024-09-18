@@ -7,7 +7,7 @@
 
     <!-- 사용자 아이디를 기준으로 사용자를 조회 -->
     <select id="findByUserId" parameterType="String" resultType="com.example.cucucook.domain.Member">
-        SELECT member_id, user_id, name, phone, password, role, email, sms_noti, email_noti
+        SELECT member_id, user_id, name, phone, password, role, email, sms_noti, email_noti, failed_attempts
         FROM member
         WHERE user_id = #{userId}
     </select>
@@ -147,7 +147,7 @@
     <!-- 실패 횟수 초기화 -->
     <update id="resetFailedAttempts" parameterType="String">
         UPDATE member
-        SET failed_attempts = 0
+        SET failed_attempts = 0, lockout_time =null
         WHERE user_id = #{userId}
     </update>
 
@@ -158,4 +158,10 @@
         WHERE user_id = #{userId}
     </update>
 
+        <!-- 회원 조회-->
+<select id="getFailedAttempts" parameterType="string" resultType="int">
+    SELECT failedAttempts
+    FROM members
+    WHERE userId = #{userId}
+</select>
 </mapper>

@@ -31,4 +31,17 @@ public interface MypageService {
 
     // 비밀번호 확인 메서드 추가
     boolean verifyPassword(String userId, String password);
+
+    // 내가 쓴 댓글 조회
+    List<RecipeComment> getMyComments(int page, int pageSize, int memberId);
+
+    // 댓글 삭제
+    void deleteComment(String commentId);
+
+    // 댓글 검색
+    List<RecipeComment> searchComments(String keyword, int page, int pageSize);
+
+    // 댓글 필터링
+    List<RecipeComment> filterComments(String category, String dateRange, int page, int pageSize);
+
 }

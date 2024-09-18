@@ -14,6 +14,7 @@ import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.mapper.MemberMapper;
+import com.example.cucucook.mapper.MypageMapper;
 import com.example.cucucook.service.MypageService;
 
 @Service
@@ -23,6 +24,9 @@ public class MypageServiceImpl implements MypageService {
 
     @Autowired
     private MemberMapper memberMapper;
+
+    @Autowired
+    private MypageMapper mypageMapper;
 
     @Override
     public boolean verifyPassword(String userId, String password) {
@@ -94,5 +98,52 @@ public class MypageServiceImpl implements MypageService {
     @Override
     public void removeRecipeLike(Long memberId, String recipeId) {
         // 구현이 필요함
+    }
+
+    ///////// 댓글
+    // 내가 쓴 댓글 목록 가져오기
+    @Override
+    public List<RecipeComment> getMyComments(int page, int pageSize, int memberId) {
+        int offset = (page - 1) * pageSize;
+        try {
+            logger.info("댓글 로딩 시도: 페이지 {}, 페이지 크기 {}", page, pageSize);
+            List<RecipeComment> comments = mypageMapper.getMyComments(offset, pageSize, memberId);
+            logger.info("서비스임플 댓글 로딩 성공: {} 개의 댓글", comments.size());
+            return comments;
+        } catch (Exception e) {
+            logger.error("서비스임플 댓글 로딩 실패: {}", e.getMessage(), e);
+            return Collections.emptyList();
+        }
+    }
+
+    @Override
+    public void deleteComment(String commentId) {
+        try {
+            mypageMapper.deleteCommentById(commentId);
+            System.out.println("서비스임플 댓글 삭제 성공: " + commentId);
+        } catch (Exception e) {
+            System.out.println("서비스임플 댓글 삭제 실패: " + e.getMessage());
+        }
+    }
+
+    // 댓글 검색
+
+    @Override
+    public List<RecipeComment> searchComments(String keyword, int page, int pageSize) {
+        try {
+            int offset = (page - 1) * pageSize;
+            List<RecipeComment> comments = mypageMapper.searchMyComments(keyword, offset, pageSize);
+            System.out.println("서비스임플 검색 결과: " + comments.size() + " 개의 댓글");
+            return comments;
+        } catch (Exception e) {
+            System.out.println("서비스임플 검색 실패: " + e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    // 댓글 필터링
+    public List<RecipeComment> filterComments(String category, String dateRange, int page, int pageSize) {
+        int offset = (page - 1) * pageSize;
+        return mypageMapper.filterMyComments(category, dateRange, dateRange, offset, pageSize);
     }
 }

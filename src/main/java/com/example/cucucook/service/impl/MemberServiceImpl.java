@@ -19,7 +19,7 @@ import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
 import com.example.cucucook.domain.VerificationCode;
 import com.example.cucucook.exception.AccountLockedException;
-import com.example.cucucook.exception.InvalidPasswordException; // 올바른 import 경로
+import com.example.cucucook.exception.InvalidPasswordException;
 import com.example.cucucook.mapper.MemberMapper;
 import com.example.cucucook.service.EmailService;
 import com.example.cucucook.service.MemberService;
@@ -47,21 +47,34 @@ public class MemberServiceImpl implements MemberService {
         return validateMember(userId, password); // 로그인은 validateMember 메서드를 사용
     }
 
+    @Transactional(rollbackFor = InvalidPasswordException.class)
     public Member validateMember(String userId, String password) {
         Member member = memberMapper.findByUserId(userId);
         if (member != null) {
             if (member.getLockoutTime() != null && member.getLockoutTime().isAfter(LocalDateTime.now())) {
                 throw new AccountLockedException("계정이 잠금 상태입니다.", member.getFailedAttempts(),
-                        ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime()));
+                        ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime()), null);
             }
-
+            // validateMember 메서드에서 비밀번호가 틀렸을 때 예외 발생
             if (!passwordEncoder.matches(password, member.getPassword())) {
                 increaseFailedAttempts(userId);
-                member = memberMapper.findByUserId(userId);
-                throw new InvalidPasswordException("비밀번호가 잘못되었습니다.", member.getFailedAttempts(),
-                        member.getLockoutTime() != null
-                                ? ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime())
-                                : 0);
+                member = memberMapper.findByUserId(userId); // 업데이트된 데이터를 다시 가져옴
+
+                // 남은 잠금 시간 계산
+                long lockoutTimeRemaining = member.getLockoutTime() != null
+                        ? ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime())
+                        : 0;
+
+                // InvalidPasswordException을 던져서 컨트롤러에서 처리
+                logger.info("InvalidPasswordException 발생: userId: {}, 실패 횟수: {}, 남은 잠금 시간: {}초",
+                        userId, member.getFailedAttempts(), lockoutTimeRemaining);
+
+                throw new InvalidPasswordException(
+                        "비밀번호가 잘못되었습니다.",
+                        member.getFailedAttempts(), // 이 부분에서 member 객체의 실패 횟수를 가져옴
+                        lockoutTimeRemaining // 잠금 시간이 남아있는 경우 해당 값 전달
+                );
+
             }
 
             resetFailedAttempts(userId);
@@ -81,7 +94,7 @@ public class MemberServiceImpl implements MemberService {
             memberMapper.updateFailedAttempts(userId, failedAttempts);
             failedAttemptsMap.put(userId, failedAttempts); // 메모리에서도 업데이트
 
-            logger.info("사용자 '{}'의 실패 횟수가 '{}'로 업데이트되었습니다.", userId, failedAttempts);
+            logger.info("서비스임플의 increase 사용자 '{}'의 실패 횟수가 '{}'로 업데이트되었습니다.", userId, failedAttempts);
 
             // 실패 횟수가 5회 이상이면 계정 잠금
             if (failedAttempts >= 5) {
