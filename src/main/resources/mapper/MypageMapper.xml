@@ -74,4 +74,31 @@
         AND recipeId = #{recipeId}
     </delete>
 
+        <!-- 내가 쓴 댓글 조회 -->
+    <select id="getMyComments" resultType="com.example.cucucook.domain.RecipeComment">
+        SELECT  mr.title as title, rc.*
+        FROM recipe_comment rc
+        LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
+        WHERE rc.member_id = #{memberId}
+        ORDER BY rc.reg_dt DESC
+    </select>
+
+    <!-- 댓글 삭제 -->
+    <delete id="deleteComment">
+        DELETE FROM recipe_comment
+        WHERE comment_id = #{commentId}
+    </delete>
+
+    <!-- 댓글 검색, PostgreSQL의 ILIKE를 사용하여 대소문자를 구분하지 않는 검색 수행 -->
+    <select id="searchMyComments" resultType="com.example.cucucook.domain.RecipeComment">
+        SELECT * FROM recipe_comment
+        WHERE comment ILIKE CONCAT('%', #{keyword}, '%')
+    </select>
+
+    <!-- 특정 카테고리에 대한 댓글 필터링 -->
+    <select id="filterMyComments" resultType="com.example.cucucook.domain.RecipeComment">
+        SELECT * FROM recipe_comment
+        WHERE category = #{category} AND member_id = #{memberId}
+    </select>
+
 </mapper>

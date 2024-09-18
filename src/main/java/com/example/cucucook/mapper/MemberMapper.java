@@ -81,4 +81,7 @@ public interface MemberMapper {
 
     // 계정 잠금
     void lockAccount(Map<String, Object> params);
+
+    // 사용자 ID로 실패 횟수 조회
+    int getFailedAttempts(@Param("userId") String userId);
 }
