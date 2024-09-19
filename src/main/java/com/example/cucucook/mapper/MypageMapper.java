@@ -43,12 +43,13 @@ public interface MypageMapper {
         void deleteRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
 
         // 댓글//
-        // 내가 쓴 댓글 가져오기 (정렬 옵션 추가)
+        // 내가 쓴 댓글 가져오기
         List<RecipeComment> getMyComments(
                         @Param("offset") int offset,
                         @Param("pageSize") int pageSize,
                         @Param("memberId") int memberId,
-                        @Param("sortOption") String sortOption);
+                        @Param("sortOption") String sortOption,
+                        @Param("sortDirection") String sortDirection);
 
         // 댓글 삭제
         @Delete("DELETE FROM recipe_comment WHERE comment_id = #{commentId}")

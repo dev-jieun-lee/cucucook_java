@@ -76,24 +76,35 @@
 
 <!-- 내가 쓴 댓글 조회 -->
 <select id="getMyComments" resultType="com.example.cucucook.domain.RecipeComment">
-    SELECT  mr.title as title, rc.*
-    FROM recipe_comment rc
-    LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
-    WHERE rc.member_id = #{memberId}
-    ORDER BY
+   SELECT rc.recipe_id
+        	,  rc.comment_id
+        	,  rc.member_id
+        	,  rc.comment
+        	,  rc.rate
+        	,  rc.reg_dt
+        	,  rc.upt_dt
+        	,  rc.status
+        	,  rc.p_comment_id
+        	,  rc.del_yn
+        	, mr.title
+        FROM recipe_comment rc
+        LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
+        WHERE rc.member_id = 1
+        ORDER BY
     <choose>
         <when test="sortOption == 'recipeId'">
-            rc.recipe_id DESC
+            rc.recipe_id ${sortDirection}
         </when>
         <when test="sortOption == 'regDt'">
-            rc.reg_dt DESC
+            rc.reg_dt ${sortDirection}
         </when>
         <otherwise>
-            rc.comment_id DESC
+            rc.comment_id ${sortDirection}
         </otherwise>
     </choose>
     LIMIT #{pageSize} OFFSET GREATEST(0, #{offset})
 </select>
+
 
 
     <!-- 댓글 삭제 -->

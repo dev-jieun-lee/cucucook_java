@@ -103,16 +103,16 @@ public class MypageServiceImpl implements MypageService {
     ///////// 댓글
     // 내가 쓴 댓글 목록 가져오기
     @Override
-    public List<RecipeComment> getMyComments(int page, int pageSize, int memberId, String sortOption) {
+    public List<RecipeComment> getMyComments(int page, int pageSize, int memberId, String sortOption,
+            String sortDirection) {
         int offset = page > 0 ? (page - 1) * pageSize : 0;
         try {
-            logger.info("댓글 로딩 시도: 페이지 {}, 페이지 크기 {}, 정렬 옵션: {}", page, pageSize, sortOption);
-            List<RecipeComment> comments = mypageMapper.getMyComments(offset, pageSize, memberId, sortOption); // 정렬 옵션
-                                                                                                               // 추가
-            logger.info("서비스임플 댓글 로딩 성공: {} 개의 댓글", comments.size());
+            logger.info("댓글 로딩 시도: 페이지 {}, 페이지 크기 {}, 정렬 옵션: {}, 정렬 방향: {}", page, pageSize, sortOption, sortDirection);
+            List<RecipeComment> comments = mypageMapper.getMyComments(offset, pageSize, memberId, sortOption,
+                    sortDirection);
             return comments;
         } catch (Exception e) {
-            logger.error("서비스임플 댓글 로딩 실패: {}", e.getMessage(), e);
+            logger.error("댓글 로딩 실패: {}", e.getMessage(), e);
             return Collections.emptyList();
         }
     }
