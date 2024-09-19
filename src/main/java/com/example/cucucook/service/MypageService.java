@@ -33,7 +33,7 @@ public interface MypageService {
     boolean verifyPassword(String userId, String password);
 
     // 내가 쓴 댓글 조회
-    List<RecipeComment> getMyComments(int page, int pageSize, int memberId, String sortOption);
+    List<RecipeComment> getMyComments(int page, int pageSize, int memberId, String sortOption, String sortDirection);
 
     // 댓글 삭제
     void deleteComment(String commentId);
