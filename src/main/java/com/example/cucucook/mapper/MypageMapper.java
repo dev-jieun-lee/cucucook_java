@@ -13,53 +13,49 @@ import com.example.cucucook.domain.RecipeLike;
 @Mapper
 public interface MypageMapper {
 
-    // 회원이 쓴 글 갯수
-    int getMemberBoardCount(@Param("memberId") int memberId);
+        // 회원이 쓴 글 갯수
+        int getMemberBoardCount(@Param("memberId") int memberId);
 
-    // 회원이 쓴 글 목록
-    List<Board> getMemberBoardList(@Param("memberId") int memberId);
+        // 회원이 쓴 글 목록
+        List<Board> getMemberBoardList(@Param("memberId") int memberId);
 
-    // 회원이 쓴 댓글 갯수
-    int getRecipeCommentCount(@Param("memberId") int memberId);
+        // 회원이 쓴 댓글 갯수
+        int getRecipeCommentCount(@Param("memberId") int memberId);
 
-    // 회원이 쓴 댓글 목록
-    List<RecipeComment> getRecipeCommentList(@Param("memberId") int memberId, @Param("start") int start,
-            @Param("display") int display);
+        // 회원이 쓴 댓글 목록
+        List<RecipeComment> getRecipeCommentList(@Param("memberId") int memberId, @Param("start") int start,
+                        @Param("display") int display);
 
-    // 회원이 찜한 레시피 갯수
-    int getMemberRecipeLikeCount(@Param("memberId") int memberId);
+        // 회원이 찜한 레시피 갯수
+        int getMemberRecipeLikeCount(@Param("memberId") int memberId);
 
-    // 회원 레시피 찜 목록
-    List<RecipeLike> getRecipeLikeList(@Param("memberId") int memberId, @Param("start") int start,
-            @Param("display") int display);
+        // 회원 레시피 찜 목록
+        List<RecipeLike> getRecipeLikeList(@Param("memberId") int memberId, @Param("start") int start,
+                        @Param("display") int display);
 
-    // 회원 레시피 찜 보기
-    RecipeLike getRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
+        // 회원 레시피 찜 보기
+        RecipeLike getRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
 
-    // 회원 레시피 찜 추가
-    void insertRecipeLike(@Param("recipeLike") RecipeLike recipeLike);
+        // 회원 레시피 찜 추가
+        void insertRecipeLike(@Param("recipeLike") RecipeLike recipeLike);
 
-    // 회원 레시피 찜 삭제
-    void deleteRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
+        // 회원 레시피 찜 삭제
+        void deleteRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
 
-    // 댓글//
-    // 내가 쓴 댓글 조회
-    List<RecipeComment> getMyComments(@Param("offset") int offset, @Param("pageSize") int pageSize,
-            @Param("memberId") int memberId);
+        // 댓글//
+        // 내가 쓴 댓글 가져오기 (정렬 옵션 추가)
+        List<RecipeComment> getMyComments(
+                        @Param("offset") int offset,
+                        @Param("pageSize") int pageSize,
+                        @Param("memberId") int memberId,
+                        @Param("sortOption") String sortOption);
 
-    // 댓글 삭제
-    @Delete("DELETE FROM recipe_comments WHERE comment_id = #{commentId}")
-    void deleteCommentById(@Param("commentId") String commentId);
+        // 댓글 삭제
+        @Delete("DELETE FROM recipe_comment WHERE comment_id = #{commentId}")
+        void deleteCommentById(@Param("commentId") String commentId);
 
-    // 댓글 검색
-    List<RecipeComment> searchMyComments(@Param("keyword") String keyword, @Param("offset") int offset,
-            @Param("pageSize") int pageSize);
-
-    // 댓글 필터링
-    List<RecipeComment> filterMyComments(@Param("category") String category,
-            @Param("startDate") String startDate,
-            @Param("endDate") String endDate,
-            @Param("offset") int offset,
-            @Param("pageSize") int pageSize);
+        // 댓글 검색
+        List<RecipeComment> searchMyComments(@Param("keyword") String keyword, @Param("offset") int offset,
+                        @Param("pageSize") int pageSize);
 
 }

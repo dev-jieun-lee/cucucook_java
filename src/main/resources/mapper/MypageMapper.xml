@@ -74,14 +74,27 @@
         AND recipeId = #{recipeId}
     </delete>
 
-        <!-- 내가 쓴 댓글 조회 -->
-    <select id="getMyComments" resultType="com.example.cucucook.domain.RecipeComment">
-        SELECT  mr.title as title, rc.*
-        FROM recipe_comment rc
-        LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
-        WHERE rc.member_id = #{memberId}
-        ORDER BY rc.reg_dt DESC
-    </select>
+<!-- 내가 쓴 댓글 조회 -->
+<select id="getMyComments" resultType="com.example.cucucook.domain.RecipeComment">
+    SELECT  mr.title as title, rc.*
+    FROM recipe_comment rc
+    LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
+    WHERE rc.member_id = #{memberId}
+    ORDER BY
+    <choose>
+        <when test="sortOption == 'recipeId'">
+            rc.recipe_id DESC
+        </when>
+        <when test="sortOption == 'regDt'">
+            rc.reg_dt DESC
+        </when>
+        <otherwise>
+            rc.comment_id DESC
+        </otherwise>
+    </choose>
+    LIMIT #{pageSize} OFFSET GREATEST(0, #{offset})
+</select>
+
 
     <!-- 댓글 삭제 -->
     <delete id="deleteComment">
