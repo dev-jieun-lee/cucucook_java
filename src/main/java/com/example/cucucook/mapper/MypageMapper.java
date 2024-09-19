@@ -21,10 +21,6 @@ public interface MypageMapper {
         // 회원이 쓴 댓글 갯수
         int getRecipeCommentCount(@Param("memberId") int memberId);
 
-        // 회원이 쓴 댓글 목록
-        List<RecipeComment> getRecipeCommentList(@Param("memberId") int memberId, @Param("start") int start,
-                        @Param("display") int display);
-
         // 회원이 찜한 레시피 갯수
         int getMemberRecipeLikeCount(@Param("memberId") int memberId);
 
@@ -54,7 +50,25 @@ public interface MypageMapper {
         void deleteComment(int memberId, String commentId);
 
         // 댓글 검색
-        List<RecipeComment> searchMyComments(@Param("keyword") String keyword, @Param("offset") int offset,
-                        @Param("pageSize") int pageSize);
+        List<RecipeComment> searchByContent(@Param("keyword") String keyword,
+                        @Param("offset") int offset,
+                        @Param("pageSize") int pageSize,
+                        @Param("sortOption") String sortOption,
+                        @Param("sortDirection") String sortDirection);
 
+        List<RecipeComment> searchByRecipeTitle(@Param("keyword") String keyword,
+                        @Param("offset") int offset,
+                        @Param("pageSize") int pageSize,
+                        @Param("sortOption") String sortOption,
+                        @Param("sortDirection") String sortDirection);
+
+        // 댓글 및 레시피 제목 검색
+        List<RecipeComment> searchByKeyword(
+                        @Param("memberId") int memberId,
+                        @Param("keyword") String keyword,
+                        @Param("searchType") String searchType,
+                        @Param("offset") int offset,
+                        @Param("pageSize") int pageSize,
+                        @Param("sortOption") String sortOption,
+                        @Param("sortDirection") String sortDirection);
 }

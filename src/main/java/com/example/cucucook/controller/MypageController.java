@@ -47,11 +47,12 @@ public class MypageController {
     public ResponseEntity<List<RecipeComment>> getMyComments(@RequestParam int page, @RequestParam int pageSize,
             @RequestParam int memberId, @RequestParam(required = false, defaultValue = "comment") String sortOption,
             @RequestParam(required = false, defaultValue = "DESC") String sortDirection) {
-        logger.info("가져온 memberId 확인: {}, 정렬 옵션: {}, 정렬 방향: {}", memberId, sortOption, sortDirection);
+        // logger.info("가져온 memberId 확인: {}, 정렬 옵션: {}, 정렬 방향: {}", memberId,
+        // sortOption, sortDirection);
         try {
             List<RecipeComment> comments = mypageService.getMyComments(page, pageSize, memberId, sortOption,
                     sortDirection);
-            logger.info("컨트롤러에서 받은 댓글 개수: {}", comments.size());
+            // logger.info("컨트롤러에서 받은 댓글 개수: {}", comments.size());
             return ResponseEntity.ok(comments);
         } catch (Exception e) {
             logger.error("컨트롤러 댓글 목록 조회 실패: 페이지 {}, 페이지 크기 {}, 정렬 옵션: {}, 정렬 방향: {}", page, pageSize, sortOption,
@@ -66,7 +67,8 @@ public class MypageController {
             @RequestParam String memberId,
             @RequestParam String commentId,
             @RequestParam(required = false) String pcommentId) {
-        logger.info("가져온 memberId 확인: {}, commentId 확인: {}, pcommentId 확인: {}", memberId, commentId, pcommentId);
+        // logger.info("가져온 memberId 확인: {}, commentId 확인: {}, pcommentId 확인: {}",
+        // memberId, commentId, pcommentId);
 
         try {
             // 대댓글 여부 확인
@@ -88,16 +90,28 @@ public class MypageController {
 
     // 댓글 검색
     @GetMapping("/search")
-    public ResponseEntity<List<RecipeComment>> searchComments(@RequestParam String keyword, @RequestParam int page,
-            @RequestParam int pageSize) {
+    public ResponseEntity<List<RecipeComment>> searchComments(
+            @RequestParam String searchKeyword,
+            @RequestParam String searchType,
+            @RequestParam int memberId,
+            @RequestParam int page,
+            @RequestParam int pageSize,
+            @RequestParam String sortOption,
+            @RequestParam String sortDirection) {
+
+        logger.info(
+                "댓글 검색 요청: keyword={}, searchType={}, page={}, pageSize={}, sortOption={}, sortDirection={}, memberId={}",
+                searchKeyword, searchType, page, pageSize, sortOption, sortDirection);
+
         try {
-            List<RecipeComment> comments = mypageService.searchComments(keyword, page, pageSize);
-            logger.info("댓글 검색 성공: 키워드 '{}', 페이지 {}, 페이지 크기 {}, 결과 수 {}", keyword, page, pageSize, comments.size());
+            List<RecipeComment> comments = mypageService.searchComments(searchKeyword, searchType, memberId, page,
+                    pageSize,
+                    sortOption, sortDirection);
+            logger.info("댓글 검색 성공, 결과 수: {}", comments.size());
             return ResponseEntity.ok(comments);
         } catch (Exception e) {
-            logger.error("댓글 검색 실패: 키워드 '{}', 페이지 {}, 페이지 크기 {}", keyword, page, pageSize, e);
+            logger.error("댓글 검색 실패: {}", e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
-
 }
