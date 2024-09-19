@@ -38,6 +38,12 @@ public interface MypageService {
     // 댓글 삭제
     void deleteComment(String memberId, String commentId);
 
-    // 댓글 검색
-    List<RecipeComment> searchComments(String keyword, int page, int pageSize);
+    List<RecipeComment> searchComments(
+            String keyword,
+            String searchType,
+            int memberId,
+            int page,
+            int pageSize,
+            String sortOption,
+            String sortDirection);
 }

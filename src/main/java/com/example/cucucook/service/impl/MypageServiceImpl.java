@@ -107,7 +107,8 @@ public class MypageServiceImpl implements MypageService {
             String sortDirection) {
         int offset = page > 0 ? (page - 1) * pageSize : 0;
         try {
-            logger.info("댓글 로딩 시도: 페이지 {}, 페이지 크기 {}, 정렬 옵션: {}, 정렬 방향: {}", page, pageSize, sortOption, sortDirection);
+            // logger.info("댓글 로딩 시도: 페이지 {}, 페이지 크기 {}, 정렬 옵션: {}, 정렬 방향: {}", page,
+            // pageSize, sortOption, sortDirection);
             List<RecipeComment> comments = mypageMapper.getMyComments(offset, pageSize, memberId, sortOption,
                     sortDirection);
             return comments;
@@ -131,17 +132,30 @@ public class MypageServiceImpl implements MypageService {
     }
 
     // 댓글 검색
-
     @Override
-    public List<RecipeComment> searchComments(String keyword, int page, int pageSize) {
+    public List<RecipeComment> searchComments(String keyword, String searchType, int memberId, int page, int pageSize,
+            String sortOption, String sortDirection) {
+        logger.info("댓글 검색 시작: keyword={}, searchType={}, page={}, pageSize={}, sortOption={}, sortDirection={}",
+                keyword, searchType, page, pageSize, sortOption, sortDirection);
+
         try {
-            int offset = (page - 1) * pageSize;
-            List<RecipeComment> comments = mypageMapper.searchMyComments(keyword, offset, pageSize);
-            System.out.println("서비스임플 검색 결과: " + comments.size() + " 개의 댓글");
+            // page가 1보다 작은 경우 1로 설정
+            int currentPage = Math.max(page, 1);
+            int offset = (currentPage - 1) * pageSize;
+            logger.info("계산된 offset: {}", offset);
+
+            List<RecipeComment> comments = mypageMapper.searchByKeyword(
+                    memberId, keyword,
+                    searchType,
+                    offset, pageSize, sortOption,
+                    sortDirection);
+
+            logger.info("검색 완료, 결과 수: {}", comments.size());
             return comments;
         } catch (Exception e) {
-            System.out.println("서비스임플 검색 실패: " + e.getMessage());
-            return Collections.emptyList();
+            logger.error("댓글 검색 중 오류 발생: {}", e.getMessage(), e);
+            throw new RuntimeException("댓글 검색 실패", e);
         }
     }
+
 }
