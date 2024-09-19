@@ -103,11 +103,12 @@ public class MypageServiceImpl implements MypageService {
     ///////// 댓글
     // 내가 쓴 댓글 목록 가져오기
     @Override
-    public List<RecipeComment> getMyComments(int page, int pageSize, int memberId) {
-        int offset = (page - 1) * pageSize;
+    public List<RecipeComment> getMyComments(int page, int pageSize, int memberId, String sortOption) {
+        int offset = page > 0 ? (page - 1) * pageSize : 0;
         try {
-            logger.info("댓글 로딩 시도: 페이지 {}, 페이지 크기 {}", page, pageSize);
-            List<RecipeComment> comments = mypageMapper.getMyComments(offset, pageSize, memberId);
+            logger.info("댓글 로딩 시도: 페이지 {}, 페이지 크기 {}, 정렬 옵션: {}", page, pageSize, sortOption);
+            List<RecipeComment> comments = mypageMapper.getMyComments(offset, pageSize, memberId, sortOption); // 정렬 옵션
+                                                                                                               // 추가
             logger.info("서비스임플 댓글 로딩 성공: {} 개의 댓글", comments.size());
             return comments;
         } catch (Exception e) {
@@ -118,6 +119,7 @@ public class MypageServiceImpl implements MypageService {
 
     @Override
     public void deleteComment(String commentId) {
+        logger.info("서비스임플 댓글삭제 진입", commentId);
         try {
             mypageMapper.deleteCommentById(commentId);
             System.out.println("서비스임플 댓글 삭제 성공: " + commentId);
@@ -139,11 +141,5 @@ public class MypageServiceImpl implements MypageService {
             System.out.println("서비스임플 검색 실패: " + e.getMessage());
             return Collections.emptyList();
         }
-    }
-
-    // 댓글 필터링
-    public List<RecipeComment> filterComments(String category, String dateRange, int page, int pageSize) {
-        int offset = (page - 1) * pageSize;
-        return mypageMapper.filterMyComments(category, dateRange, dateRange, offset, pageSize);
     }
 }

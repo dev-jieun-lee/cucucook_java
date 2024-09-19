@@ -43,27 +43,33 @@ public class MypageController {
     }
 
     ///////////////////// 댓글
-
     // 내가 쓴 댓글 목록 가져오기
     @GetMapping("/getMyComments")
     public ResponseEntity<List<RecipeComment>> getMyComments(@RequestParam int page, @RequestParam int pageSize,
-            @RequestParam int memberId) {
-        logger.info("가져온 memberId확인", memberId, logger);
+            @RequestParam int memberId, @RequestParam(required = false, defaultValue = "comment") String sortOption) {
+        logger.info("가져온 memberId 확인: {}, 정렬 옵션: {}", memberId, sortOption);
         try {
-            List<RecipeComment> comments = mypageService.getMyComments(page, pageSize, memberId);
-            logger.info("컨트롤러 댓글 목록 조회 성공: 페이지 {}, 페이지 크기 {}, 결과 수 {}, 회원memberId {}", page, pageSize, comments.size(),
-                    memberId);
+            List<RecipeComment> comments = mypageService.getMyComments(page, pageSize, memberId, sortOption);
+            logger.info("컨트롤러에서 받은 댓글 개수: {}", comments.size());
             return ResponseEntity.ok(comments);
         } catch (Exception e) {
-            logger.error("컨트롤러 댓글 목록 조회 실패: 페이지 {}, 페이지 크기 {}", page, pageSize, e);
+            logger.error("컨트롤러 댓글 목록 조회 실패: 페이지 {}, 페이지 크기 {}, 정렬 옵션: {}", page, pageSize, sortOption, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
     // 댓글 삭제
-    @DeleteMapping("/{commentId}/delete")
-    public ResponseEntity<String> deleteComment(@PathVariable String commentId) {
+    @DeleteMapping("/delete/{commentId}")
+    public ResponseEntity<String> deleteComment(
+            @PathVariable String commentId,
+            @RequestParam(required = false) String pcommentId) {
         try {
+            // 대댓글 여부 확인
+            if (pcommentId != null && !pcommentId.isEmpty()) {
+                logger.error("댓글 삭제 실패: 대댓글이 존재합니다. 댓글 ID {}", commentId);
+                return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("대댓글이 있어 댓글을 삭제할 수 없습니다.");
+            }
+            logger.info("컨트롤러 댓글삭제 진입", commentId, pcommentId);
             mypageService.deleteComment(commentId);
             logger.info("댓글 삭제 성공: 댓글 ID {}", commentId);
             return ResponseEntity.ok("댓글이 삭제되었습니다.");
@@ -83,21 +89,6 @@ public class MypageController {
             return ResponseEntity.ok(comments);
         } catch (Exception e) {
             logger.error("댓글 검색 실패: 키워드 '{}', 페이지 {}, 페이지 크기 {}", keyword, page, pageSize, e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-        }
-    }
-
-    // 댓글 필터링
-    @GetMapping("/filter")
-    public ResponseEntity<List<RecipeComment>> filterComments(@RequestParam(required = false) String category,
-            @RequestParam(required = false) String dateRange, @RequestParam int page, @RequestParam int pageSize) {
-        try {
-            List<RecipeComment> comments = mypageService.filterComments(category, dateRange, page, pageSize);
-            logger.info("댓글 필터링 성공: 카테고리 '{}', 날짜 범위 '{}', 페이지 {}, 페이지 크기 {}, 결과 수 {}", category, dateRange, page,
-                    pageSize, comments.size());
-            return ResponseEntity.ok(comments);
-        } catch (Exception e) {
-            logger.error("댓글 필터링 실패: 카테고리 '{}', 날짜 범위 '{}', 페이지 {}, 페이지 크기 {}", category, dateRange, page, pageSize, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
