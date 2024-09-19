@@ -117,14 +117,16 @@ public class MypageServiceImpl implements MypageService {
         }
     }
 
-    @Override
-    public void deleteComment(String commentId) {
-        logger.info("서비스임플 댓글삭제 진입", commentId);
+    // 삭제 로직
+    public void deleteComment(String memberId, String commentId) {
+        logger.info("서비스에서 댓글 삭제: memberId={}, commentId={}", memberId, commentId);
+
         try {
-            mypageMapper.deleteCommentById(commentId);
-            System.out.println("서비스임플 댓글 삭제 성공: " + commentId);
+            logger.info("댓글 삭제를 위한 매퍼 호출 전: commentId={}, memberId={}", memberId, commentId);
+            mypageMapper.deleteComment(Integer.parseInt(memberId), commentId);
+            logger.info("서비스에서 댓글 삭제 성공: commentId={}", commentId);
         } catch (Exception e) {
-            System.out.println("서비스임플 댓글 삭제 실패: " + e.getMessage());
+            logger.error("서비스에서 댓글 삭제 실패: commentId={}, 오류={}", commentId, e.getMessage(), e);
         }
     }
 

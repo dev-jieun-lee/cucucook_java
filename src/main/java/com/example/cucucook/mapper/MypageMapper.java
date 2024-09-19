@@ -2,7 +2,6 @@ package com.example.cucucook.mapper;
 
 import java.util.List;
 
-import org.apache.ibatis.annotations.Delete;
 import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
@@ -52,8 +51,7 @@ public interface MypageMapper {
                         @Param("sortDirection") String sortDirection);
 
         // 댓글 삭제
-        @Delete("DELETE FROM recipe_comment WHERE comment_id = #{commentId}")
-        void deleteCommentById(@Param("commentId") String commentId);
+        void deleteComment(int memberId, String commentId);
 
         // 댓글 검색
         List<RecipeComment> searchMyComments(@Param("keyword") String keyword, @Param("offset") int offset,

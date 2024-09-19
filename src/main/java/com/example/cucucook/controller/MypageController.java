@@ -9,7 +9,6 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -62,22 +61,27 @@ public class MypageController {
     }
 
     // 댓글 삭제
-    @DeleteMapping("/delete/{commentId}")
+    @DeleteMapping("/delete")
     public ResponseEntity<String> deleteComment(
-            @PathVariable String commentId,
+            @RequestParam String memberId,
+            @RequestParam String commentId,
             @RequestParam(required = false) String pcommentId) {
+        logger.info("가져온 memberId 확인: {}, commentId 확인: {}, pcommentId 확인: {}", memberId, commentId, pcommentId);
+
         try {
             // 대댓글 여부 확인
             if (pcommentId != null && !pcommentId.isEmpty()) {
                 logger.error("댓글 삭제 실패: 대댓글이 존재합니다. 댓글 ID {}", commentId);
                 return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("대댓글이 있어 댓글을 삭제할 수 없습니다.");
             }
-            logger.info("컨트롤러 댓글삭제 진입", commentId, pcommentId);
-            mypageService.deleteComment(commentId);
-            logger.info("댓글 삭제 성공: 댓글 ID {}", commentId);
+
+            // 댓글 삭제 로직 호출
+            logger.info("컨트롤러 댓글 삭제 진입: memberId {}, commentId {}, pcommentId {}", memberId, commentId, pcommentId);
+            mypageService.deleteComment(memberId, commentId); // memberId도 서비스에 전달
+            logger.info("댓글 삭제 성공: 댓글 ID {}, 회원 ID {}", memberId, commentId);
             return ResponseEntity.ok("댓글이 삭제되었습니다.");
         } catch (Exception e) {
-            logger.error("댓글 삭제 실패: 댓글 ID {}", commentId, e);
+            logger.error("댓글 삭제 실패: 댓글 ID {}, 회원 ID {}, 오류: {}", memberId, commentId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("댓글 삭제 실패");
         }
     }
