@@ -113,64 +113,6 @@
         WHERE comment_id = #{commentId} AND member_id = #{memberId};
     </update>
 
-    <!-- 댓글 내용으로 검색 -->
-    <select id="searchByContent" resultType="RecipeComment">
-        SELECT rc.recipe_id
-            , rc.comment_id
-            , rc.member_id
-            , rc.comment
-            , rc.rate
-            , rc.reg_dt
-            , rc.upt_dt
-            , rc.status
-            , rc.p_comment_id
-            , rc.del_yn
-            , mr.title
-        FROM recipe_comment rc
-        LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
-        WHERE rc.member_id = #{memberId}  <!-- memberId 파라미터 바인딩 -->
-        AND rc.del_yn = 'N'
-        AND rc.comment ILIKE '%' || #{keyword} || '%'  <!-- 댓글 내용 검색 -->
-        ORDER BY
-        <choose>
-            <when test="sortOption == 'regDt'">rc.reg_dt</when>
-            <when test="sortOption == 'recipeId'">rc.recipe_id</when>
-            <otherwise>rc.comment_id</otherwise>
-        </choose>
-        ${sortDirection}
-        LIMIT #{pageSize} OFFSET #{offset}
-    </select>
-
-    <!-- 레시피 제목으로 검색 -->
-    <select id="searchByRecipeTitle" resultType="RecipeComment">
-        SELECT rc.recipe_id
-            , rc.comment_id
-            , rc.member_id
-            , rc.comment
-            , rc.rate
-            , rc.reg_dt
-            , rc.upt_dt
-            , rc.status
-            , rc.p_comment_id
-            , rc.del_yn
-            , mr.title
-        FROM recipe_comment rc
-        LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
-        WHERE rc.member_id = #{memberId}  <!-- 바인딩을 위한 수정 -->
-        AND rc.del_yn = 'N'
-        AND rc.recipe_id IN (  <!-- 레시피제뮥로 조건을 연결 -->
-            SELECT r.id FROM recipe r WHERE r.title ILIKE '%' || #{keyword} || '%'
-        )
-        ORDER BY
-        <choose>
-            <when test="sortOption == 'regDt'">reg_dt</when>
-            <when test="sortOption == 'recipeId'">recipe_id</when>
-            <otherwise>comment_id</otherwise>
-        </choose>
-        ${sortDirection}
-        LIMIT #{pageSize} OFFSET #{offset}
-    </select>
-
   <!-- 댓글 내용 또는 레시피 제목으로 검색 -->
 <select id="searchByKeyword" resultType="RecipeComment">
     SELECT rc.recipe_id
@@ -209,5 +151,28 @@
     ${sortDirection}
     LIMIT #{pageSize} OFFSET #{offset}
 </select>
+
+    <!-- 내가 쓴 게시글 조회 -->
+    <select id="getMyBoards" resultType="com.example.cucucook.domain.Board">
+    SELECT
+    board_id
+    ,board_division
+    ,member_id
+    ,title
+    ,contents
+    ,board_category_id
+    ,reg_dt
+    ,udt_dt
+    ,status
+    ,view_count
+    ,p_board_id
+    ,user_name
+    from BOARD
+    where member_id = #{memberId}
+    AND board_division = #{boardDivision}
+    ORDER BY reg_dt
+    LIMIT #{pageSize} OFFSET #{offset}
+    </select>
+
 
 </mapper>

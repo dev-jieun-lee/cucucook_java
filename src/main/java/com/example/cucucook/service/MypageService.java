@@ -11,8 +11,6 @@ public interface MypageService {
     // 회원 게시물 관련 메서드
     int getMemberBoardCount(Long memberId);
 
-    List<Board> getMemberBoardList(Long memberId);
-
     // 회원 댓글 관련 메서드
     int getRecipeCommentCount(Long memberId);
 
@@ -38,6 +36,7 @@ public interface MypageService {
     // 댓글 삭제
     void deleteComment(String memberId, String commentId);
 
+    // 댓글검색
     List<RecipeComment> searchComments(
             String keyword,
             String searchType,
@@ -46,4 +45,9 @@ public interface MypageService {
             int pageSize,
             String sortOption,
             String sortDirection);
+
+    // 내가 쓴 글
+    // 내가 쓴 게시글 조회
+    List<Board> getMyBoards(int memberId, int page, int pageSize, String boardDivision);
+
 }

@@ -55,12 +55,6 @@ public class MypageServiceImpl implements MypageService {
     }
 
     @Override
-    public List<Board> getMemberBoardList(Long memberId) {
-        // 구현이 필요함
-        return Collections.emptyList();
-    }
-
-    @Override
     public int getRecipeCommentCount(Long memberId) {
         // 구현이 필요함
         return 0;
@@ -155,6 +149,21 @@ public class MypageServiceImpl implements MypageService {
         } catch (Exception e) {
             logger.error("댓글 검색 중 오류 발생: {}", e.getMessage(), e);
             throw new RuntimeException("댓글 검색 실패", e);
+        }
+    }
+
+    ///////// 게시판
+    // 내가 쓴 게시판 목록 가져오기
+    @Override
+    public List<Board> getMyBoards(int memberId, int page, int pageSize, String boardDivision) {
+        int offset = page > 0 ? (page - 1) * pageSize : 0;
+        try {
+            List<Board> boards = mypageMapper.getMyBoards(memberId, offset, pageSize, boardDivision);
+            logger.info("게시물 로딩 성공: 페이지 {}, 페이지 크기 {}, offset {}, 반환된 게시물 수 {}", page, pageSize, offset, boards.size());
+            return boards;
+        } catch (Exception e) {
+            logger.error("게시물 로딩 실패: {}", e.getMessage(), e);
+            return Collections.emptyList();
         }
     }
 
