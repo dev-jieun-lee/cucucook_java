@@ -20,8 +20,11 @@ public interface BoardMapper {
             @Param("searchType") String searchType, @Param("boardCategoryId") String boardCategoryId,
             @Param("start") Integer start, @Param("display") Integer display);
 
-    // 게시판 보기
+    // 게시판 상세 보기
     Board getBoard(@Param("boardId") String boardId);
+
+    // 게시판 답글 포함 상세
+    public List<Board> getBoardWithReplies(String boardId);
 
     // 게시판 조회수 증가
     void updateViewCount(@Param("boardId") String boardId);
