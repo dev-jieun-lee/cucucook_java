@@ -15,6 +15,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.service.MypageService;
@@ -80,10 +81,10 @@ public class MypageController {
             // 댓글 삭제 로직 호출
             logger.info("컨트롤러 댓글 삭제 진입: memberId {}, commentId {}, pcommentId {}", memberId, commentId, pcommentId);
             mypageService.deleteComment(memberId, commentId); // memberId도 서비스에 전달
-            logger.info("댓글 삭제 성공: 댓글 ID {}, 회원 ID {}", memberId, commentId);
+            logger.info("댓글 삭제 성공:  회원ID {}, 댓글 ID {}", memberId, commentId);
             return ResponseEntity.ok("댓글이 삭제되었습니다.");
         } catch (Exception e) {
-            logger.error("댓글 삭제 실패: 댓글 ID {}, 회원 ID {}, 오류: {}", memberId, commentId, e.getMessage(), e);
+            logger.error("댓글 삭제 실패: 회원 ID {}, 댓글 ID {}, 오류: {}", memberId, commentId, e.getMessage(), e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("댓글 삭제 실패");
         }
     }
@@ -111,6 +112,23 @@ public class MypageController {
             return ResponseEntity.ok(comments);
         } catch (Exception e) {
             logger.error("댓글 검색 실패: {}", e.getMessage(), e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    ///////////////////// 게시글
+    // 내가 쓴 게시글 목록 가져오기
+    @GetMapping("/getMyBoards")
+    public ResponseEntity<List<Board>> getMyBoards(@RequestParam int page, @RequestParam int pageSize,
+            @RequestParam int memberId, @RequestParam String boardDivision) {
+        logger.info("가져온 memberId 확인: {}", memberId);
+        try {
+            List<Board> boards = mypageService.getMyBoards(memberId, page, pageSize, boardDivision);
+            logger.info("컨트롤러에서 받은 게시물 개수: {},페이지 {}, 페이지 크기 {}, boardDivision{}", boards.size(), page, pageSize,
+                    boardDivision);
+            return ResponseEntity.ok(boards);
+        } catch (Exception e) {
+            logger.error("컨트롤러 게시물 목록 조회 실패: 페이지 {}, 페이지 크기 {}", page, pageSize);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }

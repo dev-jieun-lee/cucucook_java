@@ -71,4 +71,13 @@ public interface MypageMapper {
                         @Param("pageSize") int pageSize,
                         @Param("sortOption") String sortOption,
                         @Param("sortDirection") String sortDirection);
+
+        // 게시물//
+        // 내가 쓴 게시물 가져오기
+        List<Board> getMyBoards(
+                        @Param("memberId") int memberId,
+                        @Param("offset") int offset,
+                        @Param("pageSize") int pageSize,
+                        @Param("boardDivision") String boardDivision);
+
 }
