@@ -34,14 +34,14 @@ public interface MemberMapper {
     // 회원 등록
     void insertMember(Member member);
 
-    // 회원 수정
-    void updateMember(Member member);
+    // 회원 정보 업데이트
+    void updateMemberInfo(Member member);
+
+    // 비밀번호 변경
+    void changePasswordByUser(@Param("memberId") int memberId, @Param("newPassword") String newPassword);
 
     // 회원 삭제
     void deleteMember(@Param("memberId") int memberId);
-
-    // 비밀번호 변경
-    void updateMemberPassword(@Param("memberId") int memberId, @Param("password") String password);
 
     // 비밀번호 변경 (기존)
     void updateMemberPassword(Member member);
