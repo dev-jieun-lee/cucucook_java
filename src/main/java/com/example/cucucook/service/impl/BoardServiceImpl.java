@@ -23,11 +23,12 @@ public class BoardServiceImpl implements BoardService {
 
   // 게시판 목록 조회
   @Override
-  public ApiResponse<List<Board>> getBoardList(String search, String boardCategoryId, int start, int display) {
+  public ApiResponse<List<Board>> getBoardList(String division, String search, String searchType,
+      String boardCategoryId, int start, int display) {
     start = start > 0 ? start : 1;
     display = display > 0 ? display : 10;
 
-    List<Board> boardList = boardMapper.getBoardList(search, boardCategoryId, start, display);
+    List<Board> boardList = boardMapper.getBoardList(division, search, searchType, boardCategoryId, start, display);
     String message = (boardList == null || boardList.isEmpty()) ? "게시판 목록이 없습니다." : "게시판 목록 조회 성공";
     boolean success = boardList != null && !boardList.isEmpty();
     return new ApiResponse<>(success, message, boardList, null);
@@ -52,6 +53,42 @@ public class BoardServiceImpl implements BoardService {
       result.put("success", true);
       result.put("message", "게시물 조회 성공.");
       result.put("data", board);
+    }
+
+    return result;
+  }
+
+  // 게시판 답글 포함 상세 조회
+  @Override
+  public HashMap<String, Object> getBoardWithReplies(String boardId) {
+    HashMap<String, Object> result = new HashMap<>();
+
+    // 부모글과 답글을 모두 조회
+    List<Board> boardList = boardMapper.getBoardWithReplies(boardId);
+
+    if (boardList == null || boardList.isEmpty()) {
+      result.put("success", false);
+      result.put("message", "게시물이 존재하지 않습니다.");
+      return result;
+    } else {
+      // 첫 번째 게시물이 부모글인지 확인 (첫 번째 항목이 부모글이어야 함)
+      Board parentBoard = boardList.stream()
+          .filter(board -> board.getStatus().equals("0"))
+          .findFirst()
+          .orElse(null);
+
+      if (parentBoard == null) {
+        result.put("success", false);
+        result.put("message", "부모 게시물이 존재하지 않습니다.");
+        return result;
+      }
+
+      // 조회 성공 후 viewCount 증가
+      boardMapper.updateViewCount(boardId);
+
+      result.put("success", true);
+      result.put("message", "게시물 조회 성공.");
+      result.put("data", boardList); // 부모글과 답글 리스트를 함께 반환
     }
 
     return result;
