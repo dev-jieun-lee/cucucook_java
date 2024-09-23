@@ -12,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -138,4 +139,38 @@ public class MypageController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    @PutMapping("/updateMember")
+    public ResponseEntity<?> updateMemberInfo(@RequestBody Member member) {
+        try {
+            mypageService.updateMemberInfo(member);
+            return ResponseEntity.ok("회원 정보가 성공적으로 업데이트되었습니다.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원 정보 업데이트 실패: " + e.getMessage());
+        }
+    }
+
+    // 비밀번호 변경 API
+    @PostMapping("/ChangePasswordByUserAccordion")
+    public ResponseEntity<?> changePasswordByUser(@RequestBody Map<String, Object> requestData) {
+        try {
+            // memberId를 String으로 받고, 이를 Integer로 변환
+            String memberIdStr = (String) requestData.get("memberId");
+            int memberId = Integer.parseInt(memberIdStr); // String을 Integer로 변환
+
+            String newPassword = (String) requestData.get("newPassword");
+
+            // 비밀번호 변경 로직
+            mypageService.changePasswordByUser(memberId, newPassword);
+
+            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("잘못된 memberId 형식입니다.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("비밀번호 변경 실패: " + e.getMessage());
+        }
+    }
+
 }

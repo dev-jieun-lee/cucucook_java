@@ -155,7 +155,7 @@ public class MemberServiceImpl implements MemberService {
 
     @Override
     public void updateMember(Member member) {
-        memberMapper.updateMember(member);
+        memberMapper.updateMemberInfo(member);
     }
 
     @Override
