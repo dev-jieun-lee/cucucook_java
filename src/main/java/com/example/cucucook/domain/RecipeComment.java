@@ -50,4 +50,7 @@ public class RecipeComment {
     // 조인해서 가져오는 회원 정보
     private Member member;
 
+    // 레시피제목
+    private String title;
+
 }

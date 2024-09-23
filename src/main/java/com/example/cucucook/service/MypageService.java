@@ -28,4 +28,28 @@ public interface MypageService {
     void addRecipeLike(RecipeLike recipeLike);
 
     void removeRecipeLike(Long memberId, String recipeId);
+
+    // 비밀번호 확인 메서드 추가
+    boolean verifyPassword(String userId, String password);
+
+    // 내가 쓴 댓글 조회
+    List<RecipeComment> getMyComments(int page, int pageSize, int memberId, String sortOption, String sortDirection);
+
+    // 댓글 삭제
+    void deleteComment(String memberId, String commentId);
+
+    // 댓글검색
+    List<RecipeComment> searchComments(
+            String keyword,
+            String searchType,
+            int memberId,
+            int page,
+            int pageSize,
+            String sortOption,
+            String sortDirection);
+
+    // 내가 쓴 글
+    // 내가 쓴 게시글 조회
+    List<Board> getMyBoards(int memberId, int page, int pageSize, String boardDivision);
+
 }
