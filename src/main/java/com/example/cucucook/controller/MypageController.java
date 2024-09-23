@@ -140,13 +140,31 @@ public class MypageController {
         }
     }
 
+    // 회원 정보 업데이트
     @PutMapping("/updateMember")
     public ResponseEntity<?> updateMemberInfo(@RequestBody Member member) {
+        Logger logger = LoggerFactory.getLogger(MypageController.class);
         try {
+            // 로그: 회원 정보 업데이트 요청 데이터 출력
+            logger.info("회원 정보 업데이트 요청: memberId={}, name={}, email={}, phone={}",
+                    member.getMemberId(), member.getName(), member.getEmail(), member.getPhone());
+
+            // 서비스 호출하여 회원 정보 업데이트
             mypageService.updateMemberInfo(member);
+
+            // 로그: 성공 시 메시지 출력
+            logger.info("회원 정보가 성공적으로 업데이트되었습니다. memberId={}", member.getMemberId());
             return ResponseEntity.ok("회원 정보가 성공적으로 업데이트되었습니다.");
         } catch (Exception e) {
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원 정보 업데이트 실패: " + e.getMessage());
+            // 로그: 실패 시 에러 및 입력된 데이터 출력
+            logger.error("회원 정보 업데이트 실패: memberId={}, name={}, email={}, phone={}, 오류={}",
+                    member.getMemberId(), member.getName(), member.getEmail(), member.getPhone(), e.getMessage(), e);
+
+            // 예외 발생 시 디버깅을 위해 더 많은 정보를 반환
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("회원 정보 업데이트 실패: " + e.getMessage() + ". 입력된 데이터: memberId=" +
+                            member.getMemberId() + ", name=" + member.getName() + ", email=" +
+                            member.getEmail() + ", phone=" + member.getPhone());
         }
     }
 
