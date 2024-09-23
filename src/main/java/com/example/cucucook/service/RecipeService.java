@@ -30,7 +30,7 @@ public interface RecipeService {
         // 회원 레시피 상세보기
         // 1. 내부,외부에 따라 처리방식 다르게됨
         // 2. 레시피, 재료, 과정, 이미지, 레시피 찜수 다 포함되어야함
-        public ApiResponse<HashMap<String, Object>> getMemberRecipe(String recipeId, boolean isUpdate);
+        public ApiResponse<HashMap<String, Object>> getMemberRecipe(String recipeId, int memberId, boolean isUpdate);
 
         // 회원 레시피 글쓰기 레시피, 재료, 과정, 이미지, 레시피 찜수 다 포함되어야함
         public ApiResponse<Integer> insertMemberRecipe(Map<String, Object> memberRecipeInfo,
