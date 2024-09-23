@@ -1,7 +1,17 @@
 # 1단계: 빌드 단계
-FROM maven:3.9.3-openjdk-21 as build
+FROM openjdk:21 as build
 WORKDIR /app
-COPY pom.xml .
+
+# Maven 3.9.8 설치
+RUN apt-get update && \
+    apt-get install -y wget && \
+    wget https://archive.apache.org/dist/maven/maven-3/3.9.8/binaries/apache-maven-3.9.8-bin.tar.gz && \
+    tar -xvzf apache-maven-3.9.8-bin.tar.gz && \
+    mv apache-maven-3.9.8 /opt/maven && \
+    ln -s /opt/maven/bin/mvn /usr/bin/mvn
+
+# Maven 빌드 수행
+COPY pom.xml . 
 COPY src ./src
 RUN mvn clean package -DskipTests
 
