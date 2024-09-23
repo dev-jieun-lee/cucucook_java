@@ -109,7 +109,9 @@
 <delete id="deleteBoard">
     DELETE FROM board
     WHERE board_id = #{boardId}
+       OR p_board_id = #{boardId}
 </delete>
+
 
 
 <!-- 게시글 등록 -->
