@@ -79,7 +79,8 @@ public class Member implements Serializable {
     }
 
     public String getVerificationCode() {
-        throw new UnsupportedOperationException("Not supported yet.");
+        // TODO Auto-generated method stub
+        throw new UnsupportedOperationException("Unimplemented method 'getVerificationCode'");
     }
 
 }

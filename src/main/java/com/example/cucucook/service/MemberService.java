@@ -49,6 +49,6 @@ public interface MemberService {
 
     void lockMemberAccount(String userId);
 
-    public Member validateMemberByUserId(String userId);
+    Member validateMemberByUserId(String userId);
 
 }

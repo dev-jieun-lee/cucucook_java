@@ -1,6 +1,5 @@
 package com.example.cucucook.controller;
 
-import java.util.Collections;
 import java.util.HashMap;
 import java.util.Map;
 
@@ -22,6 +21,7 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.cucucook.config.JwtTokenProvider;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
+import com.example.cucucook.exception.ErrorResponse;
 import com.example.cucucook.service.MemberService;
 
 import jakarta.servlet.http.Cookie;
@@ -32,6 +32,58 @@ import jakarta.servlet.http.HttpServletResponse;
 @RequestMapping("/api/members")
 public class MemberController {
 
+    // 로그인 예외처리1
+    public static class InvalidPasswordException extends RuntimeException {
+        private final int failedAttempts;
+        private final long lockoutDuration; // 잠금 시간이 있을 경우 남은 시간
+
+        public InvalidPasswordException(String message, int failedAttempts, long lockoutDuration) {
+            super(message);
+            this.failedAttempts = failedAttempts;
+            this.lockoutDuration = lockoutDuration;
+        }
+
+        public int getFailedAttempts() {
+            return failedAttempts;
+        }
+
+        public long getLockoutDuration() {
+            return lockoutDuration;
+        }
+
+        public long getLockoutRemainingSeconds() {
+            // TODO Auto-generated method stub
+            throw new UnsupportedOperationException("Unimplemented method 'getLockoutRemainingSeconds'");
+        }
+    }
+
+    // 로그인 예외처리2
+    public static class AccountLockedException extends RuntimeException {
+        private int failedAttempts;
+        private long remainingTime;
+        private long lockoutDuration;
+
+        public AccountLockedException(String message, int failedAttempts, long remainingTime, long lockoutDuration) {
+            super(message);
+            this.failedAttempts = failedAttempts;
+            this.remainingTime = remainingTime;
+            this.lockoutDuration = lockoutDuration; // lockoutDuration 추가
+        }
+
+        public int getFailedAttempts() {
+            return failedAttempts;
+        }
+
+        public long getRemainingTime() {
+            return remainingTime;
+        }
+
+        // lockoutDuration 추가
+        public long getLockoutDuration() {
+            return lockoutDuration;
+        }
+    }
+
     private static final Logger logger = LoggerFactory.getLogger(MemberController.class);
 
     @Autowired
@@ -40,33 +92,66 @@ public class MemberController {
     @Autowired
     private JwtTokenProvider tokenProvider;
 
-    // 로그인 API
-    @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody Member loginRequest, HttpServletResponse response) {
-        try {
-            Member member = memberService.validateMember(loginRequest.getUserId(), loginRequest.getPassword());
-            String token = tokenProvider.createToken(member.getUserId(), member.getRole());
+    private String key;
 
-            // 쿠키에 JWT 토큰 저장
+    // 로그인
+    @PostMapping("/login")
+    public ResponseEntity<?> login(@RequestBody Member loginRequest, HttpServletResponse response,
+            HttpServletRequest request) {
+        String userId = loginRequest.getUserId();
+        try {
+            Member member = memberService.validateMember(userId, loginRequest.getPassword());
+            String token = tokenProvider.createToken(userId, member.getRole());
+
+            // 쿠키 설정
             Cookie authCookie = new Cookie("auth_token", token);
             authCookie.setHttpOnly(true);
-            authCookie.setSecure(true); // HTTPS에서만 사용
-            authCookie.setPath("/"); // 전체 경로에 대해 유효
+            authCookie.setSecure(request.isSecure());
+            authCookie.setPath("/");
             response.addCookie(authCookie);
 
-            // 여러 값을 포함하는 Map 생성
+            // 응답 생성
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("token", token);
-            responseBody.put("userId", member.getUserId());
+            responseBody.put("userId", userId);
             responseBody.put("name", member.getName());
             responseBody.put("role", member.getRole());
             responseBody.put("memberId", member.getMemberId());
+            responseBody.put("failedAttempts", member.getFailedAttempts()); // 실패 횟수 추가
 
+            logger.info("사용자 '{}' 로그인 성공. 응답 데이터: {}", userId, responseBody);
             return ResponseEntity.ok().body(responseBody);
-        } catch (RuntimeException e) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body(Collections.singletonMap("message", e.getMessage()));
+        } catch (InvalidPasswordException e) {
+            // 비밀번호 오류 로그를 간단하게 남기고, 클라이언트에 상세한 오류 정보를 전달
+            logger.warn("비밀번호 오류 발생");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("비밀번호 오류입니다."));
+        } catch (AccountLockedException e) {
+            // 계정 잠금 처리
+            logger.warn("계정 잠금 발생: {}초 남았습니다.", e.getRemainingTime());
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                    .body(new ErrorResponse("계정이 잠겼습니다. 잠금 해제까지 " + e.getRemainingTime() + "초 남았습니다."));
+        } catch (Exception e) {
+            // 일반적인 오류 처리
+            logger.error("서버 오류 발생", e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse("서버 오류가 발생했습니다."));
         }
+    }
+
+    private ResponseEntity<Map<String, Object>> buildErrorResponse(String message, String errorType, HttpStatus status,
+            Integer failedAttempts, Long lockoutTime) {
+        Map<String, Object> body = new HashMap<>();
+        body.put("message", message);
+        body.put("errorType", errorType);
+        body.put("timestamp", System.currentTimeMillis());
+
+        if (failedAttempts != null) {
+            body.put("failedAttempts", failedAttempts); // 실패 횟수 추가
+        }
+        if (lockoutTime != null && lockoutTime > 0) {
+            body.put("lockoutTime", lockoutTime); // 잠금 시간 추가
+        }
+
+        return new ResponseEntity<>(body, status);
     }
 
     // 로그아웃 API
