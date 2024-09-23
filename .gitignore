@@ -35,5 +35,9 @@ build/
 ### .pem파일은 각자 로컬에다 저장해서 db돌리기 ###
 cucucook_key.pem
 
+#프로퍼티 안올리기
+application.properties
+application-secret.properties
+
 #로그폴더 안올리기
 /log
