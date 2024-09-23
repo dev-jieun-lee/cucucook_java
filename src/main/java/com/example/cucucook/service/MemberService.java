@@ -3,6 +3,7 @@ package com.example.cucucook.service;
 import java.util.List;
 
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.PasswordFindResponse;
 
 public interface MemberService {
 
@@ -30,9 +31,24 @@ public interface MemberService {
 
     List<Member> getMemberList(String search, int start, int display);
 
-    //아이디 찾기
+    // 아이디 찾기
     Member findId(Member member);
 
-    //비밀번호 찾기
-    boolean findPassword(Member member) throws Exception;
+    // 비밀번호 찾기
+    PasswordFindResponse findPassword(Member member) throws Exception;
+
+    // 이메일 인증코드 발송
+    void sendVerificationCode(String email);
+
+    boolean verifyEmailCode(String email, String code);
+
+    // 로그인 실패 시 처리 로직 추가
+    void increaseFailedAttempts(String userId);
+
+    void resetFailedAttempts(String userId);
+
+    void lockMemberAccount(String userId);
+
+    public Member validateMemberByUserId(String userId);
+
 }
