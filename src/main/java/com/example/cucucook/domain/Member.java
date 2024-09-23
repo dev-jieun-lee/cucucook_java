@@ -3,6 +3,8 @@ package com.example.cucucook.domain;
 import java.io.Serializable;
 import java.time.LocalDateTime;
 
+import com.fasterxml.jackson.annotation.JsonIgnore;
+
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -78,9 +80,9 @@ public class Member implements Serializable {
         this.failedAttempts = failedAttempts;
     }
 
+    @JsonIgnore
     public String getVerificationCode() {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'getVerificationCode'");
+        throw new UnsupportedOperationException("Not supported yet.");
     }
 
 }
