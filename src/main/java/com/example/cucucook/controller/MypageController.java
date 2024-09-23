@@ -1,6 +1,8 @@
 package com.example.cucucook.controller;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,16 +32,19 @@ public class MypageController {
     private MypageService mypageService;
 
     @PostMapping("/verify-password")
-    public ResponseEntity<String> verifyPassword(@RequestBody Member member) {
+    public ResponseEntity<Map<String, Object>> verifyPassword(@RequestBody Member member) {
         boolean isVerified = mypageService.verifyPassword(member.getUserId(), member.getPassword());
 
+        Map<String, Object> response = new HashMap<>();
         if (!isVerified) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("회원 정보가 없거나 비밀번호가 일치하지 않습니다.");
+            response.put("success", false);
+            response.put("message", "회원 정보가 없거나 비밀번호가 일치하지 않습니다.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
 
-        // 비밀번호가 일치하면 200 OK와 함께 메시지 반환
-        return ResponseEntity.ok("비밀번호가 확인되었습니다.");
+        response.put("success", true);
+        response.put("message", "비밀번호가 확인되었습니다.");
+        return ResponseEntity.ok(response);
     }
 
     ///////////////////// 댓글
@@ -117,6 +122,7 @@ public class MypageController {
     }
 
     ///////////////////// 게시글
+
     // 내가 쓴 게시글 목록 가져오기
     @GetMapping("/getMyBoards")
     public ResponseEntity<List<Board>> getMyBoards(@RequestParam int page, @RequestParam int pageSize,
