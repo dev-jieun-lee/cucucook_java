@@ -36,7 +36,6 @@ build/
 cucucook_key.pem
 
 #프로퍼티 안올리기
-application.properties
 application-secret.properties
 
 #로그폴더 안올리기
