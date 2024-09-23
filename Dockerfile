@@ -32,4 +32,5 @@ ENV SPRING_PROFILES_ACTIVE=real_server
 # 실행 시 메모리 제한 설정 (Java 애플리케이션에 대한 메모리 최적화)
 ENV JAVA_OPTS="-Xms256m -Xmx512m"
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", "/app.jar"]
+ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", "${JAVA_OPTS}", "/app.jar"]
+
