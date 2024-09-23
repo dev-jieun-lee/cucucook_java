@@ -14,13 +14,19 @@ public interface BoardMapper {
     // 게시판 글 갯수
     int getBoardCount(@Param("search") String search, @Param("boardCategoryId") String boardCategoryId);
 
-    // 게시판 목록 (search: 검색어, boardCategoryId: 게시판 카테고리 아이디, start: 페이지 번호, display: 한 페이지에 불러올 갯수)
-    List<Board> getBoardList(@Param("search") String search, @Param("boardCategoryId") String boardCategoryId, @Param("start") Integer start, @Param("display") Integer display);
+    // 게시판 목록 (search: 검색어, boardCategoryId: 게시판 카테고리 아이디, start: 페이지 번호, display: 한
+    // 페이지에 불러올 갯수)
+    List<Board> getBoardList(@Param("division") String division, @Param("search") String search,
+            @Param("searchType") String searchType, @Param("boardCategoryId") String boardCategoryId,
+            @Param("start") Integer start, @Param("display") Integer display);
 
-    // 게시판 보기
+    // 게시판 상세 보기
     Board getBoard(@Param("boardId") String boardId);
 
-    //게시판 조회수 증가
+    // 게시판 답글 포함 상세
+    public List<Board> getBoardWithReplies(String boardId);
+
+    // 게시판 조회수 증가
     void updateViewCount(@Param("boardId") String boardId);
 
     // 게시판 작성
@@ -33,10 +39,11 @@ public interface BoardMapper {
     int deleteBoard(@Param("boardId") String boardId);
 
     // 답글 갯수
-    int getReplyCount(@Param("pBoardId") String pBoardId);
+    int getReplyCount(@Param("pboardId") String pboardId);
 
     // 답글 목록
-    List<Board> getReplyList(@Param("boardId") String boardId, @Param("start") int start, @Param("display") int display);
+    List<Board> getReplyList(@Param("boardId") String boardId, @Param("start") int start,
+            @Param("display") int display);
 
     // 답글 보기
     Board getReply(@Param("boardId") String boardId);
@@ -67,6 +74,5 @@ public interface BoardMapper {
 
     // 게시판 카테고리 삭제
     int deleteBoardCategory(@Param("boardCategoryId") String boardCategoryId);
-
 
 }
