@@ -22,7 +22,7 @@ public interface MemberService {
 
     void updateMember(Member member);
 
-    void deleteMember(Long memberId);
+    void deleteMember(int memberId);
 
     void updateMemberPassword(Member member);
 

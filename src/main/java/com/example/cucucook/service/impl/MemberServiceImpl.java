@@ -159,11 +159,6 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public void deleteMember(Long memberId) {
-        memberMapper.deleteMember(memberId.intValue());
-    }
-
-    @Override
     public void updateMemberPassword(Member member) {
         member.setPassword(passwordEncoder.encode(member.getPassword()));
         // memberMapper.updateMemberPassword(member);
@@ -276,4 +271,9 @@ public class MemberServiceImpl implements MemberService {
         return memberMapper.findByUserId(userId);
     }
 
+    // 회원탈퇴
+    @Override
+    public void deleteMember(int memberId) {
+        memberMapper.deleteMember(memberId);
+    }
 }

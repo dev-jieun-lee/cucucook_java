@@ -11,6 +11,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -374,4 +375,14 @@ public class MemberController {
         }
     }
 
+    // 회원탈퇴
+    @DeleteMapping("/deleteAccount/{memberId}")
+    public ResponseEntity<String> deleteAccount(@PathVariable int memberId) {
+        try {
+            memberService.deleteMember(memberId);
+            return ResponseEntity.ok("회원 탈퇴 성공");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원 탈퇴 실패: " + e.getMessage());
+        }
+    }
 }
