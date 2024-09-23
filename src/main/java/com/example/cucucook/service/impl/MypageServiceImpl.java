@@ -28,6 +28,37 @@ public class MypageServiceImpl implements MypageService {
     @Autowired
     private MypageMapper mypageMapper;
 
+    // 회원정보 수정
+    @Override
+    public void updateMemberInfo(Member member) throws Exception {
+        // 회원 정보 업데이트 로직
+        memberMapper.updateMemberInfo(member);
+    }
+
+    // 회원 비밀번호 수정
+    @Override
+    public void changePasswordByUser(int memberId, String newPassword) throws Exception {
+        logger.info("비밀번호 변경 요청 수신: memberId={}", memberId);
+
+        // 1. 비밀번호 암호화 시작
+        logger.info("비밀번호 암호화 시작: memberId={}", memberId);
+        BCryptPasswordEncoder encoder = new BCryptPasswordEncoder();
+        String encodedPassword = encoder.encode(newPassword);
+
+        // 2. 비밀번호 암호화 완료
+        logger.info("비밀번호 암호화 완료: memberId={}, 암호화된 비밀번호={}", memberId, encodedPassword);
+
+        // 3. 데이터베이스에 비밀번호 업데이트 시도
+        logger.info("비밀번호 업데이트 시도: memberId={}", memberId);
+        try {
+            memberMapper.changePasswordByUser(memberId, encodedPassword);
+            logger.info("비밀번호 업데이트 성공: memberId={}", memberId);
+        } catch (Exception e) {
+            logger.error("비밀번호 업데이트 실패: memberId={}", memberId, e);
+            throw new Exception("비밀번호 업데이트 중 오류 발생", e);
+        }
+    }
+
     @Override
     public boolean verifyPassword(String userId, String password) {
         // 사용자 정보 확인
