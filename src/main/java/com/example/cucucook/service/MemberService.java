@@ -18,7 +18,7 @@ public interface MemberService {
 
     boolean checkEmailExists(String email);
 
-    Member getMember(Long memberId);
+    Member getMember(int memberId);
 
     void updateMember(Member member);
 

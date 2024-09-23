@@ -149,8 +149,8 @@ public class MemberServiceImpl implements MemberService {
     }
 
     @Override
-    public Member getMember(Long memberId) {
-        return memberMapper.getMember(memberId.intValue());
+    public Member getMember(int memberId) {
+        return memberMapper.getMember(memberId);
     }
 
     @Override
