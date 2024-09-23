@@ -31,8 +31,18 @@ public class MypageServiceImpl implements MypageService {
     // 회원정보 수정
     @Override
     public void updateMemberInfo(Member member) throws Exception {
-        // 회원 정보 업데이트 로직
-        memberMapper.updateMemberInfo(member);
+        // 로그 추가
+        logger.info("회원 정보 업데이트 시작: memberId={}, name={}, email={}, phone={}",
+                member.getMemberId(), member.getName(), member.getEmail(), member.getPhone());
+
+        try {
+            // 회원 정보 업데이트 로직
+            memberMapper.updateMemberInfo(member);
+            logger.info("회원 정보 업데이트 성공: memberId={}", member.getMemberId());
+        } catch (Exception e) {
+            logger.error("회원 정보 업데이트 실패: memberId={}, 오류: {}", member.getMemberId(), e.getMessage(), e);
+            throw e;
+        }
     }
 
     // 회원 비밀번호 수정
