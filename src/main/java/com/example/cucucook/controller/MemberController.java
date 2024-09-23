@@ -327,6 +327,23 @@ public class MemberController {
     }
 
     // 이메일 인증 코드 검증
+    @PostMapping("/verify")
+    public ResponseEntity<Map<String, Object>> verifyEmail(@RequestBody Map<String, String> payload) {
+        String email = payload.get("email");
+        String code = payload.get("code");
+        Map<String, Object> response = new HashMap<>();
+        try {
+            boolean isVerified = memberService.verifyEmailCode(email, code);
+            response.put("success", isVerified);
+            response.put("message", isVerified ? "Email verified successfully" : "Invalid verification code");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            response.put("success", false);
+            response.put("message", "Error verifying email: " + e.getMessage());
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(response);
+        }
+    }
+
     @GetMapping("/getMember")
     public ResponseEntity<MemberResponse> getMember(@RequestParam int memberId) {
         logger.info("요청 받은 memberId: {}", memberId);
