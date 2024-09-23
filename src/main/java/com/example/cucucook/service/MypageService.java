@@ -3,10 +3,17 @@ package com.example.cucucook.service;
 import java.util.List;
 
 import com.example.cucucook.domain.Board;
+import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 
 public interface MypageService {
+
+    // 회원정보수정
+    void updateMemberInfo(Member member) throws Exception;
+
+    // 회원비밀번호수정
+    void changePasswordByUser(int memberId, String newPassword) throws Exception;
 
     // 회원 게시물 관련 메서드
     int getMemberBoardCount(Long memberId);

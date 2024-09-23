@@ -48,16 +48,21 @@
         VALUES (#{userId}, #{password}, #{name}, #{phone}, '1', #{email}, false, false)
     </insert>
 
-    <!-- 회원 수정 -->
-    <update id="updateMember">
+    <!-- 회원 정보 업데이트 쿼리 -->
+    <update id="updateMemberInfo" parameterType="Member">
         UPDATE member
-        SET password = #{password},
-            name = #{name},
+        SET name = #{name},
             phone = #{phone},
-            role = #{role},
             email = #{email},
             sms_noti = #{smsNoti},
             email_noti = #{emailNoti}
+        WHERE member_id = #{memberId}
+    </update>
+
+    <!-- 비밀번호 변경 쿼리 -->
+    <update id="changePasswordByUser">
+        UPDATE member
+        SET password = #{newPassword}
         WHERE member_id = #{memberId}
     </update>
 
@@ -66,13 +71,6 @@
         DELETE FROM member
         WHERE member_id = #{memberId}
     </delete>
-
-    <!-- 비밀번호 변경 -->
-    <update id="updateMemberPassword">
-        UPDATE member
-        SET password = #{password}
-        WHERE member_id = #{memberId}
-    </update>
 
     <!-- 아이디 중복 체크 -->
     <select id="existsByUserId" parameterType="String" resultType="boolean">
