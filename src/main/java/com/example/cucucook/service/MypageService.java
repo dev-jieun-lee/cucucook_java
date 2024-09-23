@@ -11,8 +11,6 @@ public interface MypageService {
     // 회원 게시물 관련 메서드
     int getMemberBoardCount(Long memberId);
 
-    List<Board> getMemberBoardList(Long memberId);
-
     // 회원 댓글 관련 메서드
     int getRecipeCommentCount(Long memberId);
 
