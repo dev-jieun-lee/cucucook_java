@@ -8,10 +8,14 @@
     <result property="memberId" column="member_id"/>
     <result property="recipeCategoryId" column="recipe_category_id"/>
     <result property="title" column="title"/>
+    <result property="recipeMethodId" column="recipe_method_id"/>
     <result property="method" column="method"/>
+    <result property="methodEn" column="method_en"/>
     <result property="imgId" column="img_id"/>
     <result property="serving" column="serving"/>
+    <result property="recipeLevelId" column="recipe_level_id"/>
     <result property="level" column="level"/>
+    <result property="levelEn" column="level_en"/>
     <result property="time" column="time"/>
     <result property="calory" column="calory"/>
     <result property="tip" column="tip"/>
@@ -19,6 +23,11 @@
     <result property="uptDt" column="upt_dt"/>
     <result property="viewCount" column="view_count"/>
     <result property="recipeCategoryName" column="recipe_category_name"/>
+    <result property="recipeCategoryNameEn" column="recipe_category_name_en"/>
+    <result property="commentCount" column="comment_count"/>
+    <result property="commentRate" column="comment_rate"/>
+    <result property="likeCount" column="like_count"/>
+    
     <association property="member" javaType="Member">
       <result property="userId" column="user_id"/>
       <result property="name" column="name"/>
@@ -26,6 +35,16 @@
       <result property="role" column="role"/>
       <result property="email" column="email"/>
     </association>
+    
+    <association property="memberRecipeImages" javaType="MemberRecipeImages">
+      <result property="imgId" column="img_id"/>
+      <result property="orgImgName" column="org_img_name"/>
+      <result property="serverImgName" column="server_img_name"/>
+      <result property="extension" column="extension"/>
+      <result property="imgFileSize" column="img_file_size"/>
+      <result property="serverImgPath" column="server_img_path"/>
+      <result property="webImgPath" column="web_img_path"/>
+    </association>    
 </resultMap>
 
   <resultMap id="recipeCommentResultMap" type="RecipeComment">
@@ -38,6 +57,9 @@
     <result property="uptDt" column="upt_dt"/>
     <result property="status" column="status"/>
     <result property="pCommentId" column="p_comment_id"/>
+    <result property="delYn" column="del_yn"/>
+    <result property="hasChildComment" column="has_child_comment"/>
+    
     <association property="member" javaType="Member">
       <result property="memberId" column="member_id"/>
       <result property="userId" column="user_id"/>
@@ -48,6 +70,24 @@
     </association>
   </resultMap>
 
+  <resultMap id="memberRecipeProcessResultMap" type="MemberRecipeProcess">
+    <result property="recipeProcessId" column="recipe_process_id"/>
+    <result property="recipeId" column="recipe_id"/>
+    <result property="recipeNumber" column="recipe_number"/>
+    <result property="imgId" column="img_id"/>
+    <result property="contents" column="contents"/>
+    
+    <association property="memberRecipeImages" javaType="MemberRecipeImages">
+      <result property="imgId" column="img_id"/>
+      <result property="orgImgName" column="org_img_name"/>
+      <result property="serverImgName" column="server_img_name"/>
+      <result property="extension" column="extension"/>
+      <result property="imgFileSize" column="img_file_size"/>
+      <result property="serverImgPath" column="server_img_path"/>
+      <result property="webImgPath" column="web_img_path"/>
+    </association>    
+</resultMap>
+
   <!-- 외부레시피 내부레시피 반환 -->
   <select id="getMemberRecipeDivision" resultType="int">
     SELECT COUNT(*)
@@ -55,11 +95,52 @@
      WHERE recipe_id = #{recipeId}
   </select>
 
-  <!-- 레시피 수 -->
-  <select id="getMemberRecipeCount" resultType="int">
-    SELECT COUNT(*)
-      FROM member_recipe
-     WHERE recipe_category_id = #{recipeCategoryId}
+  <!-- 카테고리별 레시피 수 -->
+  <select id="getRecipeCategoryListWithMemberRecipeCount" resultType="RecipeCategory">
+  SELECT recipe_category_id
+        ,name
+        ,name_en
+        ,count
+  FROM (SELECT COUNT(a.recipe_category_id) AS count
+              ,b.recipe_category_id
+              ,b.name
+              ,b.name_en
+          FROM recipe_category b
+          LEFT JOIN member_recipe a 
+                ON a.recipe_category_id = b.recipe_category_id
+                <if test="search != '' and search != null">
+                AND a.title LIKE CONCAT('%', #{search}, '%')
+                </if>
+        WHERE b.division = 'C'
+        GROUP BY b.recipe_category_id, b.name, b.name_en        
+          UNION ALL              
+          SELECT COUNT(*) AS count
+                ,'RC000' AS recipe_category_id
+                ,'전체' AS name
+                ,'All' AS name_en
+           FROM member_recipe a
+          WHERE 1=1
+          <if test="search != '' and search != null">
+           AND a.title LIKE CONCAT('%', #{search}, '%')
+          </if>)
+  ORDER BY recipe_category_id
+  </select>
+
+  <!-- 회원레시피 조건별 수 -->
+  <select id = "getMemberRecipeCount" resultType="int">
+    SELECT count(*)
+      FROM member_recipe a
+      JOIN recipe_category b ON a.recipe_category_id = b.recipe_category_id
+      JOIN member c ON a.member_id = c.member_id
+     WHERE 1=1
+       AND a.member_id = c.member_id
+       <if test="search != '' and search != null">
+        AND a.title LIKE CONCAT('%', #{search}, '%')
+       </if>
+       <if test="recipeCategoryId != '' and recipeCategoryId != null and recipeCategoryId != 'RC000'">
+        AND a.recipe_category_id = #{recipeCategoryId}
+        AND b.division = 'C'
+       </if>       
   </select>
 
   <!-- 회원레시피 목록 -->
@@ -68,10 +149,20 @@
           ,a.member_id
           ,a.recipe_category_id
           ,a.title
-          ,a.method
+          ,(SELECT x.name
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.method) as method
+          ,(SELECT x.name_en
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.method) as method_en
           ,a.img_id
           ,a.serving
-          ,a.level
+          ,(SELECT x.name
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.level) as level
+          ,(SELECT x.name_en
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.level) as level_en
           ,a.time
           ,a.calory
           ,a.tip
@@ -79,31 +170,41 @@
           ,a.upt_dt
           ,a.view_count
           ,b.name AS recipe_category_name
+          ,b.name_en AS recipe_category_name_en
           ,c.user_id
           ,c.name
           ,c.phone
           ,c.role
           ,c.email
+          ,(SELECT COUNT(*) FROM recipe_comment x WHERE x.recipe_id = a.recipe_id and x.del_yn = 'N') as comment_count
+          ,a.comment_rate
+          ,(SELECT COUNT(*) FROM recipe_like x WHERE x.recipe_id = a.recipe_id) as like_count
+          ,d.org_img_name
+          ,d.server_img_name
+          ,d.extension
+          ,d.img_file_size
+          ,d.server_img_path
+          ,d.web_img_path
       FROM member_recipe a
-          ,recipe_category b
-          ,member c
-     WHERE a.recipe_category_id = b.recipe_category_id
-       AND a.member_id = c.member_id
+      JOIN recipe_category b ON a.recipe_category_id = b.recipe_category_id
+      JOIN member c ON a.member_id = c.member_id
+      LEFT JOIN member_recipe_images d on a.img_id = d.img_id
+     WHERE 1=1       
        <if test="search != '' and search != null">
         AND a.title LIKE CONCAT('%', #{search}, '%')
        </if>
-       <if test="recipeCategoryId != '' and recipeCategoryId != null">
+       <if test="recipeCategoryId != '' and recipeCategoryId != null and recipeCategoryId != 'RC000'">
         AND a.recipe_category_id = #{recipeCategoryId}
        </if>
        <choose>
         <when test="orderby != '' and orderby != null">
-        ORDER BY ${orderby}
+        ORDER BY ${orderby} desc
         </when>
         <otherwise>
         ORDER BY a.reg_dt desc
          </otherwise>
       </choose>
-    <!-- LIMIT #{start} OFFSET #{display} -->
+    LIMIT #{display} OFFSET #{start}  
   </select>
 
   <!-- 회원레시피 상세 보기 -->
@@ -112,39 +213,63 @@
           ,a.member_id
           ,a.recipe_category_id
           ,a.title
-          ,a.method
+          ,(SELECT x.recipe_category_id
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.method) as recipe_method_id
+          ,(SELECT x.name
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.method) as method
+          ,(SELECT x.name_en
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.method) as method_en
           ,a.img_id
           ,a.serving
-          ,a.level
+          ,(SELECT x.recipe_category_id
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.level) as recipe_level_id
+          ,(SELECT x.name
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.level) as level
+          ,(SELECT x.name_en
+              FROM recipe_category x
+             WHERE x.recipe_category_id = a.level) as level_en
           ,a.time
           ,a.calory
           ,a.tip
           ,a.reg_dt
           ,a.upt_dt
           ,a.view_count
-          ,b.NAME AS recipeCategoryName
+          ,b.name AS recipe_category_name
+          ,b.name_en AS recipe_category_name_en
           ,c.user_id
           ,c.NAME
           ,c.phone
           ,c.role
           ,c.email
+          ,(SELECT COUNT(*) FROM recipe_comment x WHERE x.recipe_id = a.recipe_id and x.del_yn = 'N') as comment_count
+          ,a.comment_rate
+          ,(SELECT COUNT(*) FROM recipe_like x WHERE x.recipe_id = a.recipe_id) as like_count
+          ,d.img_id as img_id
+          ,d.org_img_name
+          ,d.server_img_name
+          ,d.extension
+          ,d.img_file_size
+          ,d.server_img_path
+          ,d.web_img_path
       FROM member_recipe a
-          ,recipe_category b
-          ,member c
-      WHERE a.recipe_category_id = b.recipe_category_id
-        AND a.member_id = c.member_id
-        AND a.recipe_id = #{recipeId}
+      JOIN recipe_category b ON a.recipe_category_id = b.recipe_category_id
+      JOIN member c ON a.member_id = c.member_id
+      LEFT JOIN member_recipe_images d on a.img_id = d.img_id
+      WHERE a.recipe_id = #{recipeId}
   </select>
 
   <!-- 회원레시피 추가 -->
-  <insert id="insertMemberRecipe">
+  <insert id="insertMemberRecipe" parameterType="MemberRecipe" useGeneratedKeys="true" keyProperty="recipeId">
     INSERT INTO member_recipe
-                (recipe_id
-                 ,member_id
+                (member_id
                  ,recipe_category_id
                  ,title
                  ,method
-                 ,img_id
                  ,serving
                  ,level
                  ,time
@@ -152,19 +277,18 @@
                  ,tip
                  ,reg_dt
                  ,view_count)
-         VALUES (#{memberRecipe.recipeId}
-                 ,#{memberRecipe.memberId}
+         VALUES (#{memberRecipe.memberId}
                  ,#{memberRecipe.recipeCategoryId}
                  ,#{memberRecipe.title}
                  ,#{memberRecipe.method}
-                 ,#{memberRecipe.imgId}
                  ,#{memberRecipe.serving}
                  ,#{memberRecipe.level}
                  ,#{memberRecipe.time}
-                 ,#{memberRecipe.tip}
                  ,#{memberRecipe.calory}
+                 ,#{memberRecipe.tip}
                  ,TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS')
                  ,0)
+    RETURNING recipe_id
   </insert>
 
   <!-- 회원레시피 수정 -->
@@ -173,7 +297,6 @@
        SET recipe_category_id = #{memberRecipe.recipeCategoryId}
           ,title = #{memberRecipe.title}
           ,method = #{memberRecipe.method}
-          ,img_id = #{memberRecipe.imgId}
           ,serving = #{memberRecipe.serving}
           ,level = #{memberRecipe.level}
           ,time = #{memberRecipe.time}
@@ -181,6 +304,14 @@
           ,tip = #{memberRecipe.tip}
           ,upt_dt = TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS')
      WHERE recipe_id = #{memberRecipe.recipeId}
+  </update>
+
+  
+  <!-- 회원레시피 이미지 수정 -->
+  <update id="updateMemberRecipeImgId">
+    UPDATE member_recipe
+       SET img_id = #{imgId}          
+     WHERE recipe_id = #{recipeId}
   </update>
 
   <!-- 회원 레시피 삭제 -->
@@ -217,15 +348,13 @@
   <!-- 회원 레시피 재료 넣기 -->
   <insert id="insertMemberRecipeIngredient" >
     INSERT INTO member_recipe_ingredient
-                (ingredient_id
-                ,order_id
+                (order_id
                 ,recipe_id
                 ,name
                 ,unit
                 ,amount)
-          VALUES (#{memberRecipeIngredient.ingredientId}
-                  ,#{memberRecipeIngredient.orderId}
-                  ,#{memberRecipeIngredient.recipeId}
+          VALUES (#{memberRecipeIngredient.orderId}
+                  ,#{recipeId}
                   ,#{memberRecipeIngredient.name}
                   ,#{memberRecipeIngredient.unit}
                   ,#{memberRecipeIngredient.amount})
@@ -252,40 +381,57 @@
   </delete>
 
   <!-- 회원 레시피 과정 목록 -->
-  <select id="getMemberRecipeProcessList" resultType="MemberRecipeProcess">
-    SELECT recipe_process_id
-          ,recipe_id
-          ,recipe_number
-          ,img_id
-          ,contents
-      FROM member_recipe_process
-     WHERE recipe_id = #{recipeId}
+  <select id="getMemberRecipeProcessList" resultMap="memberRecipeProcessResultMap">
+    SELECT a.recipe_process_id
+          ,a.recipe_id
+          ,a.recipe_number
+          ,a.img_id
+          ,a.contents
+          ,b.org_img_name
+          ,b.server_img_name
+          ,b.extension
+          ,b.img_file_size
+          ,b.server_img_path
+          ,b.web_img_path
+      FROM member_recipe_process a
+      LEFT JOIN member_recipe_images b on a.img_id = b.img_id
+     WHERE a.recipe_id = #{recipeId}
+    ORDER BY recipe_number
   </select>
 
   <!-- 회원 레시피 과정 보기 -->
-  <select id="getMemberRecipeProcess" resultType="MemberRecipeProcess">
-    SELECT recipe_process_id
-          ,recipe_id
-          ,recipe_number
-          ,img_id
-          ,contents
-      FROM member_recipe_process
-     WHERE recipe_id = #{recipeId}
-       AND recipe_process_id = #{recipeProcessId}
+  <select id="getMemberRecipeProcess" resultMap="memberRecipeProcessResultMap">
+    SELECT a.recipe_process_id
+          ,a.recipe_id
+          ,a.recipe_number
+          ,a.img_id
+          ,a.contents
+          ,b.org_img_name
+          ,b.server_img_name
+          ,b.extension
+          ,b.img_file_size
+          ,b.server_img_path
+          ,b.web_img_path
+      FROM member_recipe_process a
+      LEFT JOIN member_recipe_images b on a.img_id = b.img_id
+     WHERE a.recipe_id = #{recipeId}
+       AND a.recipe_process_id = #{recipeProcessId}
   </select>
 
   <!-- 회원 레시피 과정 넣기 -->
   <insert id="insertMemberRecipeProcess">
     INSERT INTO member_recipe_process
-                (recipe_process_id
-                ,recipe_id
+                (recipe_id
                 ,recipe_number
-                ,img_id
+                <if test="memberRecipeProcess.imgId != null">
+                  ,img_id
+                </if>
                 ,contents)
-          VALUES (#{memberRecipeProcess.recipeProcessId}
-                  ,#{memberRecipeProcess.recipeId}
+          VALUES (#{recipeId}
                   ,#{memberRecipeProcess.recipeNumber}
-                  ,#{memberRecipeProcess.imgId}
+                  <if test="memberRecipeProcess.imgId != null">
+                    ,#{memberRecipeProcess.imgId}
+                  </if>
                   ,#{memberRecipeProcess.contents})
   </insert>
 
@@ -308,6 +454,23 @@
      </if>
   </delete>
 
+  
+  <!-- 레시피 이미지 보기 -->
+  <select id="getMemberRecipeImagesList" resultType="MemberRecipeImages">
+    SELECT a.img_id
+          ,a.org_img_name
+          ,a.server_img_name
+          ,a.extension
+          ,a.img_file_size
+          ,a.server_img_path
+          ,a.web_img_path
+      FROM member_recipe_images a
+      LEFT JOIN member_recipe b on a.img_id = b.img_id and b.recipe_id = #{recipeId}
+      LEFT JOIN member_recipe_process c on a.img_id = c.img_id and c.recipe_id = #{recipeId}
+      WHERE b.recipe_id NOTNULL OR c.recipe_id NOTNULL 
+     
+  </select>
+
   <!-- 레시피 이미지 보기 -->
   <select id="getMemberRecipeImages" resultType="MemberRecipeImages">
     SELECT img_id
@@ -322,22 +485,21 @@
   </select>
 
   <!-- 레시피 이미지 넣기 -->
-  <insert id="insertMemberRecipeImages">
+  <insert id="insertMemberRecipeImages" parameterType="MemberRecipeImages" useGeneratedKeys="true" keyProperty="imgId">
     INSERT INTO member_recipe_images
-                (img_id
-                ,org_img_name
+                (org_img_name
                 ,server_img_name
                 ,extension
                 ,img_file_size
                 ,server_img_path
                 ,web_img_path)
-          VALUES (#{memberRecipeImages.imgId}
-                  ,#{memberRecipeImages.orgImgName}
+          VALUES (#{memberRecipeImages.orgImgName}
                   ,#{memberRecipeImages.serverImgName}
                   ,#{memberRecipeImages.extension}
                   ,#{memberRecipeImages.imgFileSize}
                   ,#{memberRecipeImages.serverImgPath}
-                  ,#{memberRecipeImages.memberRecipe})
+                  ,#{memberRecipeImages.webImgPath})
+    RETURNING img_id
   </insert>
 
   <!-- 레시피 이미지 수정 -->
@@ -362,11 +524,14 @@
   <select id="getRecipeCommentCount" resultType="int">
     SELECT COUNT(*)
       FROM recipe_comment
-     WHERE recipe_id = #{recipe_id}
+     WHERE recipe_id = #{recipeId}
+       AND del_yn = 'N'
   </select>
 
   <!-- 회원레시피 댓글목록 -->
   <select id="getRecipeCommentList" resultMap="recipeCommentResultMap">
+
+  WITH RECURSIVE v_recipe_comment AS (
     SELECT a.comment_id
           ,a.member_id
           ,a.comment
@@ -377,38 +542,91 @@
           ,a.status
           ,a.p_comment_id
           ,b.user_id
-          ,b.NAME
+          ,b.name
           ,b.phone
           ,b.role
           ,b.email
+          ,a.del_yn
+          ,a.comment_id AS p_comment_id_group
+          ,a.reg_dt AS p_comment_id_group_dt
+          ,EXISTS (SELECT 1
+                     FROM recipe_comment r
+                    WHERE r.p_comment_id = a.comment_id
+          ) AS has_child_comment
       FROM recipe_comment a
-          ,member b
-     WHERE a.recipe_id = ${recipeId}
-       AND a.member_id = b.member_id
-     <if test="pCommentid != '' and pCommentid != null">
-       AND p_comment_id = #{pCommentid}
-     </if>
-     <if test="pCommentid = '' or pCommentid = null">
-      AND p_comment_id IS NOT NULL
-    </if>
-    ORDER BY a.reg_dt DESC
-    LIMIT #{start}, #{display}
+    JOIN member b ON a.member_id = b.member_id
+   WHERE a.p_comment_id IS NULL
+     AND a.recipe_id = #{recipeId}
+    UNION ALL
+    SELECT a.comment_id
+          ,a.member_id
+          ,a.comment
+          ,a.recipe_id
+          ,a.rate
+          ,a.reg_dt
+          ,a.upt_dt
+          ,a.status
+          ,a.p_comment_id
+          ,b.user_id
+          ,b.name
+          ,b.phone
+          ,b.role
+          ,b.email
+          ,a.del_yn
+          ,a.p_comment_id AS p_comment_id_group
+          ,va.reg_dt AS p_comment_id_group_dt
+          ,false AS has_child_comment
+      FROM recipe_comment a
+    JOIN member b ON a.member_id = b.member_id
+    JOIN v_recipe_comment va ON a.p_comment_id = va.comment_id
+   WHERE a.p_comment_id IS NOT NULL
+  )
+  SELECT comment_id
+        ,member_id
+        ,comment
+        ,recipe_id
+        ,rate
+        ,reg_dt
+        ,upt_dt
+        ,status
+        ,p_comment_id
+        ,user_id
+        ,name
+        ,phone
+        ,role
+        ,email
+        ,del_yn
+        ,has_child_comment
+    FROM v_recipe_comment
+   WHERE del_yn ='N' OR (del_yn='Y' AND has_child_comment = true )
+  ORDER BY p_comment_id_group_dt DESC
+          ,p_comment_id_group
+          ,status
+          ,reg_dt DESC
+  LIMIT #{display} OFFSET #{start}  
   </select>
 
   <!-- 회원레시피 댓글 보기 -->
   <select id="getRecipeComment" resultMap="recipeCommentResultMap">
-    SELECT comment_id
-          ,member_id
-          ,comment
-          ,recipe_id
-          ,rate
-          ,reg_dt
-          ,upt_dt
-          ,status
-          ,p_comment_id
-      FROM recipe_comment
-     WHERE recipe_id = ${recipeId}
-       AND comment_id = ${commentId}
+    SELECT a.comment_id
+          ,a.member_id
+          ,a.comment
+          ,a.recipe_id
+          ,a.rate
+          ,a.reg_dt
+          ,a.upt_dt
+          ,a.status
+          ,a.p_comment_id
+          ,a.del_yn
+          ,b.user_id
+          ,b.name
+          ,b.phone
+          ,b.role
+          ,b.email
+      FROM recipe_comment a
+    JOIN member b ON a.member_id = b.member_id
+     WHERE recipe_id = #{recipeId}
+       AND comment_id = #{commentId}
   </select>
 
   <!-- 회원레시피 댓글 쓰기 -->
@@ -422,7 +640,7 @@
                 ,reg_dt
                 ,status
                 ,p_comment_id)
-          VALUES (#{recipeComment.commentId}
+          VALUES (nextval('comment_id_seq')
                   ,#{recipeComment.memberId}
                   ,#{recipeComment.comment}
                   ,#{recipeComment.recipeId}
@@ -440,13 +658,31 @@
           ,upt_dt = TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS')
      WHERE comment_id = #{recipeComment.commentId}
        AND recipe_id = #{recipeComment.recipeId}
+       AND del_yn = 'N'
   </update>
+
+  <!-- 회원레시피 댓글 삭제(본댓글에 대댓글이 남겨져 있는 경우) -->
+  <update id="deleteRecipeCommentHasChild">
+    UPDATE recipe_comment
+       SET del_yn = 'Y'
+          ,comment = ''
+          ,rate = 0
+     WHERE comment_id = #{commentId}
+       AND recipe_id = #{recipeId}
+  </update>
+
+  <!-- 회원레시피 댓글 삭제 -->
+  <delete id="deleteRecipeCommentAll">
+    DELETE FROM recipe_comment
+     WHERE recipe_id = #{recipeId}
+  </delete>
+
 
   <!-- 회원레시피 댓글 삭제 -->
   <delete id="deleteRecipeComment">
     DELETE FROM recipe_comment
-     WHERE comment_id = #{recipeComment.commentId}
-       AND recipe_id = #{recipeComment.recipeId}
+     WHERE comment_id = #{commentId}
+       AND recipe_id = #{recipeId}
   </delete>
 
   <!-- 레시피 카테고리 수 -->
@@ -459,8 +695,12 @@
   <select id="getRecipeCategoryList" resultType="RecipeCategory">
     SELECT recipe_category_id
           ,name
+          ,name_en
+          ,division
       FROM recipe_category
+    <if test="start != 0 and display != 0">
     LIMIT #{start}, #{display}
+    </if>    
   </select>
 
   <!-- 레시피 카테고리 보기-->
@@ -499,5 +739,52 @@
       FROM recipe_like
      WHERE recipe_id = #{recipeId}
   </select>
+
+  <!-- 레시피 찜 수 추가(회원이 등록) -->
+  <insert id="insertMemberRecipeLike">
+    INSERT INTO recipe_like
+                (recipe_id
+                 ,member_id
+                 ,reg_dt)
+         VALUES (#{recipeLike.recipeId}
+                 ,#{recipeLike.memberId}
+                 ,TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'))
+  </insert>
+
+  <!-- 레시피 찜 수 추가(회원이 삭제) -->
+  <delete id="deleteMemberRecipeLike">
+    DELETE FROM recipe_like
+     WHERE recipe_id = #{recipeId}
+       AND member_id = #{memberId}
+  </delete>
+
+  <!-- 레시피 찜 수 삭제(레시피 게시글을 삭제하는경우)-->
+  <delete id="deleteMemberRecipeLikeAll">
+    DELETE FROM recipe_like
+     WHERE recipe_id = #{recipeId}
+  </delete>
+
+
+  <!-- 레시피 조회수 증가 -->
+  <update id="updateRecipeViewCount">
+    UPDATE member_recipe
+    SET view_count = view_count + 1
+    WHERE recipe_id = #{recipeId}
+  </update>
+
+  <!-- 레시피 댓글 평균 구하기 위해 가져오는 rate 값 -->
+  <select id="getRecipeCommentRateList" resultType="int">
+    SELECT rate
+      FROM recipe_comment
+     WHERE recipe_id = #{recipeId}
+       AND del_yn = 'N'
+  </select>
+
+  <!-- 레시피 평균값 수정 -->
+  <update id="updateRecipeCommentRate">
+    UPDATE member_recipe
+    SET comment_rate = #{commentAvg}
+    WHERE recipe_id = #{recipeId}
+  </update>
 
 </mapper>

@@ -47,7 +47,7 @@
       </if>
     </where>
     <!-- 기본 정렬은 최신 게시물 우선 -->
-    ORDER BY board_id DESC
+    ORDER BY reg_dt DESC
 </select>
 
 <!-- 게시판 글 상세 조회 -->

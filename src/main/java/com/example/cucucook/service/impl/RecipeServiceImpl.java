@@ -1,19 +1,32 @@
 package com.example.cucucook.service.impl;
 
+import java.io.IOException;
 import java.lang.reflect.Type;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.net.URI;
+import java.net.URISyntaxException;
+import java.net.URLEncoder;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.nio.charset.StandardCharsets;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.stream.Collectors;
 
+import org.apache.ibatis.annotations.Param;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.cucucook.common.ApiResponse;
+import com.example.cucucook.common.CommonMethod;
+import com.example.cucucook.common.FileUpload;
 import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.MemberRecipeImages;
 import com.example.cucucook.domain.MemberRecipeIngredient;
@@ -21,8 +34,11 @@ import com.example.cucucook.domain.MemberRecipeProcess;
 import com.example.cucucook.domain.PublicRecipe;
 import com.example.cucucook.domain.RecipeCategory;
 import com.example.cucucook.domain.RecipeComment;
+import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.mapper.RecipeMapper;
 import com.example.cucucook.service.RecipeService;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -31,7 +47,7 @@ import com.google.gson.reflect.TypeToken;
 
 @Service
 public class RecipeServiceImpl implements RecipeService {
-    // ·¹½ÃÇÇ °ø°øapi°¡Á®¿À±â
+    // ë ˆì‹œí”¼ ê³µê³µapiê°€ì ¸ì˜¤ê¸°
     @Value("${recipe.open.api.url}")
     private String openApiUrl;
     @Value("${recipe.open.api.key}")
@@ -39,31 +55,139 @@ public class RecipeServiceImpl implements RecipeService {
 
     @Autowired
     private RecipeMapper recipeMapper;
+    @Autowired
+    private FileUpload fileUpload;
 
-    // È¸¿ø ·¹½ÃÇÇ ¸ñ·Ï
+    // íšŒì› ë ˆì‹œí”¼ ëª©ë¡ ì™¸ë¶€API
+    @Override
+    public ApiResponse<List<PublicRecipe>> getPublicRecipeList(String search, int start, int display,
+            String recipeCategoryId) {
+
+        String message;
+        boolean success = false;
+        boolean hasMore = false;
+
+        String result_json;
+        String code;
+        int end = start + display - 1;
+
+        // apiì „ì†¡ì‹œ ì „ì²´ì¼ì‹œ ë¹ˆê°’, êµ­&ì°Œê°œ ì¼ ì‹œ êµ­ or ì°Œê°œë¡œ íŒŒë¼ë¯¸í„° ë³´ë‚´ì¤˜ì•¼í•¨
+        recipeCategoryId = "ì „ì²´".equals(recipeCategoryId) ? ""
+                : "êµ­&ì°Œê°œ".equals(recipeCategoryId) ? "êµ­" : recipeCategoryId;
+        String rcpNm = "".equals(search) ? ""
+                : "/RCP_NM=" + URLEncoder.encode(search, StandardCharsets.UTF_8);
+        String rcpPat2 = "".equals(recipeCategoryId) ? ""
+                : ("".equals(search) ? "/" : "&") + "RCP_PAT2="
+                        + URLEncoder.encode(recipeCategoryId, StandardCharsets.UTF_8);
+
+        List<PublicRecipe> publicRecipeList = null;
+
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            String urlString = openApiUrl + "/" + openApiKey + "/COOKRCP01/json/" + start + "/" + end + rcpNm
+                    + rcpPat2;
+            URI uri = new URI(urlString);
+
+            HttpClient client = HttpClient.newHttpClient();
+            HttpRequest request = HttpRequest.newBuilder()
+                    .uri(uri)
+                    .header("Accept", "application/json")
+                    .GET()
+                    .build();
+
+            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
+            result_json = response.body();
+
+            boolean isJson = CommonMethod.isValidJson(result_json);
+
+            if (!isJson) {
+                message = result_json;
+                success = false;
+                return new ApiResponse<>(success, message, publicRecipeList, addDataMap);
+            }
+
+            Gson gson = new Gson();
+            JsonElement jsonElement = gson.fromJson(result_json, JsonElement.class);
+
+            JsonObject jsonObject = jsonElement.getAsJsonObject();
+            JsonObject cookRcp01 = jsonObject.getAsJsonObject("COOKRCP01");
+            JsonArray rowArray = cookRcp01.getAsJsonArray("row");
+            JsonObject result = cookRcp01.getAsJsonObject("RESULT");
+            Type recipeListType = new TypeToken<List<PublicRecipe>>() {
+            }.getType();
+
+            publicRecipeList = gson.fromJson(rowArray, recipeListType);
+
+            message = result.get("MSG").getAsString();
+            code = result.get("CODE").getAsString();
+            success = "INFO-000".equals(code);
+
+            if (publicRecipeList != null && publicRecipeList.size() == display)
+                hasMore = true;
+
+            addDataMap.put("hasMore", hasMore);
+
+        } catch (InterruptedException | IOException | URISyntaxException e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+
+        }
+        return new ApiResponse<>(success, message, publicRecipeList, addDataMap);
+    }
+
+    // íšŒì› ë ˆì‹œí”¼ ëª©ë¡
     @Override
     public ApiResponse<List<MemberRecipe>> getMemberRecipeList(String search, String recipeCategoryId, int start,
             int display, String orderby) {
 
-        List<MemberRecipe> memberRecipeList = recipeMapper.getMemberRecipeList(search, recipeCategoryId, start, display,
-                orderby);
-        String message = (memberRecipeList == null || memberRecipeList.isEmpty()) ? "È¸¿ø ·¹½ÃÇÇ ¸ñ·ÏÀÌ ¾ø½À´Ï´Ù."
-                : "È¸¿ø ·¹½ÃÇÇ ¸ñ·Ï Á¶È¸ ¼º°ø";
-        boolean success = memberRecipeList != null && !memberRecipeList.isEmpty();
+        String message;
+        boolean success = false;
+        boolean hasMore = false;
+        int memberRecipeTotalCnt;
 
-        return new ApiResponse<>(success, message, memberRecipeList);
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        List<MemberRecipe> memberRecipeList = null;
+
+        try {
+            memberRecipeList = recipeMapper.getMemberRecipeList(search, recipeCategoryId, start, display,
+                    orderby);
+            memberRecipeTotalCnt = recipeMapper.getMemberRecipeCount(search, recipeCategoryId, orderby);
+            message = (memberRecipeList == null || memberRecipeList.isEmpty()) ? "E_IS_DATA"
+                    : "S_IS_DATA";
+            success = memberRecipeList != null && !memberRecipeList.isEmpty();
+            if (memberRecipeList != null && memberRecipeList.size() == display)
+                hasMore = true;
+            addDataMap.put("hasMore", hasMore);
+            addDataMap.put("totalCnt", memberRecipeTotalCnt);
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+        }
+
+        return new ApiResponse<>(success, message, memberRecipeList, addDataMap);
     }
 
-    // È¸¿ø ·¹½ÃÇÇ ¸ñ·Ï ¿ÜºÎAPI
+    // íšŒì› ë ˆì‹œí”¼ ëª©ë¡ ì™¸ë¶€API
     @Override
-    public ApiResponse<List<PublicRecipe>> getPublicRecipeList(String search, int start, int display) {
-        String result_json = "";
-        String rcpNm = "".equals(search) ? "" : "/RCP_NM=" + search;
+    public ApiResponse<PublicRecipe> getPublicRecipe(String search, int start,
+            int display) {
+
+        String message;
+        boolean success = false;
+
+        String result_json;
+        String code;
+        String rcpNm = "".equals(search) ? ""
+                : "/RCP_NM=" + URLEncoder.encode(search, StandardCharsets.UTF_8);
+
+        PublicRecipe publicRecipe = null;
+        Map<String, Object> addDataMap = new HashMap<>();
 
         try {
             String urlString = openApiUrl + "/" + openApiKey + "/COOKRCP01/json/" + start + "/" + display + rcpNm;
             URI uri = new URI(urlString);
-
             HttpClient client = HttpClient.newHttpClient();
             HttpRequest request = HttpRequest.newBuilder()
                     .uri(uri)
@@ -74,204 +198,738 @@ public class RecipeServiceImpl implements RecipeService {
             HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
             result_json = response.body();
 
-        } catch (Exception e) {
-            e.printStackTrace();
+            boolean isJson = CommonMethod.isValidJson(result_json);
+
+            if (!isJson) {
+                message = result_json;
+                return new ApiResponse<>(success, message, publicRecipe, addDataMap);
+            }
+
+            Gson gson = new Gson();
+            JsonElement jsonElement = gson.fromJson(result_json, JsonElement.class);
+
+            JsonObject jsonObject = jsonElement.getAsJsonObject();
+            JsonObject cookRcp01 = jsonObject.getAsJsonObject("COOKRCP01");
+            JsonArray rowArray = cookRcp01.getAsJsonArray("row");
+            JsonObject result = cookRcp01.getAsJsonObject("RESULT");
+
+            publicRecipe = gson.fromJson(rowArray.get(0), PublicRecipe.class);
+            message = result.get("MSG").getAsString();
+            code = result.get("CODE").getAsString();
+            success = "INFO-000".equals(code);
+        } catch (InterruptedException | IOException | URISyntaxException e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
         }
-
-        Gson gson = new Gson();
-        JsonElement jsonElement = gson.fromJson(result_json, JsonElement.class);
-
-        JsonObject jsonObject = jsonElement.getAsJsonObject();
-        JsonObject cookRcp01 = jsonObject.getAsJsonObject("COOKRCP01");
-        JsonArray rowArray = cookRcp01.getAsJsonArray("row");
-        JsonObject result = cookRcp01.getAsJsonObject("RESULT");
-        Type recipeListType = new TypeToken<List<PublicRecipe>>() {
-        }.getType();
-
-        List<PublicRecipe> publicRecipeList = gson.fromJson(rowArray, recipeListType);
-
-        String message = result.get("MSG").getAsString();
-        String code = result.get("CODE").getAsString();
-        boolean success = "INFO-000".equals(code);
-
-        return new ApiResponse<>(success, message, publicRecipeList);
+        return new ApiResponse<>(success, message, publicRecipe, addDataMap);
     }
 
-    // È¸¿ø ·¹½ÃÇÇ »ó¼¼º¸±â
-    // 1. ³»ºÎ,¿ÜºÎ¿¡ µû¶ó Ã³¸®¹æ½Ä ´Ù¸£°ÔµÊ
-    // 2. ·¹½ÃÇÇ, Àç·á, °úÁ¤, ÀÌ¹ÌÁö, ·¹½ÃÇÇ Âò¼ö ´Ù Æ÷ÇÔµÇ¾î¾ßÇÔ
+    // íšŒì› ë ˆì‹œí”¼ ìƒì„¸ë³´ê¸°
+    // ë ˆì‹œí”¼, ì¬ë£Œ, ê³¼ì •, ì´ë¯¸ì§€, ë ˆì‹œí”¼ ì°œìˆ˜ ë‹¤ í¬í•¨ë˜ì–´ì•¼í•¨
     @Override
-    public ApiResponse<HashMap<String, Object>> getMemberRecipe(String recipeId) {
-        // recipeExist == 0 ³»ºÎ recipeExist > 0 ¿ÜºÎ
-        int recipeExist = recipeMapper.getMemberRecipeDivision(recipeId);
+    public ApiResponse<HashMap<String, Object>> getMemberRecipe(String recipeId, boolean isUpdate) {
 
+        String message;
+        boolean success = false;
+
+        HashMap<String, Object> memberRecipeHashMap = null;
         HashMap<String, Object> result = new HashMap<>();
 
-        MemberRecipe memberRecipe = recipeMapper.getMemberRecipe(recipeId);
-
-        result.put("memberRecipe", memberRecipe);
-
-        // ÀÌ¹ÌÁö ÀÖÀ¸¸é ³Ö¾îÁÖ±â
-        MemberRecipeImages memberRecipeImages = recipeMapper.getMemberRecipeImages(memberRecipe.getImgId());
-        if (memberRecipeImages != null) {
-            result.put("memberRecipeImages", memberRecipeImages);
-        }
-
-        // Àç·á ÀÖÀ¸¸é ³Ö¾îÁÖ±â
-        List<MemberRecipeIngredient> memberRecipeIngredient = recipeMapper.getMemberRecipeIngredientList(recipeId);
-        if (memberRecipeIngredient != null && !memberRecipeIngredient.isEmpty()) {
-            result.put("memberRecipeIngredient", memberRecipeIngredient);
-        }
-
-        // °úÁ¤ ÀÖÀ¸¸é ³Ö¾îÁÖ±â
-        List<MemberRecipeProcess> memberRecipeProcessList = recipeMapper.getMemberRecipeProcessList(recipeId);
-        if (memberRecipeProcessList != null && !memberRecipeProcessList.isEmpty()) {
-            HashMap<String, Object> memberRecipeProcessHashMap = new HashMap<>();
-            // °¢ °úÁ¤¸¶´Ù ½æ³×ÀÏÀÌ ÀÖ¾î¼­ ¸®½ºÆ® for¹® µ¹·Á »õ·Î¿î hashmap ¸¸µé¾î¼­ ³Ö±â
-            for (MemberRecipeProcess memberRecipeProcess : memberRecipeProcessList) {
-                memberRecipeProcessHashMap.put("memberRecipeProcess", memberRecipeProcess);
-                String recipeProcessImgId = memberRecipeProcess.getImgId();
-                MemberRecipeImages memberRecipeProcessImages = recipeMapper.getMemberRecipeImages(recipeProcessImgId);
-                if (memberRecipeImages != null) {
-                    memberRecipeProcessHashMap.put("memberRecipeProcessImages", memberRecipeProcessImages);
-                }
-            }
-            result.put("memberRecipeProcessList", memberRecipeProcessHashMap);
-        }
-
-        // ·¹½ÃÇÇ Âò¼ö ³Ö¾îÁÖ±â
-        result.put("recipeLike", recipeMapper.getMemberRecipeLikeCount(recipeId));
-
-        HashMap<String, Object> memberRecipeHashMap = result;
-
-        String message = (memberRecipeHashMap == null || memberRecipeHashMap.isEmpty()) ? "µî·ÏµÈ È¸¿ø ·¹½ÃÇÇ°¡ ¾ø½À´Ï´Ù"
-                : "È¸¿ø ·¹½ÃÇÇ Á¶È¸ ¼º°ø";
-        boolean success = memberRecipeHashMap != null && !memberRecipeHashMap.isEmpty();
-
-        return new ApiResponse<>(success, message, memberRecipeHashMap);
-    }
-
-    // È¸¿ø ·¹½ÃÇÇ ¸ñ·Ï ¿ÜºÎAPI
-    @Override
-    public ApiResponse<PublicRecipe> getPublicRecipe(String search, int start,
-            int display) {
-        String result_json = "";
-        String rcpNm = "".equals(search) ? "" : "/RCP_NM=" + search;
+        Map<String, Object> addDataMap = new HashMap<>();
 
         try {
-            String urlString = openApiUrl + "/" + openApiKey + "/COOKRCP01/json/" + 1 + "/" + 1 + rcpNm;
-            URI uri = new URI(urlString);
+            MemberRecipe memberRecipe = recipeMapper.getMemberRecipe(recipeId);
+            result.put("memberRecipe", memberRecipe);
 
-            HttpClient client = HttpClient.newHttpClient();
-            HttpRequest request = HttpRequest.newBuilder()
-                    .uri(uri)
-                    .header("Accept", "application/json")
-                    .GET()
-                    .build();
+            // ì´ë¯¸ì§€ ìˆìœ¼ë©´ ë„£ì–´ì£¼ê¸°
+            MemberRecipeImages memberRecipeImages = recipeMapper.getMemberRecipeImages(memberRecipe.getImgId());
 
-            HttpResponse<String> response = client.send(request, HttpResponse.BodyHandlers.ofString());
-            result_json = response.body();
+            result.put("memberRecipeImages", memberRecipeImages);
+
+            // ì¬ë£Œ ìˆìœ¼ë©´ ë„£ì–´ì£¼ê¸°
+            List<MemberRecipeIngredient> memberRecipeIngredient = recipeMapper.getMemberRecipeIngredientList(recipeId);
+            if (memberRecipeIngredient == null || memberRecipeIngredient.isEmpty()) {
+                throw new Exception("ì¬ë£Œì—†ìŒ");
+            }
+            result.put("memberRecipeIngredient", memberRecipeIngredient);
+
+            // ê³¼ì • ìˆìœ¼ë©´ ë„£ì–´ì£¼ê¸°
+            List<MemberRecipeProcess> memberRecipeProcessList = recipeMapper.getMemberRecipeProcessList(recipeId);
+            if (memberRecipeProcessList == null || memberRecipeProcessList.isEmpty()) {
+                throw new Exception("ê³¼ì •ì—†ìŒ");
+            }
+
+            // ìˆ˜ì •ìš©
+            HashMap<String, Object> memberRecipeProcessForUpdate;
+            List<HashMap<String, Object>> memberRecipeProcessListForUpdate = new ArrayList<HashMap<String, Object>>();
+
+            for (MemberRecipeProcess memberRecipeProcess : memberRecipeProcessList) {
+                memberRecipeProcessForUpdate = new HashMap<>();
+                memberRecipeProcessForUpdate.put("image", null);
+                memberRecipeProcessForUpdate.put("serverImage", memberRecipeProcess.getMemberRecipeImages());
+                memberRecipeProcessForUpdate.put("isServerImgVisible", true);
+                memberRecipeProcessForUpdate.put("processContents", memberRecipeProcess.getContents());
+                memberRecipeProcessListForUpdate.add(memberRecipeProcessForUpdate);
+            }
+
+            result.put("memberRecipeProcessList", memberRecipeProcessList);
+            result.put("memberRecipeProcessListForUpdate", memberRecipeProcessListForUpdate);
+
+            memberRecipeHashMap = result;
+
+            message = (memberRecipeHashMap.isEmpty()) ? "E_IS_DATA"
+                    : "S_IS_DATA";
+            success = !memberRecipeHashMap.isEmpty();
+            // ì„±ê³µì‹œ ë·°ì¹´ìš´íŠ¸ ì—…ë°ì´íŠ¸ (ìˆ˜ì •í˜ì´ì§€ì—ì„œëŠ” ì¹´ìš´íŠ¸ê°€ ì˜¬ë¼ê°€ë©´ì•ˆë¨)
+            if (success && !isUpdate)
+                recipeMapper.updateRecipeViewCount(recipeId);
 
         } catch (Exception e) {
-            e.printStackTrace();
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
         }
 
-        Gson gson = new Gson();
-        JsonElement jsonElement = gson.fromJson(result_json, JsonElement.class);
-
-        JsonObject jsonObject = jsonElement.getAsJsonObject();
-        JsonObject cookRcp01 = jsonObject.getAsJsonObject("COOKRCP01");
-        JsonArray rowArray = cookRcp01.getAsJsonArray("row");
-        JsonObject result = cookRcp01.getAsJsonObject("RESULT");
-
-        PublicRecipe publicRecipe = gson.fromJson(rowArray.get(0), PublicRecipe.class);
-        String message = result.get("MSG").getAsString();
-        String code = result.get("CODE").getAsString();
-        boolean success = "INFO-000".equals(code);
-
-        return new ApiResponse<>(success, message, publicRecipe);
+        return new ApiResponse<>(success, message, memberRecipeHashMap, addDataMap);
     }
 
-    // È¸¿ø ·¹½ÃÇÇ ±Û¾²±â ·¹½ÃÇÇ, Àç·á, °úÁ¤, ÀÌ¹ÌÁö, ·¹½ÃÇÇ Âò¼ö ´Ù Æ÷ÇÔµÇ¾î¾ßÇÔ
+    // íšŒì› ë ˆì‹œí”¼ ê¸€ì“°ê¸° ë ˆì‹œí”¼, ì¬ë£Œ, ê³¼ì •, ì´ë¯¸ì§€ ë‹¤ í¬í•¨ë˜ì–´ì•¼í•¨
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ApiResponse<Integer> insertMemberRecipe(MemberRecipe memberRecipe) {
+    public ApiResponse<Integer> insertMemberRecipe(Map<String, Object> memberRecipeInfo,
+            MultipartFile thumbnail, List<MultipartFile> recipeProcessImages) throws Exception {
+        String message = "";
+        boolean success = false;
 
-        int insertMemberRecipe = recipeMapper.insertMemberRecipe(memberRecipe);
-        String message = (insertMemberRecipe == 0) ? "È¸¿ø ·¹½ÃÇÇ µî·Ï ½ÇÆĞ" : "È¸¿ø ·¹½ÃÇÇ µî·Ï ¼º°ø";
-        boolean success = insertMemberRecipe == 1;
+        int insertResult = 0;
+        String resultRecipeId;
+        String resultImgId;
 
-        return new ApiResponse<>(success, message, 1);
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> recipeInfoMap = (Map<String, Object>) memberRecipeInfo.get("recipeInfo");
+        List<Map<String, Object>> recipeIngredientsList = (List<Map<String, Object>>) memberRecipeInfo
+                .get("recipeIngredients");
+        List<String> recipeProcessContentList = (List<String>) memberRecipeInfo
+                .get("recipeProcessContents");
+
+        MemberRecipe memberRecipe = objectMapper.convertValue(recipeInfoMap, MemberRecipe.class);
+
+        List<MemberRecipeIngredient> memberRecipeIngredientList = objectMapper.convertValue(
+                recipeIngredientsList,
+                new TypeReference<List<MemberRecipeIngredient>>() {
+                });
+
+        try {
+            // 1.ë ˆì‹œí”¼ ê¸°ë³¸ì •ë³´ ë„£ê¸°
+            recipeMapper.insertMemberRecipe(memberRecipe);
+            resultRecipeId = memberRecipe.getRecipeId();
+
+            // 2. ì„±ê³µì‹œ ì¸ë„¤ì¼ íŒŒì¼ ë„£ê¸° (íŒŒì¼ ë„£ê¸° ë° DBì— íŒŒì¼ì •ë³´ ë„£ì–´ì£¼ê¸°)
+            if (thumbnail != null && !"".equals(thumbnail.getOriginalFilename())) {
+                String serverFileName = fileUpload.uploadFile(thumbnail, "recipe/" + resultRecipeId);
+
+                resultImgId = insertMemberRecipeImages(thumbnail, serverFileName, resultRecipeId);
+
+                recipeMapper.updateMemberRecipeImgId(resultRecipeId, resultImgId);
+            } else {
+                throw new Exception("ì¸ë„¤ì¼ì—†ìŒ");
+            }
+
+            // 3. ì¬ë£Œ ë„£ê¸°
+            for (int i = 0; i < memberRecipeIngredientList.size(); i++) {
+                MemberRecipeIngredient ingredient = memberRecipeIngredientList.get(i);
+                ingredient.setOrderId(i); // orderIdë¥¼ ì¸ë±ìŠ¤ë¡œ ì„¤ì •
+
+                recipeMapper.insertMemberRecipeIngredient(resultRecipeId, ingredient);
+            }
+
+            // 4. ë ˆì‹œí”¼ ê³¼ì • ë„£ê¸° (ì´ë¯¸ì§€ ìˆ˜, ê³¼ì •ìˆ˜ ì¼ì¹˜ í•˜ëŠ”ì§€ ì²´í¬)
+            int validFileCount = 0;
+
+            for (MultipartFile file : recipeProcessImages) {
+                // ìœ íš¨ì„± ê²€ì‚¬: nullì´ ì•„ë‹ˆê³ , ë¹ˆ íŒŒì¼ì´ ì•„ë‹Œì§€ í™•ì¸
+                if (file != null && !file.isEmpty()) {
+                    validFileCount++;
+                }
+            }
+
+            if (validFileCount == 0)
+                throw new Exception("ë°›ì•„ì˜¨ ë ˆì‹œí”¼ì¤‘ ë¹ˆ íŒŒì¼ì´ ìˆìŒ");
+
+            if (validFileCount != recipeProcessContentList.size())
+                throw new Exception("ë ˆì‹œí”¼ ê³¼ì •ë‚´ìš© , ì´ë¯¸ì§€ ë§¤ì¹˜ ì•ˆë¨");
+
+            for (int i = 0; i < recipeProcessContentList.size(); i++) {
+
+                String serverFileName = fileUpload.uploadFile(recipeProcessImages.get(i), "recipe/" + resultRecipeId);
+
+                resultImgId = insertMemberRecipeImages(recipeProcessImages.get(i), serverFileName, resultRecipeId);
+
+                MemberRecipeProcess process = new MemberRecipeProcess();
+                process.setRecipeNumber(i + 1);
+                process.setContents(recipeProcessContentList.get(i));
+                process.setImgId(resultImgId);
+
+                recipeMapper.insertMemberRecipeProcess(resultRecipeId, process);
+            }
+
+            // ìµœì¢…ì ìœ¼ë¡œ ëª¨ë‘ ë“±ë¡ ì™„ë£Œí•œ ê²½ìš° ì„±ê³µ
+            message = "S_ADD_DATA";
+            success = true;
+            insertResult = 1;
+
+        } catch (Exception e) {
+            message = "E_ADD_DATA";
+            System.err.println("An error occurred: " + e.getMessage());
+            throw new Exception(); // Springì— ë˜ì ¸ì¤€ë‹¤
+        }
+
+        return new ApiResponse<>(success, message, insertResult, addDataMap);
 
     }
 
-    // È¸¿ø ·¹½ÃÇÇ ¼öÁ¤ ·¹½ÃÇÇ, Àç·á, °úÁ¤, ÀÌ¹ÌÁö ´Ù Æ÷ÇÔµÇ¾î¾ßÇÔ
+    // íšŒì› ë ˆì‹œí”¼ ìˆ˜ì • ë ˆì‹œí”¼, ì¬ë£Œ, ê³¼ì •, ì´ë¯¸ì§€ ë‹¤ í¬í•¨ë˜ì–´ì•¼í•¨
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ApiResponse<Integer> updateMemberRecipe(MemberRecipe memberRecipe) {
-        int updateMemberRecipe = recipeMapper.updateMemberRecipe(memberRecipe);
-        String message = (updateMemberRecipe == 0) ? "È¸¿ø ·¹½ÃÇÇ ¼öÁ¤ ½ÇÆĞ" : "È¸¿ø ·¹½ÃÇÇ ¼öÁ¤ ¼º°ø";
-        boolean success = updateMemberRecipe == 1;
-        return new ApiResponse<>(success, message, updateMemberRecipe);
+    public ApiResponse<Integer> updateMemberRecipe(Map<String, Object> memberRecipeInfo,
+            MultipartFile thumbnail, List<MultipartFile> recipeProcessImages, String thumbnailServerImgId)
+            throws Exception {
+        String message = "";
+        boolean success = false;
+
+        int insertResult = 0;
+        String recipeId;
+        String resultImgId;
+
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        ObjectMapper objectMapper = new ObjectMapper();
+        Map<String, Object> recipeInfoMap = (Map<String, Object>) memberRecipeInfo.get("recipeInfo");
+        List<Map<String, Object>> recipeIngredientsList = (List<Map<String, Object>>) memberRecipeInfo
+                .get("recipeIngredients");
+        List<String> recipeProcessContentList = (List<String>) memberRecipeInfo
+                .get("recipeProcessContents");
+
+        MemberRecipe memberRecipe = objectMapper.convertValue(recipeInfoMap, MemberRecipe.class);
+
+        List<MemberRecipeIngredient> memberRecipeIngredientList = objectMapper.convertValue(
+                recipeIngredientsList,
+                new TypeReference<List<MemberRecipeIngredient>>() {
+                });
+
+        try {
+            // 1.ë ˆì‹œí”¼ ê¸°ë³¸ì •ë³´ ìˆ˜ì •í•˜ê¸°
+            recipeId = memberRecipe.getRecipeId();
+            recipeMapper.updateMemberRecipe(memberRecipe);
+
+            // 2. ë°›ì•„ì˜¨ íŒŒì¼ì´ ìˆë‹¤ë©´ ì—ì–´ì³ì£¼ê¸° ì•„ë‹ˆë©´ í•´ë‹¹ ë¶€ë¶„ ë„˜ì–´ê°€ê¸°
+            // ë°›ì•„ì˜¨ íŒŒì¼ì´ ìˆì„ë•Œ í¼ë°ì´í„°ë¡œ ë„˜ì–´ì˜¨ ê¸°ì¡´ ì„œë²„ ì´ë¯¸ì§€ê°’ê°€ì§€ê³  ì²˜ë¦¬
+            // 1) í•´ë‹¹ ì´ë¯¸ì§€ê°’ì— í•´ë‹¹í•˜ëŠ” ì´ë¯¸ì§€ ì„œë²„ ë°ì´í„° ì‚­ì œ
+            // 2) í•´ë‹¹ ì´ë¯¸ì§€ê°’ì— í•´ë‹¹í•˜ëŠ” ì´ë¯¸ì§€í…Œì´ë¸” dbì‚­ì œ
+            // 3) ë°›ì•„ì˜¨ íŒŒì¼ ì²˜ë¦¬ ì—…ë¡œë“œë‘ ë™ì¼í•˜ê²Œ ì²˜ë¦¬
+            if (thumbnail != null && !"".equals(thumbnail.getOriginalFilename())) {
+                if (!"".equals(thumbnailServerImgId)) {
+                    MemberRecipeImages memberRecipeImages = recipeMapper.getMemberRecipeImages(thumbnailServerImgId);
+                    fileUpload.deleteFile(memberRecipeImages);
+                    recipeMapper.deleteMemberRecipeImages(thumbnailServerImgId);
+                }
+                String serverFileName = fileUpload.uploadFile(thumbnail, "recipe/" +
+                        recipeId);
+
+                resultImgId = insertMemberRecipeImages(thumbnail, serverFileName, recipeId);
+
+                recipeMapper.updateMemberRecipeImgId(recipeId, resultImgId);
+            } else {
+                throw new Exception("ì¸ë„¤ì¼ì—†ìŒ");
+            }
+
+            // 3. ì¬ë£Œ ë„£ê¸°
+            // í•´ë‹¹ ë ˆì‹œí”¼ì— ìˆëŠ” ì¬ë£Œ ì¼ê´„ ì‚­ì œ í›„ ë‹¤ì‹œ insert
+            recipeMapper.deleteMemberRecipeIngredient(recipeId, "");
+            for (int i = 0; i < memberRecipeIngredientList.size(); i++) {
+                MemberRecipeIngredient ingredient = memberRecipeIngredientList.get(i);
+                ingredient.setOrderId(i); // orderIdë¥¼ ì¸ë±ìŠ¤ë¡œ ì„¤ì •
+
+                recipeMapper.insertMemberRecipeIngredient(recipeId, ingredient);
+            }
+
+            // 4. ë ˆì‹œí”¼ ê³¼ì • ë„£ê¸° (ì´ë¯¸ì§€ ìˆ˜, ê³¼ì •ìˆ˜ ì¼ì¹˜ í•˜ëŠ”ì§€ ì²´í¬)
+            // í•´ë‹¹ ë ˆì‹œí”¼ì— ìˆëŠ” ê³¼ì • ì¼ê´„ ì‚­ì œ í›„ ë‹¤ì‹œ insert
+
+            // int validFileCount = 0;
+
+            // for (MultipartFile file : recipeProcessImages) {
+            // // ìœ íš¨ì„± ê²€ì‚¬: nullì´ ì•„ë‹ˆê³ , ë¹ˆ íŒŒì¼ì´ ì•„ë‹Œì§€ í™•ì¸
+            // if (file != null && !file.isEmpty()) {
+            // validFileCount++;
+            // }
+            // }
+
+            // if (validFileCount == 0)
+            // throw new Exception("ë°›ì•„ì˜¨ ë ˆì‹œí”¼ì¤‘ ë¹ˆ íŒŒì¼ì´ ìˆìŒ");
+
+            // if (validFileCount != recipeProcessContentList.size())
+            // throw new Exception("ë ˆì‹œí”¼ ê³¼ì •ë‚´ìš© , ì´ë¯¸ì§€ ë§¤ì¹˜ ì•ˆë¨");
+
+            recipeMapper.deleteMemberRecipeProcess(recipeId, "");
+            for (int i = 0; i < recipeProcessContentList.size(); i++) {
+
+                // String serverFileName = fileUpload.uploadFile(recipeProcessImages.get(i),
+                // "recipe/" + recipeId);
+
+                // resultImgId = insertMemberRecipeImages(recipeProcessImages.get(i),
+                // serverFileName, recipeId);
+
+                MemberRecipeProcess process = new MemberRecipeProcess();
+                process.setRecipeNumber(i + 1);
+                process.setContents(recipeProcessContentList.get(i));
+                // process.setImgId(resultImgId);
+
+                recipeMapper.insertMemberRecipeProcess(recipeId, process);
+            }
+
+            // ìµœì¢…ì ìœ¼ë¡œ ëª¨ë‘ ë“±ë¡ ì™„ë£Œí•œ ê²½ìš° ì„±ê³µ
+            message = "S_UPDATE_DATA";
+            success = true;
+            insertResult = 1;
+
+        } catch (Exception e) {
+            message = "E_UPDATE_DATA";
+            System.err.println("An error occurred: " + e.getMessage());
+            throw new Exception(); // Springì— ë˜ì ¸ì¤€ë‹¤
+        }
+
+        return new ApiResponse<>(success, message, insertResult, addDataMap);
+
     }
 
-    // È¸¿ø ·¹½ÃÇÇ »èÁ¦ ·¹½ÃÇÇ, Àç·á, °úÁ¤, ÀÌ¹ÌÁö, ´ñ±Û, ·¹½ÃÇÇ Âò¼ö ´Ù Æ÷ÇÔµÇ¾î¾ßÇÔ
+    // íšŒì› ë ˆì‹œí”¼ ì‚­ì œ ë ˆì‹œí”¼, ì¬ë£Œ, ê³¼ì •, ì´ë¯¸ì§€, ëŒ“ê¸€, ë ˆì‹œí”¼ ì°œìˆ˜ ë‹¤ í¬í•¨ë˜ì–´ì•¼í•¨
     @Override
     @Transactional(rollbackFor = Exception.class)
-    public ApiResponse<Integer> deleteMemberRecipe(String recipeId) {
-        int deleteMemberRecipe = recipeMapper.deleteMemberRecipe(recipeId);
-        String message = (deleteMemberRecipe == 0) ? "È¸¿ø ·¹½ÃÇÇ »èÁ¦ ½ÇÆĞ" : "È¸¿ø ·¹½ÃÇÇ »èÁ¦ ¼º°ø";
-        boolean success = deleteMemberRecipe == 1;
-        return new ApiResponse<>(success, message, deleteMemberRecipe);
+    public ApiResponse<Integer> deleteMemberRecipe(String recipeId) throws Exception {
+
+        String message;
+        boolean success = false;
+        int deleteResult = 0;
+
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            // 1. ë ˆì‹œí”¼ ëŒ“ê¸€ ì‚­ì œ
+            recipeMapper.deleteRecipeCommentAll(recipeId);
+
+            // 2. ë ˆì‹œí”¼ ì°œìˆ˜ ì‚­ì œ
+            recipeMapper.deleteMemberRecipeLikeAll(recipeId);
+
+            // 3. ë ˆì‹œí”¼ ì¬ë£Œì‚­ì œ
+            recipeMapper.deleteMemberRecipeIngredient(recipeId, "");
+
+            // 4. ë ˆì‹œí”¼ ì´ë¯¸ì§€íŒŒì¼,DB ì‚­ì œ
+            List<MemberRecipeImages> memberRecipeImagesList = recipeMapper.getMemberRecipeImagesList(recipeId);
+
+            for (MemberRecipeImages memberRecipeImages : memberRecipeImagesList) {
+                fileUpload.deleteFile(memberRecipeImages);
+                recipeMapper.deleteMemberRecipeImages(memberRecipeImages.getImgId());
+            }
+
+            // 5. ë ˆì‹œí”¼ ê³¼ì •ì‚­ì œ
+            recipeMapper.deleteMemberRecipeProcess(recipeId, "");
+
+            // 6. ë ˆì‹œí”¼ ì‚­ì œ
+            recipeMapper.deleteMemberRecipe(recipeId);
+
+            // ìµœì¢…ì ìœ¼ë¡œ ëª¨ë‘ ì‚­ì œ ì™„ë£Œí•œ ê²½ìš° ì„±ê³µ
+            success = true;
+            message = "S_DEL_DATA";
+            deleteResult = 1;
+        } catch (Exception e) {
+            message = "E_DEL_DATA"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+            e.printStackTrace(); // ì˜¤ë¥˜ ìì„¸íˆ í™•ì¸í• ë•Œë§Œ ì£¼ì„í•´ì œí•˜ê³ ì‚¬ìš©
+            throw new Exception(); // Springì— ë˜ì ¸ì¤€ë‹¤
+        }
+
+        return new ApiResponse<>(success, message, deleteResult, addDataMap);
+
     }
 
-    // È¸¿ø·¹½ÃÇÇ ´ñ±Û¸ñ·Ï(´ë´ñ±Û, Ä«¿îÅÍ¼ö ´Ù ³Ö¾î¾ßÇÔ)
+    // íšŒì›ë ˆì‹œí”¼ ë³„ ëŒ“ê¸€ëª©ë¡
     @Override
-    public HashMap<String, Object> getRecipeCommentList(String recipeId, int start, int display, String pCommentid) {
+    public ApiResponse<List<RecipeComment>> getRecipeCommentList(String recipeId, int start, int display) {
+
+        String message;
+        boolean success = false;
+        int total_cnt;
+
+        List<RecipeComment> recipeCommentList = null;
+
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            recipeCommentList = recipeMapper.getRecipeCommentList(recipeId, start, display);
+            total_cnt = recipeMapper.getRecipeCommentCount(recipeId);
+            message = (recipeCommentList == null || recipeCommentList.isEmpty()) ? "E_IS_DATA"
+                    : "S_IS_DATA";
+            success = recipeCommentList != null && !recipeCommentList.isEmpty();
+            addDataMap.put("totalCnt", total_cnt);
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+        }
+
+        return new ApiResponse<>(success, message, recipeCommentList, addDataMap);
+    }
+
+    // íšŒì›ë ˆì‹œí”¼ ëŒ“ê¸€
+    @Override
+    public ApiResponse<RecipeComment> getRecipeComment(String recipeId, String commentId) {
+
+        String message;
+        boolean success = false;
+
+        RecipeComment recipeComment = null;
+
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            recipeComment = recipeMapper.getRecipeComment(recipeId, commentId);
+            message = (recipeComment == null) ? "E_IS_DATA"
+                    : "S_IS_DATA";
+            success = recipeComment != null;
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+        }
+
+        return new ApiResponse<>(success, message, recipeComment, addDataMap);
+    }
+
+    // íšŒì›ë ˆì‹œí”¼ ëŒ“ê¸€ ì“°ê¸°
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ApiResponse<Integer> insertRecipeComment(RecipeComment recipeComment) throws Exception {
+
+        String message;
+        boolean success = false;
+        int insrtComment = 0;
+
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            insrtComment = recipeMapper.insertRecipeComment(recipeComment);
+
+            if (insrtComment > 0) {
+                // ì½”ë©˜íŠ¸ê°’ì´ ìˆ˜ì • ëì„ ê²½ìš° ê³„ì‚° í›„ recipeì— ê°’ update
+                calcAvgCommentRate(recipeComment.getRecipeId());
+                recipeMapper.updateRecipeCommentRate(recipeComment.getRecipeId(),
+                        calcAvgCommentRate(recipeComment.getRecipeId()));
+            }
+
+            message = (insrtComment > 0) ? "S_RECIPE_COMMENT_INSERT"
+                    : "E_RECIPE_COMMENT_INSERT";
+            success = insrtComment > 0;
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+            throw new Exception(); // Springì— ë˜ì ¸ì¤€ë‹¤
+        }
+
+        return new ApiResponse<>(success, message, insrtComment, addDataMap);
+    }
+
+    // íšŒì›ë ˆì‹œí”¼ ëŒ“ê¸€ ìˆ˜ì •
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ApiResponse<Integer> updateRecipeComment(RecipeComment recipeComment) throws Exception {
+
+        String message;
+        boolean success = false;
+        int updateComment = 0;
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            updateComment = recipeMapper.updateRecipeComment(recipeComment);
+            if (updateComment > 0) {
+                // ì½”ë©˜íŠ¸ê°’ì´ ìˆ˜ì • ëì„ ê²½ìš° ê³„ì‚° í›„ recipeì— ê°’ update
+                calcAvgCommentRate(recipeComment.getRecipeId());
+                recipeMapper.updateRecipeCommentRate(recipeComment.getRecipeId(),
+                        calcAvgCommentRate(recipeComment.getRecipeId()));
+            }
+            message = (updateComment > 0) ? "S_RECIPE_COMMENT_UPDATE"
+                    : "E_RECIPE_COMMENT_UPDATE";
+            success = updateComment > 0;
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+            throw new Exception(); // Springì— ë˜ì ¸ì¤€ë‹¤
+        }
+
+        return new ApiResponse<>(success, message, updateComment, addDataMap);
+    }
+
+    // íšŒì›ë ˆì‹œí”¼ ëŒ“ê¸€ ì‚­ì œ
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ApiResponse<Integer> deleteRecipeComment(String recipeId, String commentId) throws Exception {
+
+        String message;
+        boolean success = false;
+        int deleteComment = 0;
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+
+            deleteComment = recipeMapper.deleteRecipeComment(recipeId, commentId);
+            if (deleteComment > 0) {
+                // ì½”ë©˜íŠ¸ê°’ì´ ìˆ˜ì • ëì„ ê²½ìš° ê³„ì‚° í›„ recipeì— ê°’ update
+                calcAvgCommentRate(recipeId);
+                recipeMapper.updateRecipeCommentRate(recipeId, calcAvgCommentRate(recipeId));
+            }
+            message = (deleteComment > 0) ? "S_RECIPE_COMMENT_DELETE"
+                    : "E_RECIPE_COMMENT_DELETE";
+            success = deleteComment > 0;
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+            throw new Exception(); // Springì— ë˜ì ¸ì¤€ë‹¤
+        }
+
+        return new ApiResponse<>(success, message, deleteComment, addDataMap);
+    }
+
+    // íšŒì›ë ˆì‹œí”¼ ëŒ“ê¸€ ì‚­ì œ(ë³¸ëŒ“ê¸€ì— ëŒ€ëŒ“ê¸€ì´ ë‚¨ê²¨ì ¸ ìˆëŠ” ê²½ìš°)
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public ApiResponse<Integer> deleteRecipeCommentHasChild(String recipeId, String commentId) throws Exception {
+
+        String message;
+        boolean success = false;
+        int deleteComment = 0;
+
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            deleteComment = recipeMapper.deleteRecipeCommentHasChild(recipeId, commentId);
+
+            if (deleteComment > 0) {
+                // ì½”ë©˜íŠ¸ê°’ì´ ìˆ˜ì • ëì„ ê²½ìš° ê³„ì‚° í›„ recipeì— ê°’ update
+                calcAvgCommentRate(recipeId);
+                recipeMapper.updateRecipeCommentRate(recipeId, calcAvgCommentRate(recipeId));
+            }
+            message = (deleteComment > 0) ? "S_RECIPE_COMMENT_DELETE"
+                    : "E_RECIPE_COMMENT_DELETE";
+            success = deleteComment > 0;
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+            throw new Exception(); // Springì— ë˜ì ¸ì¤€ë‹¤
+        }
+
+        return new ApiResponse<>(success, message, deleteComment, addDataMap);
+    }
+
+    // ë ˆì‹œí”¼ ì¹´í…Œê³ ë¦¬ ëª©ë¡(ì¹´ìš´í„°ìˆ˜ ë„£ì–´ì•¼í•¨)
+    @Override
+    public ApiResponse<List<RecipeCategory>> getRecipeCategoryList(String search, int start, int display) {
+
+        String message;
+        boolean success = false;
+
+        List<RecipeCategory> recipeCategoryList = null;
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            recipeCategoryList = recipeMapper.getRecipeCategoryList(start, display);
+
+            message = (recipeCategoryList == null || recipeCategoryList.isEmpty()) ? "E_IS_DATA"
+                    : "S_IS_DATA";
+            success = recipeCategoryList != null && !recipeCategoryList.isEmpty();
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+        }
+
+        return new ApiResponse<>(success, message, recipeCategoryList, addDataMap);
+    }
+
+    // ë ˆì‹œí”¼ ì¹´í…Œê³ ë¦¬ ìˆ˜ì •
+    @Override
+    @Transactional(rollbackFor = Exception.class)
+    public HashMap<String, Object> insertRecipeCategory(RecipeCategory recipeCategory) throws Exception {
         HashMap<String, Object> result = new HashMap<>();
         return result;
     }
 
-    // È¸¿ø·¹½ÃÇÇ ´ñ±Û ¾²±â
+    // ë ˆì‹œí”¼ ì¹´í…Œê³ ë¦¬ ì‚­ì œ
     @Override
-    public HashMap<String, Object> insertRecipeComment(RecipeComment recipeComment) {
+    @Transactional(rollbackFor = Exception.class)
+    public HashMap<String, Object> updateRecipeCategory(RecipeCategory recipeCategory) throws Exception {
         HashMap<String, Object> result = new HashMap<>();
         return result;
     }
 
-    // È¸¿ø·¹½ÃÇÇ ´ñ±Û ¼öÁ¤
+    // ë ˆì‹œí”¼ ì¹´í…Œê³ ë¦¬ ëª©ë¡(ì¹´ìš´íŠ¸ë³„ ë ˆì‹œí”¼ ì¹´ìš´íŠ¸ìˆ˜ í¬í•¨)
     @Override
-    public HashMap<String, Object> updateRecipeComment(RecipeComment recipeComment) {
-        HashMap<String, Object> result = new HashMap<>();
-        return result;
+    public ApiResponse<List<RecipeCategory>> getRecipeCategoryListWithMemberRecipeCount(
+            @Param("search") String search) {
+
+        String message;
+        boolean success = false;
+
+        List<RecipeCategory> getRecipeCategoryListWithMemberRecipeCount = null;
+
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            getRecipeCategoryListWithMemberRecipeCount = recipeMapper
+                    .getRecipeCategoryListWithMemberRecipeCount(search);
+            message = (getRecipeCategoryListWithMemberRecipeCount == null
+                    || getRecipeCategoryListWithMemberRecipeCount.isEmpty()) ? "E_IS_DATA"
+                            : "R_IS_DATA";
+            success = getRecipeCategoryListWithMemberRecipeCount != null
+                    && !getRecipeCategoryListWithMemberRecipeCount.isEmpty();
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+        }
+
+        return new ApiResponse<>(success, message, getRecipeCategoryListWithMemberRecipeCount, addDataMap);
     }
 
-    // È¸¿ø·¹½ÃÇÇ ´ñ±Û »èÁ¦
+    // ë ˆì‹œí”¼ ì¹´í…Œê³ ë¦¬ ëª©ë¡(ë ˆì‹œí”¼ ì‘ì„±ì„ ìœ„í•¨)
     @Override
-    public HashMap<String, Object> deleteRecipeComment(String recipeId) {
-        HashMap<String, Object> result = new HashMap<>();
-        return result;
+    public ApiResponse<HashMap<String, Object>> getRecipeCategoryListForWrite() {
+
+        String message;
+        boolean success = false;
+        HashMap<String, Object> categoryListForWirte = null;
+        Map<String, Object> addDataMap = new HashMap<>();
+
+        try {
+            List<RecipeCategory> allCategoryList = recipeMapper.getRecipeCategoryList(0, 0);
+            List<RecipeCategory> recipeCategoryList = allCategoryList.stream()
+                    .filter(category -> category.getDivision().equals("C")).collect(Collectors.toList());
+            List<RecipeCategory> recipeMethodList = allCategoryList.stream()
+                    .filter(category -> category.getDivision().equals("M")).collect(Collectors.toList());
+            List<RecipeCategory> recipeLevelList = allCategoryList.stream()
+                    .filter(category -> category.getDivision().equals("L")).collect(Collectors.toList());
+
+            categoryListForWirte = new HashMap<>();
+            categoryListForWirte.put("categoryList", recipeCategoryList);
+            categoryListForWirte.put("methodList", recipeMethodList);
+            categoryListForWirte.put("levelList", recipeLevelList);
+
+            message = allCategoryList.isEmpty() ? "E_IS_DATA"
+                    : "S_IS_DATA";
+            success = !allCategoryList.isEmpty();
+
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+        }
+
+        return new ApiResponse<>(success, message, categoryListForWirte, addDataMap);
+
     }
 
-    // ·¹½ÃÇÇ Ä«Å×°í¸® ¸ñ·Ï(Ä«¿îÅÍ¼ö ³Ö¾î¾ßÇÔ)
+    // íšŒì›ë ˆì‹œí”¼ ì¢‹ì•„ìš”
     @Override
-    public HashMap<String, Object> getRecipeCategoryList(int start, int display) {
-        HashMap<String, Object> result = new HashMap<>();
-        return result;
+    @Transactional(rollbackFor = Exception.class)
+    public ApiResponse<Integer> insertMemberRecipeLike(RecipeLike recipeLike) throws Exception {
+        String message;
+        boolean success = false;
+        int recipeLikeCount = 0;
+        HashMap<String, Object> addDataMap = null;
+
+        try {
+
+            int result = recipeMapper.insertMemberRecipeLike(recipeLike);
+
+            if (result > 0) {
+                recipeLikeCount = recipeMapper.getMemberRecipeLikeCount(recipeLike.getRecipeId());
+            }
+
+            message = result == 0 ? "E_ADD_DATA"
+                    : "S_ADD_DATA";
+            success = result > 0;
+
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+        }
+
+        return new ApiResponse<>(success, message, recipeLikeCount, addDataMap);
+
     }
 
-    // ·¹½ÃÇÇ Ä«Å×°í¸® ¼öÁ¤
+    // íšŒì›ë ˆì‹œí”¼ ì¢‹ì•„ìš” ì‚­ì œ
     @Override
-    public HashMap<String, Object> insertRecipeCategory(RecipeCategory recipeCategory) {
-        HashMap<String, Object> result = new HashMap<>();
-        return result;
+    @Transactional(rollbackFor = Exception.class)
+    public ApiResponse<Integer> deleteMemberRecipeLike(String recipeId, int memberId) throws Exception {
+        String message;
+        boolean success = false;
+        int recipeLikeCount = 0;
+        HashMap<String, Object> addDataMap = null;
+
+        try {
+
+            int result = recipeMapper.deleteMemberRecipeLike(recipeId, memberId);
+
+            if (result > 0) {
+                recipeLikeCount = recipeMapper.getMemberRecipeLikeCount(recipeId);
+            }
+
+            message = result == 0 ? "E_DEL_DATA"
+                    : "S_DEL_DATA";
+            success = result > 0;
+
+        } catch (Exception e) {
+            message = "E_ADMIN"; // ì½”ë“œ ì˜ëª»ëì„ë•Œ ë³´ì—¬ì¤„ ë‚´ìš©
+            System.err.println("An error occurred: " + e.getMessage());
+        }
+
+        return new ApiResponse<>(success, message, recipeLikeCount, addDataMap);
+
     }
 
-    // ·¹½ÃÇÇ Ä«Å×°í¸® »èÁ¦
-    @Override
-    public HashMap<String, Object> updateRecipeCategory(RecipeCategory recipeCategory) {
-        HashMap<String, Object> result = new HashMap<>();
-        return result;
+    // ì´ë¯¸ì§€ ì •ë³´ DBì €ì¥
+    public String insertMemberRecipeImages(MultipartFile imageFile, String serverFileName, String recipeId)
+            throws Exception {
+        MemberRecipeImages memberRecipeImage = new MemberRecipeImages();
+        memberRecipeImage.setOrgImgName(fileUpload.extractOriginalFileName(imageFile.getOriginalFilename()));
+        memberRecipeImage.setServerImgName(serverFileName);
+        memberRecipeImage.setExtension(fileUpload.extractExtension(imageFile.getOriginalFilename(),
+                imageFile.getContentType()));
+        memberRecipeImage.setImgFileSize(Long.toString(imageFile.getSize()));
+        memberRecipeImage.setServerImgPath(fileUpload.getFileDir("recipe/" + recipeId));
+        memberRecipeImage.setWebImgPath(fileUpload.getFileWebDir("recipe/" + recipeId));
+        recipeMapper.insertMemberRecipeImages(memberRecipeImage);
+
+        return memberRecipeImage.getImgId();
+
     }
 
+    // ëŒ“ê¸€ í‰ì  ê³„ì‚°
+    public String calcAvgCommentRate(String recipeId) {
+
+        double commentAvg = 0;
+        int[] getRecipeCommentRateList = recipeMapper.getRecipeCommentRateList(recipeId);
+
+        if (getRecipeCommentRateList.length > 0) {
+            double sum = 0;
+            for (int number : getRecipeCommentRateList) {
+                sum += number; // í•©ê³„ ê³„ì‚°
+            }
+
+            commentAvg = sum / getRecipeCommentRateList.length;
+        }
+        // ë°˜ì˜¬ë¦¼
+        BigDecimal roundedAverage = BigDecimal.valueOf(commentAvg)
+                .setScale(2, RoundingMode.HALF_UP);
+        // ì†Œìˆ˜ì  0 ì œê±°
+        String formattedAverage = roundedAverage.stripTrailingZeros().toPlainString();
+
+        return formattedAverage;
+    }
 }
