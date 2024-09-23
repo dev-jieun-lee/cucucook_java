@@ -1,6 +1,8 @@
 package com.example.cucucook.controller;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -10,6 +12,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -30,16 +33,19 @@ public class MypageController {
     private MypageService mypageService;
 
     @PostMapping("/verify-password")
-    public ResponseEntity<String> verifyPassword(@RequestBody Member member) {
+    public ResponseEntity<Map<String, Object>> verifyPassword(@RequestBody Member member) {
         boolean isVerified = mypageService.verifyPassword(member.getUserId(), member.getPassword());
 
+        Map<String, Object> response = new HashMap<>();
         if (!isVerified) {
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
-                    .body("회원 정보가 없거나 비밀번호가 일치하지 않습니다.");
+            response.put("success", false);
+            response.put("message", "회원 정보가 없거나 비밀번호가 일치하지 않습니다.");
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(response);
         }
 
-        // 비밀번호가 일치하면 200 OK와 함께 메시지 반환
-        return ResponseEntity.ok("비밀번호가 확인되었습니다.");
+        response.put("success", true);
+        response.put("message", "비밀번호가 확인되었습니다.");
+        return ResponseEntity.ok(response);
     }
 
     ///////////////////// 댓글
@@ -117,6 +123,7 @@ public class MypageController {
     }
 
     ///////////////////// 게시글
+
     // 내가 쓴 게시글 목록 가져오기
     @GetMapping("/getMyBoards")
     public ResponseEntity<List<Board>> getMyBoards(@RequestParam int page, @RequestParam int pageSize,
@@ -132,4 +139,56 @@ public class MypageController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
+
+    // 회원 정보 업데이트
+    @PutMapping("/updateMember")
+    public ResponseEntity<?> updateMemberInfo(@RequestBody Member member) {
+        Logger logger = LoggerFactory.getLogger(MypageController.class);
+        try {
+            // 로그: 회원 정보 업데이트 요청 데이터 출력
+            logger.info("회원 정보 업데이트 요청: memberId={}, name={}, email={}, phone={}",
+                    member.getMemberId(), member.getName(), member.getEmail(), member.getPhone());
+
+            // 서비스 호출하여 회원 정보 업데이트
+            mypageService.updateMemberInfo(member);
+
+            // 로그: 성공 시 메시지 출력
+            logger.info("회원 정보가 성공적으로 업데이트되었습니다. memberId={}", member.getMemberId());
+            return ResponseEntity.ok("회원 정보가 성공적으로 업데이트되었습니다.");
+        } catch (Exception e) {
+            // 로그: 실패 시 에러 및 입력된 데이터 출력
+            logger.error("회원 정보 업데이트 실패: memberId={}, name={}, email={}, phone={}, 오류={}",
+                    member.getMemberId(), member.getName(), member.getEmail(), member.getPhone(), e.getMessage(), e);
+
+            // 예외 발생 시 디버깅을 위해 더 많은 정보를 반환
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("회원 정보 업데이트 실패: " + e.getMessage() + ". 입력된 데이터: memberId=" +
+                            member.getMemberId() + ", name=" + member.getName() + ", email=" +
+                            member.getEmail() + ", phone=" + member.getPhone());
+        }
+    }
+
+    // 비밀번호 변경 API
+    @PostMapping("/ChangePasswordByUserAccordion")
+    public ResponseEntity<?> changePasswordByUser(@RequestBody Map<String, Object> requestData) {
+        try {
+            // memberId를 String으로 받고, 이를 Integer로 변환
+            String memberIdStr = (String) requestData.get("memberId");
+            int memberId = Integer.parseInt(memberIdStr); // String을 Integer로 변환
+
+            String newPassword = (String) requestData.get("newPassword");
+
+            // 비밀번호 변경 로직
+            mypageService.changePasswordByUser(memberId, newPassword);
+
+            return ResponseEntity.ok("비밀번호가 성공적으로 변경되었습니다.");
+        } catch (NumberFormatException e) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("잘못된 memberId 형식입니다.");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("비밀번호 변경 실패: " + e.getMessage());
+        }
+    }
+
 }

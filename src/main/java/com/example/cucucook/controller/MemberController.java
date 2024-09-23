@@ -11,15 +11,18 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.logout.SecurityContextLogoutHandler;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.cucucook.config.JwtTokenProvider;
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.MemberResponse;
 import com.example.cucucook.domain.PasswordFindResponse;
 import com.example.cucucook.exception.ErrorResponse;
 import com.example.cucucook.service.MemberService;
@@ -343,4 +346,44 @@ public class MemberController {
         }
     }
 
+    @GetMapping("/getMember")
+    public ResponseEntity<MemberResponse> getMember(@RequestParam int memberId) {
+        logger.info("요청 받은 memberId: {}", memberId);
+
+        try {
+            Member foundMember = memberService.getMember(memberId);
+
+            if (foundMember != null && foundMember.getUserId() != null) {
+                MemberResponse response = new MemberResponse(
+                        foundMember.getMemberId(),
+                        foundMember.getUserId(),
+                        foundMember.getName(),
+                        foundMember.getPhone(),
+                        foundMember.getEmail(),
+                        foundMember.getRole(),
+                        foundMember.isSmsNoti(),
+                        foundMember.isEmailNoti());
+
+                logger.info("회원 정보 조회 성공: {}", response);
+                return ResponseEntity.ok().body(response);
+            } else {
+                logger.warn("해당 회원을 찾을 수 없음: memberId={}", memberId);
+                return ResponseEntity.status(404).build();
+            }
+        } catch (Exception e) {
+            logger.error("회원 조회 중 오류 발생: memberId={}", memberId, e);
+            return ResponseEntity.status(500).body(null);
+        }
+    }
+
+    // 회원탈퇴
+    @DeleteMapping("/deleteAccount/{memberId}")
+    public ResponseEntity<String> deleteAccount(@PathVariable int memberId) {
+        try {
+            memberService.deleteMember(memberId);
+            return ResponseEntity.ok("회원 탈퇴 성공");
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원 탈퇴 실패: " + e.getMessage());
+        }
+    }
 }

@@ -19,11 +19,11 @@ public interface MemberService {
 
     boolean checkEmailExists(String email);
 
-    Member getMember(Long memberId);
+    Member getMember(int memberId);
 
     void updateMember(Member member);
 
-    void deleteMember(Long memberId);
+    void deleteMember(int memberId);
 
     void updateMemberPassword(Member member);
 
