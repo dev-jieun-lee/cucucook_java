@@ -52,8 +52,8 @@ public class RecipeController {
     // 공공레시피 상세조회
     @GetMapping(value = "/getPublicRecipe")
     public ApiResponse<PublicRecipe> getPublicRecipe(@RequestParam String search,
-            @RequestParam(value = "start", defaultValue = "0") int start,
-            @RequestParam(value = "display", defaultValue = "20") int display) {
+            @RequestParam(value = "start", defaultValue = "1") int start,
+            @RequestParam(value = "display", defaultValue = "1") int display) {
         return recipeService.getPublicRecipe(search, start, display);
     }
 

@@ -21,16 +21,14 @@ RUN mvn dependency:go-offline
 
 # 나머지 소스 코드 복사 후 빌드
 COPY src ./src
-RUN mvn clean package -DskipTests
+RUN mvn clean package -DskipTests -T 1C
 
 # 2단계: 실행 단계
 FROM openjdk:21-jdk-slim
-ARG JAR_FILE=target/*.jar
-COPY --from=build /app/target/${JAR_FILE} app.jar
+COPY --from=build /app/target/*.jar /app/app.jar
 ENV SPRING_PROFILES_ACTIVE=real_server
 
 # 실행 시 메모리 제한 설정 (Java 애플리케이션에 대한 메모리 최적화)
 ENV JAVA_OPTS="-Xms256m -Xmx512m"
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", "${JAVA_OPTS}", "/app.jar"]
-
+ENTRYPOINT ["java", "-jar", "-Dspring.profiles.active=${SPRING_PROFILES_ACTIVE}", "$JAVA_OPTS", "/app/app.jar"]
