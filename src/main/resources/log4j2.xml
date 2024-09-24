@@ -62,7 +62,7 @@
         </Logger>
 
         <!-- SQL 결과 조회된 데이터의 table을 로그로 남긴다. -->
-        <Logger name="jdbc.resultsettable" level="INFO" additivity="false">
+        <Logger name="jdbc.resultsettable" level="OFF" additivity="false">
             <AppenderRef ref="Console" />
             <AppenderRef ref="File" />
         </Logger>
