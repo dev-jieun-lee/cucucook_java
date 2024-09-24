@@ -40,9 +40,8 @@ public class SecurityConfig {
 
     // CORS 설정을 위한 메서드 추가
     private CorsConfigurationSource corsConfigurationSource() {
-        System.out.println("CORS Allowed Origin: http://" + serverAddress + ":3000");
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.addAllowedOrigin("http://" + serverAddress + ":3000");
+        configuration.addAllowedOrigin(serverAddress);
         configuration.addAllowedMethod("*");
         configuration.addAllowedHeader("*");
         configuration.setAllowCredentials(true);
