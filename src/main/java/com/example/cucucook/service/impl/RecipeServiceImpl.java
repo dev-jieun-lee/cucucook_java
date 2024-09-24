@@ -241,14 +241,10 @@ public class RecipeServiceImpl implements RecipeService {
             MemberRecipe memberRecipe = recipeMapper.getMemberRecipe(recipeId);
             result.put("memberRecipe", memberRecipe);
 
-            // 이미지 있으면 넣어주기
-            MemberRecipeImages memberRecipeImages = recipeMapper.getMemberRecipeImages(memberRecipe.getImgId());
-
             boolean isMemberRecipeLike = false;
             if (memberId > 0)
                 isMemberRecipeLike = recipeMapper.isMemberRecipeLike(recipeId, memberId) > 0;
 
-            result.put("memberRecipeImages", memberRecipeImages);
             result.put("isMemberRecipeLike", isMemberRecipeLike);
 
             // 재료 있으면 넣어주기
