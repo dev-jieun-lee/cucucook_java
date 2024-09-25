@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.example.cucucook.domain.Board;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 
@@ -15,8 +16,11 @@ public interface MypageMapper {
         // 회원이 쓴 글 갯수
         int getMemberBoardCount(@Param("memberId") int memberId);
 
-        // 회원이 쓴 글 목록
-        List<Board> getMemberBoardList(@Param("memberId") int memberId);
+        // 회원이 쓴 글 목록 (최신 5개 또는 페이지네이션 지원)
+        List<Board> getMemberBoardList(
+                        @Param("memberId") int memberId,
+                        @Param("start") Integer start,
+                        @Param("display") Integer display);
 
         // 회원이 쓴 댓글 갯수
         int getRecipeCommentCount(@Param("memberId") int memberId);
@@ -79,5 +83,15 @@ public interface MypageMapper {
                         @Param("offset") int offset,
                         @Param("pageSize") int pageSize,
                         @Param("boardDivision") String boardDivision);
+
+        // 회원정보 통계 가져오기
+        int getLikeCount(int memberId);
+
+        int getWriteCount(int memberId);
+
+        int getReplyCount(int memberId);
+
+        // 회원 레시피 가져오기
+        List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit);
 
 }
