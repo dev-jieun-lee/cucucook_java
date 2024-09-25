@@ -1,7 +1,9 @@
 package com.example.cucucook.service.impl;
 
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -11,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.mapper.MemberMapper;
@@ -125,16 +128,6 @@ public class MypageServiceImpl implements MypageService {
         return new RecipeLike();
     }
 
-    @Override
-    public void addRecipeLike(RecipeLike recipeLike) {
-        // 구현이 필요함
-    }
-
-    @Override
-    public void removeRecipeLike(Long memberId, String recipeId) {
-        // 구현이 필요함
-    }
-
     ///////// 댓글
     // 내가 쓴 댓글 목록 가져오기
     @Override
@@ -205,6 +198,54 @@ public class MypageServiceImpl implements MypageService {
         } catch (Exception e) {
             logger.error("게시물 로딩 실패: {}", e.getMessage(), e);
             return Collections.emptyList();
+        }
+    }
+
+    // 회원정보 통계 가져오기
+    @Override
+    public Map<String, Integer> getActivityStats(int memberId) {
+        Map<String, Integer> stats = new HashMap<>();
+        try {
+            int likeCount = mypageMapper.getLikeCount(memberId);
+            int writeCount = mypageMapper.getWriteCount(memberId);
+            int replyCount = mypageMapper.getReplyCount(memberId);
+
+            stats.put("likeCount", likeCount);
+            stats.put("writeCount", writeCount);
+            stats.put("replyCount", replyCount);
+        } catch (Exception e) {
+            throw new RuntimeException("활동 통계 조회 중 오류가 발생했습니다.", e);
+        }
+        return stats;
+    }
+
+    // 회원이 쓴 글 목록 (최신 5개 또는 페이지네이션 지원)
+    @Override
+    public List<Board> getMemberBoardList(int memberId, int start, int limit) {
+        logger.info("Fetching member board list. memberId: {}, start: {}, limit: {}", memberId, start, limit);
+
+        try {
+            List<Board> boards = mypageMapper.getMemberBoardList(memberId, start, limit);
+            logger.info("Fetched {} boards for memberId: {}", boards.size(), memberId);
+            return boards;
+        } catch (Exception e) {
+            logger.error("Error fetching member board list for memberId: {}", memberId, e);
+            throw e; // 오류를 다시 던져서 컨트롤러에서 처리
+        }
+    }
+
+    @Override
+    public List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit) {
+
+        logger.info("Fetching member board list. memberId: {}, start: {}, limit: {}", memberId, start, limit);
+
+        try {
+            List<MemberRecipe> recipes = mypageMapper.getMemberRecipeList(memberId, start, limit);
+            logger.info("Fetched {} recipes for memberId: {}", recipes.size(), memberId);
+            return recipes;
+        } catch (Exception e) {
+            logger.error("Error fetching member recipe list for memberId: {}", memberId, e);
+            throw e;
         }
     }
 

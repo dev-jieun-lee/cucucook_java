@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.service.MypageService;
 
@@ -51,8 +52,11 @@ public class MypageController {
     ///////////////////// 댓글
     // 내가 쓴 댓글 목록 가져오기
     @GetMapping("/getMyComments")
-    public ResponseEntity<List<RecipeComment>> getMyComments(@RequestParam int page, @RequestParam int pageSize,
-            @RequestParam int memberId, @RequestParam(required = false, defaultValue = "comment") String sortOption,
+    public ResponseEntity<List<RecipeComment>> getMyComments(
+            @RequestParam int page,
+            @RequestParam int pageSize,
+            @RequestParam int memberId,
+            @RequestParam(required = false, defaultValue = "comment") String sortOption,
             @RequestParam(required = false, defaultValue = "DESC") String sortDirection) {
         // logger.info("가져온 memberId 확인: {}, 정렬 옵션: {}, 정렬 방향: {}", memberId,
         // sortOption, sortDirection);
@@ -123,12 +127,12 @@ public class MypageController {
     }
 
     ///////////////////// 게시글
-
     // 내가 쓴 게시글 목록 가져오기
     @GetMapping("/getMyBoards")
     public ResponseEntity<List<Board>> getMyBoards(@RequestParam int page, @RequestParam int pageSize,
             @RequestParam int memberId, @RequestParam String boardDivision) {
         logger.info("가져온 memberId 확인: {}", memberId);
+        logger.info("boardDivision: {}", boardDivision);
         try {
             List<Board> boards = mypageService.getMyBoards(memberId, page, pageSize, boardDivision);
             logger.info("컨트롤러에서 받은 게시물 개수: {},페이지 {}, 페이지 크기 {}, boardDivision{}", boards.size(), page, pageSize,
@@ -188,6 +192,61 @@ public class MypageController {
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
                     .body("비밀번호 변경 실패: " + e.getMessage());
+        }
+    }
+
+    // 회원 활동 통계 정보 가져오기
+    @GetMapping("/getActivityStats")
+    public ResponseEntity<?> getActivityStats(@RequestParam int memberId) {
+        try {
+            Map<String, Integer> stats = mypageService.getActivityStats(memberId);
+            return ResponseEntity.ok(stats);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR)
+                    .body("활동 통계를 가져오는 중 오류가 발생했습니다: " + e.getMessage());
+        }
+    }
+
+    // 회원이 쓴 글 목록 (최신 5개 또는 페이지네이션 지원)
+    @GetMapping("/getMemberBoardList")
+    public ResponseEntity<List<Board>> getMemberBoardList(
+            @RequestParam int memberId,
+            @RequestParam(defaultValue = "0") int start,
+            @RequestParam(defaultValue = "5") int limit) {
+
+        // 로그로 컨트롤러 진입 확인
+        logger.info("Controller: Received request to getMemberBoardList with memberId: {}, limit: {}", memberId, limit);
+
+        logger.info("Received request to fetch member board list. memberId: {}, start: {}, limit: {}", memberId, start,
+                limit);
+
+        try {
+            List<Board> boards = mypageService.getMemberBoardList(memberId, start, limit);
+            logger.info("Returning {} boards for memberId: {}", boards.size(), memberId);
+            return ResponseEntity.ok(boards);
+        } catch (Exception e) {
+            logger.error("Error fetching member board list for memberId: {}", memberId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // 레시피목록
+    @GetMapping("/getMemberRecipeList")
+    public ResponseEntity<List<MemberRecipe>> getMemberRecipeList(
+            @RequestParam int memberId,
+            @RequestParam(defaultValue = "0") int start,
+            @RequestParam(defaultValue = "5") int limit) {
+        // 로그로 컨트롤러 진입 확인
+        logger.info("Received request to fetch member board list. memberId: {}, start: {}, limit: {}", memberId, start,
+                limit);
+
+        try {
+            List<MemberRecipe> recipes = mypageService.getMemberRecipeList(memberId, start, limit);
+            logger.info("Returning {} boards for memberId: {}", recipes.size(), memberId);
+            return ResponseEntity.ok(recipes);
+        } catch (Exception e) {
+            logger.error("Error fetching member board list for memberId: {}", memberId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
         }
     }
 
