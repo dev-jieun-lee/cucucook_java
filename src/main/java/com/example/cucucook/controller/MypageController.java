@@ -20,6 +20,7 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.service.MypageService;
 
@@ -223,6 +224,26 @@ public class MypageController {
             List<Board> boards = mypageService.getMemberBoardList(memberId, start, limit);
             logger.info("Returning {} boards for memberId: {}", boards.size(), memberId);
             return ResponseEntity.ok(boards);
+        } catch (Exception e) {
+            logger.error("Error fetching member board list for memberId: {}", memberId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    // 레시피목록
+    @GetMapping("/getMemberRecipeList")
+    public ResponseEntity<List<MemberRecipe>> getMemberRecipeList(
+            @RequestParam int memberId,
+            @RequestParam(defaultValue = "0") int start,
+            @RequestParam(defaultValue = "5") int limit) {
+        // 로그로 컨트롤러 진입 확인
+        logger.info("Received request to fetch member board list. memberId: {}, start: {}, limit: {}", memberId, start,
+                limit);
+
+        try {
+            List<MemberRecipe> recipes = mypageService.getMemberRecipeList(memberId, start, limit);
+            logger.info("Returning {} boards for memberId: {}", recipes.size(), memberId);
+            return ResponseEntity.ok(recipes);
         } catch (Exception e) {
             logger.error("Error fetching member board list for memberId: {}", memberId, e);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);

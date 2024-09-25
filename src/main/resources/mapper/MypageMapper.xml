@@ -175,5 +175,13 @@
     LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
+  <!-- 나의 DIY 레시피 조회 -->
+<select id="getMemberRecipeList" resultType="com.example.cucucook.domain.MemberRecipe">
+    SELECT recipe_id, member_id, recipe_category_id, title, "method", img_id, serving, "level", "time", calory, tip, reg_dt, upt_dt, view_count, comment_rate
+    FROM member_recipe
+    WHERE member_id = #{memberId}
+    ORDER BY reg_dt DESC
+    LIMIT #{limit} OFFSET #{start}
+</select>
 
 </mapper>

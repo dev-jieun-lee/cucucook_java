@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.mapper.MemberMapper;
@@ -127,16 +128,6 @@ public class MypageServiceImpl implements MypageService {
         return new RecipeLike();
     }
 
-    @Override
-    public void addRecipeLike(RecipeLike recipeLike) {
-        // 구현이 필요함
-    }
-
-    @Override
-    public void removeRecipeLike(Long memberId, String recipeId) {
-        // 구현이 필요함
-    }
-
     ///////// 댓글
     // 내가 쓴 댓글 목록 가져오기
     @Override
@@ -242,4 +233,20 @@ public class MypageServiceImpl implements MypageService {
             throw e; // 오류를 다시 던져서 컨트롤러에서 처리
         }
     }
+
+    @Override
+    public List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit) {
+
+        logger.info("Fetching member board list. memberId: {}, start: {}, limit: {}", memberId, start, limit);
+
+        try {
+            List<MemberRecipe> recipes = mypageMapper.getMemberRecipeList(memberId, start, limit);
+            logger.info("Fetched {} recipes for memberId: {}", recipes.size(), memberId);
+            return recipes;
+        } catch (Exception e) {
+            logger.error("Error fetching member recipe list for memberId: {}", memberId, e);
+            throw e;
+        }
+    }
+
 }

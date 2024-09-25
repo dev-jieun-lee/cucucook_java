@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.example.cucucook.domain.Board;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 
@@ -89,5 +90,8 @@ public interface MypageMapper {
         int getWriteCount(int memberId);
 
         int getReplyCount(int memberId);
+
+        // 회원 레시피 가져오기
+        List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit);
 
 }

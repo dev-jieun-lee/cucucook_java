@@ -5,6 +5,7 @@ import java.util.Map;
 
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 
@@ -34,10 +35,6 @@ public interface MypageService {
 
     RecipeLike getRecipeLike(Long memberId, String recipeId);
 
-    void addRecipeLike(RecipeLike recipeLike);
-
-    void removeRecipeLike(Long memberId, String recipeId);
-
     // 비밀번호 확인 메서드 추가
     boolean verifyPassword(String userId, String password);
 
@@ -63,5 +60,7 @@ public interface MypageService {
 
     // 회원이 쓴 글 목록 (최신 5개 또는 페이지네이션 지원)
     List<Board> getMemberBoardList(int memberId, int start, int limit);
+
+    List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit);
 
 }
