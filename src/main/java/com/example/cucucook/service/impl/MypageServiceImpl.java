@@ -105,27 +105,9 @@ public class MypageServiceImpl implements MypageService {
     }
 
     @Override
-    public List<RecipeComment> getRecipeCommentList(Long memberId, int start, int display) {
-        // 구현이 필요함
-        return Collections.emptyList();
-    }
-
-    @Override
     public int getMemberRecipeLikeCount(Long memberId) {
         // 구현이 필요함
         return 0;
-    }
-
-    @Override
-    public List<RecipeLike> getRecipeLikeList(Long memberId, int start, int display) {
-        // 구현이 필요함
-        return Collections.emptyList();
-    }
-
-    @Override
-    public RecipeLike getRecipeLike(Long memberId, String recipeId) {
-        // 구현이 필요함
-        return new RecipeLike();
     }
 
     ///////// 댓글
@@ -247,6 +229,12 @@ public class MypageServiceImpl implements MypageService {
             logger.error("Error fetching member recipe list for memberId: {}", memberId, e);
             throw e;
         }
+    }
+
+    // 찜
+    @Override
+    public List<RecipeLike> getRecipeLikeList(int memberId, int start, int limit) {
+        return mypageMapper.getRecipeLikeList(memberId, start, limit);
     }
 
 }
