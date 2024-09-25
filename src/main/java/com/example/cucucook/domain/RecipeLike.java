@@ -20,4 +20,7 @@ public class RecipeLike {
     // 등록일
     private String regDt;
 
+    // 레시피제목
+    private String title;
+
 }
