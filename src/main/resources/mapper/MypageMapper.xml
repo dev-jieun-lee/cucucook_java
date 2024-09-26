@@ -244,8 +244,9 @@
     </select>
 
     <!-- 나의 DIY 레시피 조회 -->
-    <select id="getMemberRecipeList" resultType="com.example.cucucook.domain.MemberRecipe">
-        SELECT recipe_id,
+    <select id="getMemberRecipeList" resultMap="memberRecipeResultMap">
+        SELECT (SELECT name FROM member x WHERE x.member_id = a.member_id) as name,
+                recipe_id,
                member_id,
                recipe_category_id,
                title,
@@ -260,7 +261,7 @@
                upt_dt,
                view_count,
                comment_rate
-        FROM member_recipe
+        FROM member_recipe a
         WHERE member_id = #{memberId}
         ORDER BY reg_dt DESC
         LIMIT #{limit} OFFSET #{start}
