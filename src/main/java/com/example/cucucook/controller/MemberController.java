@@ -163,15 +163,18 @@ public class MemberController {
         // JWT 토큰 쿠키 삭제
         Cookie authCookie = new Cookie("auth_token", null);
         authCookie.setHttpOnly(true);
-        authCookie.setSecure(true); // HTTPS에서만 사용
+        authCookie.setSecure(request.isSecure()); // HTTPS에서만 사용
         authCookie.setPath("/"); // 전체 경로에 대해 유효
         authCookie.setMaxAge(0); // 쿠키 삭제
         response.addCookie(authCookie);
 
+        // 인증 정보 로그아웃 처리
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
         if (authentication != null) {
             new SecurityContextLogoutHandler().logout(request, response, authentication);
         }
+
+        // 로그아웃 성공 메시지
         return ResponseEntity.ok().body("Logged out successfully");
     }
 
