@@ -40,40 +40,22 @@
     <select id="getRecipeCommentList" resultType="com.example.cucucook.domain.RecipeComment">
         SELECT *
         FROM recipe_comment
-        WHERE memberId = #{memberId}
-        ORDER BY created_at DESC
-        LIMIT #{start}, #{display}
+        WHERE member_id = #{memberId}
+        ORDER BY reg_dt DESC
+        LIMIT #{display}
+        OFFSET #{start}
     </select>
 
-    <!-- 회원 레시피 찜 목록 -->
-    <select id="getRecipeLikeList" resultType="com.example.cucucook.domain.RecipeLike">
-        SELECT *
-        FROM recipe_like
-        WHERE memberId = #{memberId}
-        ORDER BY created_at DESC
-        LIMIT #{start}, #{display}
-    </select>
-
-    <!-- 회원 레시피 찜 보기 -->
-    <select id="getRecipeLike" resultType="com.example.cucucook.domain.RecipeLike">
-        SELECT *
-        FROM recipe_like
-        WHERE memberId = #{memberId}
-        AND recipeId = #{recipeId}
-    </select>
-
-    <!-- 회원 레시피 찜 추가 -->
-    <insert id="insertRecipeLike">
-        INSERT INTO recipe_like (memberId, recipeId)
-        VALUES (#{recipeLike.memberId}, #{recipeLike.recipeId})
-    </insert>
-
-    <!-- 회원 레시피 찜 삭제 -->
-    <delete id="deleteRecipeLike">
-        DELETE FROM recipe_like
-        WHERE memberId = #{memberId}
-        AND recipeId = #{recipeId}
-    </delete>
+<!-- 회원 레시피 찜 목록 -->
+<select id="getRecipeLikeList" resultType="com.example.cucucook.domain.RecipeLike">
+    SELECT rl.member_id, rl.recipe_id, rl.reg_dt, mr.title
+    FROM recipe_like rl
+    JOIN member_recipe mr ON rl.recipe_id = mr.recipe_id
+    WHERE rl.member_id = #{memberId}
+    ORDER BY rl.reg_dt DESC
+        LIMIT #{display}
+        OFFSET #{start}
+</select>
 
     <!-- 내가 쓴 댓글 조회 -->
     <select id="getMyComments" resultType="com.example.cucucook.domain.RecipeComment">
