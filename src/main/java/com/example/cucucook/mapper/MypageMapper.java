@@ -35,12 +35,6 @@ public interface MypageMapper {
         // 회원 레시피 찜 보기
         RecipeLike getRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
 
-        // 회원 레시피 찜 추가
-        void insertRecipeLike(@Param("recipeLike") RecipeLike recipeLike);
-
-        // 회원 레시피 찜 삭제
-        void deleteRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
-
         // 댓글//
         // 내가 쓴 댓글 가져오기
         List<RecipeComment> getMyComments(
