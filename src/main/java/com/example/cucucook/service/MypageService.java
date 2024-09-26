@@ -26,14 +26,11 @@ public interface MypageService {
     // 회원 댓글 관련 메서드
     int getRecipeCommentCount(Long memberId);
 
-    List<RecipeComment> getRecipeCommentList(Long memberId, int start, int display);
-
-    // 회원 레시피 찜 관련 메서드
+    // 회원 레시피 찜 갯수 관련 메서드
     int getMemberRecipeLikeCount(Long memberId);
 
-    List<RecipeLike> getRecipeLikeList(Long memberId, int start, int display);
-
-    RecipeLike getRecipeLike(Long memberId, String recipeId);
+    // 회원 찜 리스트
+    List<RecipeLike> getRecipeLikeList(int memberId, int start, int display);
 
     // 비밀번호 확인 메서드 추가
     boolean verifyPassword(String userId, String password);
@@ -61,6 +58,7 @@ public interface MypageService {
     // 회원이 쓴 글 목록 (최신 5개 또는 페이지네이션 지원)
     List<Board> getMemberBoardList(int memberId, int start, int limit);
 
+    // 회원 레시피리스트
     List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit);
 
 }
