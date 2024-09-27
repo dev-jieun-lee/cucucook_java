@@ -4,10 +4,53 @@
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.example.cucucook.mapper.MypageMapper">
-    <!-- 회원이 쓴 글 갯수 -->
-    <select id="getWriteCount" resultType="int">
+  <resultMap id="memberRecipeResultMap" type="MemberRecipe">
+    <result property="recipeId" column="recipe_id"/>
+    <result property="memberId" column="member_id"/>
+    <result property="recipeCategoryId" column="recipe_category_id"/>
+    <result property="title" column="title"/>
+    <result property="recipeMethodId" column="recipe_method_id"/>
+    <result property="method" column="method"/>
+    <result property="methodEn" column="method_en"/>
+    <result property="imgId" column="img_id"/>
+    <result property="serving" column="serving"/>
+    <result property="recipeLevelId" column="recipe_level_id"/>
+    <result property="level" column="level"/>
+    <result property="levelEn" column="level_en"/>
+    <result property="time" column="time"/>
+    <result property="calory" column="calory"/>
+    <result property="tip" column="tip"/>
+    <result property="regDt" column="reg_dt"/>
+    <result property="uptDt" column="upt_dt"/>
+    <result property="viewCount" column="view_count"/>
+    <result property="recipeCategoryName" column="recipe_category_name"/>
+    <result property="recipeCategoryNameEn" column="recipe_category_name_en"/>
+    <result property="commentCount" column="comment_count"/>
+    <result property="commentRate" column="comment_rate"/>
+    <result property="likeCount" column="like_count"/>
+
+    <association property="member" javaType="Member">
+      <result property="userId" column="user_id"/>
+      <result property="name" column="name"/>
+      <result property="phone" column="phone"/>
+      <result property="role" column="role"/>
+      <result property="email" column="email"/>
+    </association>
+
+    <association property="memberRecipeImages" javaType="MemberRecipeImages">
+      <result property="imgId" column="img_id"/>
+      <result property="orgImgName" column="org_img_name"/>
+      <result property="serverImgName" column="server_img_name"/>
+      <result property="extension" column="extension"/>
+      <result property="imgFileSize" column="img_file_size"/>
+      <result property="serverImgPath" column="server_img_path"/>
+      <result property="webImgPath" column="web_img_path"/>
+    </association>
+</resultMap>
+    <!-- 회원이 찜한 레시피 갯수 -->
+    <select id="getLikeCount" resultType="int">
         SELECT COUNT(*)
-        FROM board
+        FROM recipe_like
         WHERE member_id = #{memberId}
     </select>
 
@@ -18,23 +61,22 @@
         WHERE member_id = #{memberId}
     </select>
 
-    <!-- 회원이 찜한 레시피 갯수 -->
-    <select id="getLikeCount" resultType="int">
+    <!-- 회원이 쓴 글 갯수 -->
+    <select id="getWriteCount" resultType="int">
         SELECT COUNT(*)
-        FROM recipe_like
+        FROM board
         WHERE member_id = #{memberId}
     </select>
 
-<!-- 회원이 쓴 글 목록 -->
-<select id="getMemberBoardList" resultType="com.example.cucucook.domain.Board">
-    SELECT *
-    FROM board
-    WHERE member_id = #{memberId}
-    ORDER BY reg_dt DESC
-    LIMIT #{display}
-    OFFSET #{start}
-</select>
-
+    <!-- 회원이 쓴 글 목록 -->
+    <select id="getMemberBoardList" resultType="com.example.cucucook.domain.Board">
+        SELECT *
+        FROM board
+        WHERE member_id = #{memberId}
+        ORDER BY reg_dt DESC
+        LIMIT #{display}
+        OFFSET #{start}
+    </select>
 
     <!-- 회원이 쓴 댓글 목록 -->
     <select id="getRecipeCommentList" resultType="com.example.cucucook.domain.RecipeComment">
@@ -46,35 +88,80 @@
         OFFSET #{start}
     </select>
 
-<!-- 회원 레시피 찜 목록 -->
-<select id="getRecipeLikeList" resultType="com.example.cucucook.domain.RecipeLike">
-    SELECT rl.member_id, rl.recipe_id, rl.reg_dt, mr.title
-    FROM recipe_like rl
-    JOIN member_recipe mr ON rl.recipe_id = mr.recipe_id
-    WHERE rl.member_id = #{memberId}
-    ORDER BY rl.reg_dt DESC
+    <!-- 회원 레시피 찜 목록 -->
+    <select id="getRecipeLikeList" resultType="com.example.cucucook.domain.RecipeLike">
+        SELECT rl.member_id, rl.recipe_id, rl.reg_dt, mr.title
+        FROM recipe_like rl
+        JOIN member_recipe mr ON rl.recipe_id = mr.recipe_id
+        WHERE rl.member_id = #{memberId}
+        ORDER BY rl.reg_dt DESC
         LIMIT #{display}
         OFFSET #{start}
-</select>
+    </select>
+
+    <!-- 회원 레시피 찜 목록 (상세 정보 포함) -->
+    <select id="getRecipeLikeListOtherInfo" resultMap="memberRecipeResultMap">
+        SELECT
+            a.recipe_id,              -- 레시피 ID
+            a.member_id,              -- 작성자 ID
+            a.title,                  -- 레시피 제목
+            a.view_count,             -- 조회수
+            a.reg_dt,                 -- 등록 날짜
+            a.upt_dt,                 -- 수정 날짜
+            (SELECT COUNT(*) FROM recipe_comment x
+            WHERE x.recipe_id = a.recipe_id AND x.del_yn = 'N') as comment_count,  -- 댓글 수
+            a.comment_rate,           -- 댓글 평점
+            (SELECT COUNT(*) FROM recipe_like x
+            WHERE x.recipe_id = a.recipe_id) as like_count,        -- 좋아요 수
+            d.server_img_name,        -- 서버에 저장된 이미지 이름
+            d.extension,              -- 이미지 확장자
+            d.web_img_path,           -- 웹 접근 경로
+            c.user_id,                -- 작성자 사용자 ID
+            c.name,    -- 작성자 이름
+            c.phone,                  -- 작성자 전화번호
+            c.role,                   -- 작성자 역할
+            c.email                   -- 작성자 이메일
+        FROM
+            recipe_like b
+        JOIN
+            member_recipe a ON b.recipe_id = a.recipe_id
+        JOIN
+            member c ON a.member_id = c.member_id
+        LEFT JOIN
+            member_recipe_images d ON a.img_id = d.img_id
+        WHERE
+            b.member_id = #{memberId}  -- 찜한 사용자 ID
+            <if test="recipeCategoryId != 'all' and recipeCategoryId != '' and recipeCategoryId != null">
+                AND a.recipe_category_id = #{recipeCategoryId}
+            </if>
+        <choose>
+            <when test="orderby != '' and orderby != null">
+                ORDER BY ${orderby} DESC
+            </when>
+            <otherwise>
+                ORDER BY a.reg_dt DESC
+            </otherwise>
+        </choose>
+        LIMIT #{display} OFFSET #{start}
+    </select>
 
     <!-- 내가 쓴 댓글 조회 -->
     <select id="getMyComments" resultType="com.example.cucucook.domain.RecipeComment">
-    SELECT rc.recipe_id
-                ,  rc.comment_id
-                ,  rc.member_id
-                ,  rc.comment
-                ,  rc.rate
-                ,  rc.reg_dt
-                ,  rc.upt_dt
-                ,  rc.status
-                ,  rc.p_comment_id
-                ,  rc.del_yn
-                , mr.title
-            FROM recipe_comment rc
-            LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
-            WHERE rc.member_id = ${memberId}
-                and del_yn = 'N'
-            ORDER BY
+        SELECT rc.recipe_id,
+               rc.comment_id,
+               rc.member_id,
+               rc.comment,
+               rc.rate,
+               rc.reg_dt,
+               rc.upt_dt,
+               rc.status,
+               rc.p_comment_id,
+               rc.del_yn,
+               mr.title
+        FROM recipe_comment rc
+        LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
+        WHERE rc.member_id = #{memberId} AND rc.del_yn = 'N'
+        ORDER BY
         <choose>
             <when test="sortOption == 'recipeId'">
                 rc.recipe_id ${sortDirection}
@@ -96,74 +183,88 @@
         WHERE comment_id = #{commentId} AND member_id = #{memberId};
     </update>
 
-  <!-- 댓글 내용 또는 레시피 제목으로 검색 -->
-<select id="searchByKeyword" resultType="RecipeComment">
-    SELECT rc.recipe_id
-         , rc.comment_id
-         , rc.member_id
-         , rc.comment
-         , rc.rate
-         , rc.reg_dt
-         , rc.upt_dt
-         , rc.status
-         , rc.p_comment_id
-         , rc.del_yn
-         , mr.title
-    FROM recipe_comment rc
-    LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
-    WHERE rc.member_id = #{memberId}
-      AND rc.del_yn = 'N'
-      <choose>
-        <!-- 댓글 내용으로 검색 -->
-        <when test="searchType == 'content'">
-          AND rc.comment ILIKE '%' || #{keyword} || '%'
-        </when>
-        <!-- 레시피 제목으로 검색 -->
-        <when test="searchType == 'title'">
-          AND rc.recipe_id IN (
-              SELECT r.recipe_id from member_recipe r WHERE r.title ILIKE '%' || #{keyword} || '%'
-          )
-        </when>
-      </choose>
-    ORDER BY
-      <choose>
-          <when test="sortOption == 'regDt'">rc.reg_dt</when>
-          <when test="sortOption == 'recipeId'">rc.recipe_id</when>
-          <otherwise>rc.comment_id</otherwise>
-      </choose>
-    ${sortDirection}
-    LIMIT #{pageSize} OFFSET #{offset}
-</select>
+    <!-- 댓글 내용 또는 레시피 제목으로 검색 -->
+    <select id="searchByKeyword" resultType="RecipeComment">
+        SELECT rc.recipe_id,
+               rc.comment_id,
+               rc.member_id,
+               rc.comment,
+               rc.rate,
+               rc.reg_dt,
+               rc.upt_dt,
+               rc.status,
+               rc.p_comment_id,
+               rc.del_yn,
+               mr.title
+        FROM recipe_comment rc
+        LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
+        WHERE rc.member_id = #{memberId} AND rc.del_yn = 'N'
+        <choose>
+            <!-- 댓글 내용으로 검색 -->
+            <when test="searchType == 'content'">
+                AND rc.comment ILIKE '%' || #{keyword} || '%'
+            </when>
+            <!-- 레시피 제목으로 검색 -->
+            <when test="searchType == 'title'">
+                AND rc.recipe_id IN (
+                    SELECT r.recipe_id from member_recipe r WHERE r.title ILIKE '%' || #{keyword} || '%'
+                )
+            </when>
+        </choose>
+        ORDER BY
+        <choose>
+            <when test="sortOption == 'regDt'">rc.reg_dt</when>
+            <when test="sortOption == 'recipeId'">rc.recipe_id</when>
+            <otherwise>rc.comment_id</otherwise>
+        </choose>
+        ${sortDirection}
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
 
     <!-- 내가 쓴 게시글 조회 -->
     <select id="getMyBoards" resultType="com.example.cucucook.domain.Board">
-    SELECT
-    board_id
-    ,board_division
-    ,member_id
-    ,title
-    ,contents
-    ,board_category_id
-    ,reg_dt
-    ,udt_dt
-    ,status
-    ,view_count
-    ,p_board_id
-    ,user_name
-    from BOARD
-    where member_id = #{memberId}
-    AND board_division = #{boardDivision}
-    ORDER BY reg_dt
-    LIMIT #{pageSize} OFFSET #{offset}
+        SELECT
+            board_id,
+            board_division,
+            member_id,
+            title,
+            contents,
+            board_category_id,
+            reg_dt,
+            udt_dt,
+            status,
+            view_count,
+            p_board_id,
+            user_name
+        FROM BOARD
+        WHERE member_id = #{memberId}
+        AND board_division = #{boardDivision}
+        ORDER BY reg_dt
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
-  <!-- 나의 DIY 레시피 조회 -->
-<select id="getMemberRecipeList" resultType="com.example.cucucook.domain.MemberRecipe">
-    SELECT recipe_id, member_id, recipe_category_id, title, "method", img_id, serving, "level", "time", calory, tip, reg_dt, upt_dt, view_count, comment_rate
-    FROM member_recipe
-    WHERE member_id = #{memberId}
-    ORDER BY reg_dt DESC
-    LIMIT #{limit} OFFSET #{start}
-</select>
+    <!-- 나의 DIY 레시피 조회 -->
+    <select id="getMemberRecipeList" resultMap="memberRecipeResultMap">
+        SELECT (SELECT name FROM member x WHERE x.member_id = a.member_id) as name,
+                recipe_id,
+               member_id,
+               recipe_category_id,
+               title,
+               "method",
+               img_id,
+               serving,
+               "level",
+               "time",
+               calory,
+               tip,
+               reg_dt,
+               upt_dt,
+               view_count,
+               comment_rate
+        FROM member_recipe a
+        WHERE member_id = #{memberId}
+        ORDER BY reg_dt DESC
+        LIMIT #{limit} OFFSET #{start}
+    </select>
 
 </mapper>
