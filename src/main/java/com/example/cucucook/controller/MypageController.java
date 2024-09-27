@@ -262,4 +262,19 @@ public class MypageController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving liked recipes");
         }
     }
+
+    // 찜 진입 시 정보 가져오기
+    @GetMapping("/getRecipeLikeListOtherInfo")
+    public List<MemberRecipe> getRecipeLikeListOtherInfo(@RequestParam("memberId") int memberId,
+            @RequestParam(required = false) String recipeCategoryId,
+            @RequestParam(required = false) String orderby,
+            @RequestParam(defaultValue = "10") int display,
+            @RequestParam(defaultValue = "0") int start) {
+        // 파라미터 로그 출력
+        logger.info(
+                "Fetching liked recipes with params: memberId={}, recipeCategoryId={}, orderby={}, display={}, start={}",
+                memberId, recipeCategoryId, orderby, display, start);
+
+        return mypageService.getRecipeLikeListOtherInfo(memberId, recipeCategoryId, orderby, display, start);
+    }
 }
