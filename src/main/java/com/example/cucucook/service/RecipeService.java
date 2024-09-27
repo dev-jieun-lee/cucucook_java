@@ -21,7 +21,7 @@ public interface RecipeService {
 
         // 회원 레시피 목록
         public ApiResponse<List<MemberRecipe>> getMemberRecipeList(String search, String recipeCategoryId, int start,
-                        int display, String orderby);
+                        int display, String orderby, int memberId);
 
         // 기존 레시피 목록
         public ApiResponse<PublicRecipe> getPublicRecipe(String search, int start,
