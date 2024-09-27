@@ -81,6 +81,9 @@ public class MemberRecipe implements Serializable {
     // 좋아요 수
     private int likeCount;
 
+    // 좋아요 여부
+    private boolean memberRecipeLike;
+
     // 게시판 카테고리에서 조인해서 가져온 카테고리명
     private String recipeCategoryName;
 

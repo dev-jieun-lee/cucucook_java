@@ -139,9 +139,10 @@ public class RecipeServiceImpl implements RecipeService {
     // 회원 레시피 목록
     @Override
     public ApiResponse<List<MemberRecipe>> getMemberRecipeList(String search, String recipeCategoryId, int start,
-            int display, String orderby) {
+            int display, String orderby, int memberId) {
 
         String message;
+        String recipeId;
         boolean success = false;
         boolean hasMore = false;
         int memberRecipeTotalCnt;
@@ -153,6 +154,15 @@ public class RecipeServiceImpl implements RecipeService {
         try {
             memberRecipeList = recipeMapper.getMemberRecipeList(search, recipeCategoryId, start, display,
                     orderby);
+
+            for (MemberRecipe memberRecipe : memberRecipeList) {
+                boolean isMemberRecipeLike = false;
+                recipeId = memberRecipe.getRecipeId();
+                if (memberId > 0)
+                    isMemberRecipeLike = recipeMapper.isMemberRecipeLike(recipeId, memberId) > 0;
+                memberRecipe.setMemberRecipeLike(isMemberRecipeLike);
+            }
+
             memberRecipeTotalCnt = recipeMapper.getMemberRecipeCount(search, recipeCategoryId, orderby);
             message = (memberRecipeList == null || memberRecipeList.isEmpty()) ? "E_IS_DATA"
                     : "S_IS_DATA";
@@ -239,13 +249,12 @@ public class RecipeServiceImpl implements RecipeService {
 
         try {
             MemberRecipe memberRecipe = recipeMapper.getMemberRecipe(recipeId);
-            result.put("memberRecipe", memberRecipe);
 
             boolean isMemberRecipeLike = false;
             if (memberId > 0)
                 isMemberRecipeLike = recipeMapper.isMemberRecipeLike(recipeId, memberId) > 0;
-
-            result.put("isMemberRecipeLike", isMemberRecipeLike);
+            memberRecipe.setMemberRecipeLike(isMemberRecipeLike);
+            result.put("memberRecipe", memberRecipe);
 
             // 재료 있으면 넣어주기
             List<MemberRecipeIngredient> memberRecipeIngredient = recipeMapper.getMemberRecipeIngredientList(recipeId);
@@ -282,9 +291,9 @@ public class RecipeServiceImpl implements RecipeService {
                     : "S_IS_DATA";
             success = !memberRecipeHashMap.isEmpty();
             // 성공시 뷰카운트 업데이트 (수정페이지에서는 카운트가 올라가면안됨)
-            if (success && !isUpdate)
+            if (success && !isUpdate) {
                 recipeMapper.updateRecipeViewCount(recipeId);
-
+            }
         } catch (Exception e) {
             message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
             System.err.println("An error occurred: " + e.getMessage());
@@ -847,7 +856,7 @@ public class RecipeServiceImpl implements RecipeService {
 
             int result = 0;
             if (recipeLike.getMemberId() > 0)
-                recipeMapper.insertMemberRecipeLike(recipeLike);
+                result = recipeMapper.insertMemberRecipeLike(recipeLike);
 
             if (result > 0) {
                 recipeLikeCount = recipeMapper.getMemberRecipeLikeCount(recipeLike.getRecipeId());

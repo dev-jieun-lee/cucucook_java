@@ -63,10 +63,11 @@ public class RecipeController {
             @RequestParam String recipeCategoryId,
             @RequestParam(value = "start", defaultValue = "0") int start,
             @RequestParam(value = "display", defaultValue = "20") int display,
-            @RequestParam String orderby) {
+            @RequestParam String orderby,
+            @RequestParam(value = "memberId", required = false, defaultValue = "0") int memberId) {
 
         return recipeService.getMemberRecipeList(search, recipeCategoryId, start,
-                display, orderby);
+                display, orderby, memberId);
     }
 
     // 회원레시피 조회
