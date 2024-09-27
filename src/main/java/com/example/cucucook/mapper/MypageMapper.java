@@ -88,4 +88,12 @@ public interface MypageMapper {
         // 회원 레시피 가져오기
         List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit);
 
+        // 찜페이지 진입시 정보가져오기
+        List<MemberRecipe> getRecipeLikeListOtherInfo(
+                        @Param("memberId") int memberId,
+                        @Param("recipeCategoryId") String recipeCategoryId,
+                        @Param("orderby") String orderby,
+                        @Param("display") int display,
+                        @Param("start") int start);
+
 }
