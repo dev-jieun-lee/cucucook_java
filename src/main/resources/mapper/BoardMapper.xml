@@ -24,7 +24,7 @@
     <result property="division" column="division"/>
     <result property="color" column="color"/>
     <result property="regDt" column="reg_dt"/>
-    <result property="uptDt" column="upt_dt"/>
+    <result property="udtDt" column="udt_dt"/>
   </resultMap>
 
   <!-- 게시판 목록 조회-->
@@ -167,7 +167,7 @@
           ,division
           ,color
           ,reg_dt
-          ,upt_dt
+          ,udt_dt
     FROM board_category
     <where>
     <if test="search != '' and search != null">
@@ -195,7 +195,7 @@
           ,division
           ,color
           ,reg_dt
-          ,upt_dt
+          ,udt_dt
     FROM board_category
     WHERE board_category_id = #{boardCategoryId}
 </select>

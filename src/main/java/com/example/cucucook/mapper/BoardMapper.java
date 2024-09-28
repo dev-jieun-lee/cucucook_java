@@ -62,7 +62,7 @@ public interface BoardMapper {
 
         // 게시판 카테고리 목록
         List<BoardCategory> getBoardCategoryList(@Param("start") int start, @Param("display") int display,
-                        @Param("search") String search, @Param("searchType") String searchTyle);
+                        @Param("search") String search, @Param("searchType") String searchType);
 
         // 게시판 카테고리 보기
         BoardCategory getBoardCategory(@Param("boardCategoryId") String boardCategoryId);
