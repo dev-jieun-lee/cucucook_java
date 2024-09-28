@@ -241,6 +241,7 @@ public class BoardServiceImpl implements BoardService {
     return result;
   }
 
+  // 카테고리 삭제
   @Override
   public HashMap<String, Object> deleteBoardCategory(String boardCategoryId) {
     HashMap<String, Object> result = new HashMap<>();
