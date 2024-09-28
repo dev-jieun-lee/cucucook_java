@@ -29,11 +29,16 @@ public interface BoardService {
   public HashMap<String, Object> deleteBoard(String boardId);
 
   // 카테고리 목록
-  public ApiResponse<List<BoardCategory>> getBoardCategoryList(int start, int display);
+  public ApiResponse<List<BoardCategory>> getBoardCategoryList(int start, int display, String search,
+      String searchType);
 
   // 카테고리 상세
   public HashMap<String, Object> getBoardCategory(String boardCategoryId);
 
   // 카테고리 등록
   public HashMap<String, Object> insertBoardCategory(BoardCategory boardCategory);
+
+  // 카테고리 삭제
+  public HashMap<String, Object> deleteBoardCategory(String boardCategoryId);
+
 }
