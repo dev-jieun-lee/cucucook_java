@@ -14,12 +14,12 @@ import lombok.NoArgsConstructor;
 // API 성공여부 반환
 public class ApiResponse<T> {
 
-    private boolean success;
-    private String message;
-    private T data;
-    Map<String, Object> addData;
+  private boolean success;
+  private String message;
+  private T data;
+  Map<String, Object> addData;
 
-    public boolean isSuccess() {
-        return success;
-    }
+  public boolean isSuccess() {
+    return success;
+  }
 }
