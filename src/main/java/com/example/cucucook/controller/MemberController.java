@@ -1,6 +1,7 @@
 package com.example.cucucook.controller;
 
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import org.slf4j.Logger;
@@ -20,6 +21,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.config.JwtTokenProvider;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.MemberResponse;
@@ -386,4 +388,14 @@ public class MemberController {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원 탈퇴 실패: " + e.getMessage());
         }
     }
+
+    // 회원 목록 조회
+    @GetMapping(value = "/getMemberList")
+    public ApiResponse<List<Member>> getMemberList(@RequestParam String search,
+            @RequestParam String searchType,
+            @RequestParam(value = "start", required = false, defaultValue = "1") int start,
+            @RequestParam(value = "display", required = true, defaultValue = "20") int display) {
+        return memberService.getMemberList(search, searchType, start, display);
+    }
+
 }

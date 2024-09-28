@@ -25,7 +25,8 @@ public interface MemberMapper {
     int getMemberCount(@Param("search") String search);
 
     // 회원 목록 조회
-    List<Member> getMemberList(@Param("search") String search, @Param("start") int start,
+    List<Member> getMemberList(@Param("search") String search, @Param("searchType") String searchType,
+            @Param("start") int start,
             @Param("display") int display);
 
     // 회원 보기
