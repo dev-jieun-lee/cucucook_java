@@ -159,6 +159,8 @@
       AND member_id = #{board.memberId}  
 </update>
 
+  <!-- 카테고리*********************************** -->
+
 <!-- 카테고리 조회 -->
 <select id="getBoardCategoryList" resultMap="CategoryResultMap">
     SELECT board_category_id
@@ -170,21 +172,21 @@
           ,udt_dt
     FROM board_category
     <where>
-    <if test="search != '' and search != null">
-        <choose>
-            <when test="searchType == 'nameEn'">
-                AND name_en LIKE CONCAT('%', #{search}, '%')
-            </when>
-            <when test="searchType == 'name'">
-                AND name LIKE CONCAT('%', #{search}, '%')
-            </when>
-        </choose>
-    </if>
-    <if test="division != '' and division != null and division != 'all'">
-        AND division = #{division}
-    </if>
-</where>
-
+        <if test="search != '' and search != null">
+            <choose>
+                <when test="searchType == 'nameEn'">
+                    AND name_en LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'name'">
+                    AND name LIKE CONCAT('%', #{search}, '%')
+                </when>
+            </choose>
+        </if>
+        <if test="division != '' and division != null and division != 'all'">
+            AND division = #{division}
+        </if>
+    </where>
+    ORDER BY udt_dt desc
 </select>
 
 <!-- 카테고리 상세 조회 -->
@@ -205,7 +207,7 @@
     INSERT INTO board_category (
         board_category_id,
         name,
-        name_en
+        name_en,
         division,
         color,
         reg_dt,
