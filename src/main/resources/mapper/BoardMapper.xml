@@ -20,7 +20,11 @@
   <resultMap id="CategoryResultMap" type="BoardCategory">
     <result property="boardCategoryId" column="board_category_id"/>
     <result property="name" column="name"/>
+    <result property="nameEn" column="name_en"/>
     <result property="division" column="division"/>
+    <result property="color" column="color"/>
+    <result property="regDt" column="reg_dt"/>
+    <result property="uptDt" column="upt_dt"/>
   </resultMap>
 
   <!-- 게시판 목록 조회-->
@@ -159,17 +163,39 @@
 <select id="getBoardCategoryList" resultMap="CategoryResultMap">
     SELECT board_category_id
           ,name
+          ,name_en
           ,division
           ,color
+          ,reg_dt
+          ,upt_dt
     FROM board_category
+    <where>
+    <if test="search != '' and search != null">
+        <choose>
+            <when test="searchType == 'nameEn'">
+                AND name_en LIKE CONCAT('%', #{search}, '%')
+            </when>
+            <when test="searchType == 'name'">
+                AND name LIKE CONCAT('%', #{search}, '%')
+            </when>
+        </choose>
+    </if>
+    <if test="division != '' and division != null and division != 'all'">
+        AND division = #{division}
+    </if>
+</where>
+
 </select>
 
 <!-- 카테고리 상세 조회 -->
 <select id="getBoardCategory" resultMap="CategoryResultMap">
     SELECT board_category_id
           ,name
+          ,name_en
           ,division
           ,color
+          ,reg_dt
+          ,upt_dt
     FROM board_category
     WHERE board_category_id = #{boardCategoryId}
 </select>
@@ -179,6 +205,7 @@
     INSERT INTO board_category (
         board_category_id,
         name,
+        name_en
         division,
         color,
         reg_dt,
@@ -186,6 +213,7 @@
     ) VALUES (
         #{boardCategory.boardCategoryId},
         #{boardCategory.name},
+        #{boardCategory.nameEn},
         #{boardCategory.division},
         #{boardCategory.color},
         #{boardCategory.regDt},
@@ -193,5 +221,17 @@
     )
 </insert>
 
+<!-- 카테고리 삭제 -->
+<delete id="deleteBoardCategory">
+    DELETE FROM board_category
+    WHERE board_category_id = #{boardCategoryId}
+</delete>
+
+<!-- 카테고리 사용하는 게시글 조회 -->
+<select id="countByBoardCategoryId" resultType="int">
+SELECT COUNT(*)
+FROM board
+WHERE board_category_id = #{boardCategoryId}
+</select>
 
 </mapper>

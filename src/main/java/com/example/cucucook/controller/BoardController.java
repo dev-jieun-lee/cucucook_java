@@ -73,8 +73,10 @@ public class BoardController {
   @GetMapping(value = "/getBoardCategoryList")
   public ApiResponse<List<BoardCategory>> getBoardCategoryList(
       @RequestParam(value = "start", required = false, defaultValue = "1") int start,
+      @RequestParam String search,
+      @RequestParam String searchType,
       @RequestParam(value = "display", required = true, defaultValue = "20") int display) {
-    return boardService.getBoardCategoryList(start, display);
+    return boardService.getBoardCategoryList(start, display, search, searchType);
   }
 
   // 카테고리 상세 조회
@@ -87,6 +89,12 @@ public class BoardController {
   @PostMapping(value = "/insertBoardCategory")
   public HashMap<String, Object> insertBoardCategory(@RequestBody BoardCategory boardCategory) {
     return boardService.insertBoardCategory(boardCategory);
+  }
+
+  // 카테고리 삭제
+  @DeleteMapping(value = "/deleteBoardCategory")
+  public HashMap<String, Object> deleteBoardCategory(@RequestParam String boardCategoryId) {
+    return boardService.deleteBoardCategory(boardCategoryId);
   }
 
 }

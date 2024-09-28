@@ -177,11 +177,12 @@ public class BoardServiceImpl implements BoardService {
 
   // 카테고리 목록 조회
   @Override
-  public ApiResponse<List<BoardCategory>> getBoardCategoryList(int start, int display) {
+  public ApiResponse<List<BoardCategory>> getBoardCategoryList(int start, int display, String search,
+      String searchType) {
     start = start > 0 ? start : 1;
     display = display > 0 ? display : 10;
 
-    List<BoardCategory> boardCategoryList = boardMapper.getBoardCategoryList(start, display);
+    List<BoardCategory> boardCategoryList = boardMapper.getBoardCategoryList(start, display, search, searchType);
     String message = (boardCategoryList == null || boardCategoryList.isEmpty()) ? "카테고리 목록이 없습니다." : "카테고리 목록 조회 성공";
     boolean success = boardCategoryList != null && !boardCategoryList.isEmpty();
     return new ApiResponse<>(success, message, boardCategoryList, null);
@@ -239,4 +240,32 @@ public class BoardServiceImpl implements BoardService {
 
     return result;
   }
+
+  @Override
+  public HashMap<String, Object> deleteBoardCategory(String boardCategoryId) {
+    HashMap<String, Object> result = new HashMap<>();
+
+    // 해당 카테고리를 사용하는 게시글이 있는지 확인
+    int count = boardMapper.countByBoardCategoryId(boardCategoryId);
+
+    if (count > 0) {
+      // 카테고리를 사용하는 게시글이 있는 경우
+      result.put("success", false);
+      result.put("message", "해당 카테고리를 사용하는 게시글이 있어 삭제할 수 없습니다.");
+      return result;
+    }
+
+    // 카테고리를 사용하는 게시글이 없는 경우 삭제
+    int updateCount = boardMapper.deleteBoardCategory(boardCategoryId);
+
+    if (updateCount > 0) {
+      result.put("success", true);
+      result.put("message", "카테고리가 성공적으로 삭제되었습니다.");
+    } else {
+      result.put("success", false);
+      result.put("message", "해당 카테고리를 삭제할 수 없습니다.");
+    }
+    return result;
+  }
+
 }
