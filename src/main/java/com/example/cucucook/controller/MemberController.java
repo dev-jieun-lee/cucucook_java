@@ -24,7 +24,8 @@ import com.example.cucucook.config.JwtTokenProvider;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.MemberResponse;
 import com.example.cucucook.domain.PasswordFindResponse;
-import com.example.cucucook.exception.ErrorResponse;
+import com.example.cucucook.exception.AccountLockedException;
+import com.example.cucucook.exception.InvalidPasswordException;
 import com.example.cucucook.service.MemberService;
 
 import jakarta.servlet.http.Cookie;
@@ -34,58 +35,6 @@ import jakarta.servlet.http.HttpServletResponse;
 @RestController
 @RequestMapping("/api/members")
 public class MemberController {
-
-    // 로그인 예외처리1
-    public static class InvalidPasswordException extends RuntimeException {
-        private final int failedAttempts;
-        private final long lockoutDuration; // 잠금 시간이 있을 경우 남은 시간
-
-        public InvalidPasswordException(String message, int failedAttempts, long lockoutDuration) {
-            super(message);
-            this.failedAttempts = failedAttempts;
-            this.lockoutDuration = lockoutDuration;
-        }
-
-        public int getFailedAttempts() {
-            return failedAttempts;
-        }
-
-        public long getLockoutDuration() {
-            return lockoutDuration;
-        }
-
-        public long getLockoutRemainingSeconds() {
-            // TODO Auto-generated method stub
-            throw new UnsupportedOperationException("Unimplemented method 'getLockoutRemainingSeconds'");
-        }
-    }
-
-    // 로그인 예외처리2
-    public static class AccountLockedException extends RuntimeException {
-        private int failedAttempts;
-        private long remainingTime;
-        private long lockoutDuration;
-
-        public AccountLockedException(String message, int failedAttempts, long remainingTime, long lockoutDuration) {
-            super(message);
-            this.failedAttempts = failedAttempts;
-            this.remainingTime = remainingTime;
-            this.lockoutDuration = lockoutDuration; // lockoutDuration 추가
-        }
-
-        public int getFailedAttempts() {
-            return failedAttempts;
-        }
-
-        public long getRemainingTime() {
-            return remainingTime;
-        }
-
-        // lockoutDuration 추가
-        public long getLockoutDuration() {
-            return lockoutDuration;
-        }
-    }
 
     private static final Logger logger = LoggerFactory.getLogger(MemberController.class);
 
@@ -97,49 +46,87 @@ public class MemberController {
 
     private String key;
 
-    // 로그인
+    // 로그인 처리
     @PostMapping("/login")
     public ResponseEntity<?> login(@RequestBody Member loginRequest, HttpServletResponse response,
             HttpServletRequest request) {
         String userId = loginRequest.getUserId();
+
         try {
+            // 로그인 시도
             Member member = memberService.validateMember(userId, loginRequest.getPassword());
+
+            // 로그인 성공 시 토큰 발급
             String token = tokenProvider.createToken(userId, member.getRole());
 
-            // 쿠키 설정
+            // 쿠키에 토큰 설정
             Cookie authCookie = new Cookie("auth_token", token);
             authCookie.setHttpOnly(true);
             authCookie.setSecure(request.isSecure());
             authCookie.setPath("/");
             response.addCookie(authCookie);
 
-            // 응답 생성
+            // 성공 응답 데이터 설정
             Map<String, Object> responseBody = new HashMap<>();
             responseBody.put("token", token);
             responseBody.put("userId", userId);
             responseBody.put("name", member.getName());
             responseBody.put("role", member.getRole());
             responseBody.put("memberId", member.getMemberId());
-            responseBody.put("failedAttempts", member.getFailedAttempts()); // 실패 횟수 추가
+            responseBody.put("failedAttempts", member.getFailedAttempts());
 
-            logger.info("사용자 '{}' 로그인 성공. 응답 데이터: {}", userId, responseBody);
+            // 로그인 성공 로그
+            logger.info("사용자 '{}' 로그인 성공", userId);
             return ResponseEntity.ok().body(responseBody);
+
         } catch (InvalidPasswordException e) {
-            // 비밀번호 오류 로그를 간단하게 남기고, 클라이언트에 상세한 오류 정보를 전달
-            logger.warn("비밀번호 오류 발생");
-            return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ErrorResponse("비밀번호 오류입니다."));
+            // 비밀번호 오류 처리
+            String message = getMessageFromKey(getMessageKey(e.getFailedAttempts()));
+            logger.warn("사용자 '{}' 비밀번호 오류: {}", userId, message);
+            return buildErrorResponse(message, "InvalidPassword", HttpStatus.UNAUTHORIZED, e.getFailedAttempts(), null);
+
         } catch (AccountLockedException e) {
             // 계정 잠금 처리
-            logger.warn("계정 잠금 발생: {}초 남았습니다.", e.getRemainingTime());
-            return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body(new ErrorResponse("계정이 잠겼습니다. 잠금 해제까지 " + e.getRemainingTime() + "초 남았습니다."));
+            logger.warn("사용자 '{}' 계정 잠김. 남은 잠금 시간: {}초", userId, e.getRemainingTime());
+            return buildErrorResponse(getMessageFromKey("locked_time"), "AccountLocked", HttpStatus.FORBIDDEN, null,
+                    e.getRemainingTime());
+
         } catch (Exception e) {
-            // 일반적인 오류 처리
-            logger.error("서버 오류 발생", e);
-            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(new ErrorResponse("서버 오류가 발생했습니다."));
+            // 일반 오류 처리
+            logger.error("로그인 처리 중 서버 오류 발생", e);
+            return buildErrorResponse("서버 오류가 발생했습니다. 관리자에게 문의하세요.", "ServerError", HttpStatus.INTERNAL_SERVER_ERROR,
+                    null, null);
         }
     }
 
+    // 실패 횟수에 따른 메시지 키 반환 메서드
+    private String getMessageKey(int failedAttempts) {
+        switch (failedAttempts) {
+            case 3:
+                return "attempt_3";
+            case 4:
+                return "attempt_4";
+            default:
+                return "invalid_password";
+        }
+    }
+
+    // 메시지 키에 따라 사용자 메시지 반환
+    private String getMessageFromKey(String messageKey) {
+        switch (messageKey) {
+            case "attempt_3":
+                return "경고: 세 번 연속 로그인에 실패했습니다. 계속 실패할 경우 계정이 잠길 수 있습니다.";
+            case "attempt_4":
+                return "경고: 네 번 연속 로그인에 실패했습니다. 한 번 더 실패 시 계정이 잠깁니다.";
+            case "locked_time":
+                return "로그인 시도 횟수 초과로 인해 계정이 잠겼습니다. 관리자에게 문의하세요.";
+            case "invalid_password":
+            default:
+                return "비밀번호가 일치하지 않습니다. 다시 시도해 주세요.";
+        }
+    }
+
+    // 오류 응답 생성 유틸리티 메서드
     private ResponseEntity<Map<String, Object>> buildErrorResponse(String message, String errorType, HttpStatus status,
             Integer failedAttempts, Long lockoutTime) {
         Map<String, Object> body = new HashMap<>();
@@ -151,7 +138,7 @@ public class MemberController {
             body.put("failedAttempts", failedAttempts); // 실패 횟수 추가
         }
         if (lockoutTime != null && lockoutTime > 0) {
-            body.put("lockoutTime", lockoutTime); // 잠금 시간 추가
+            body.put("lockoutTime", lockoutTime); // 남은 잠금 시간 추가
         }
 
         return new ResponseEntity<>(body, status);
@@ -387,6 +374,18 @@ public class MemberController {
             return ResponseEntity.ok("회원 탈퇴 성공");
         } catch (Exception e) {
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("회원 탈퇴 실패: " + e.getMessage());
+        }
+    }
+
+    // 카카오 로그인 처리
+    @PostMapping("/kakao")
+    public ResponseEntity<?> kakaoLogin(@RequestBody Map<String, String> codeMap) {
+        String code = codeMap.get("code");
+        try {
+            String token = memberService.kakaoLogin(code); // 서비스에서 토큰 생성 로직
+            return ResponseEntity.ok().body(Map.of("token", token));
+        } catch (Exception e) {
+            return ResponseEntity.status(500).body("카카오 로그인 실패: " + e.getMessage());
         }
     }
 }

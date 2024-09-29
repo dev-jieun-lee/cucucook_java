@@ -1,28 +1,23 @@
 package com.example.cucucook.exception;
 
-import java.time.LocalDateTime;
-
 public class AccountLockedException extends RuntimeException {
-    private int failedAttempts;
-    private long lockoutDuration; // 잠금 시간이 있을 경우 남은 시간
-    private final LocalDateTime lockTime;
+    private final int failedAttempts; // 실패한 시도 횟수
+    private final long remainingTime; // 남은 잠금 시간(초 단위)
 
-    public AccountLockedException(String message, int failedAttempts, long lockoutDuration, LocalDateTime lockTime) {
+    // 생성자
+    public AccountLockedException(String message, int failedAttempts, long remainingTime) {
         super(message);
         this.failedAttempts = failedAttempts;
-        this.lockoutDuration = lockoutDuration;
-        this.lockTime = lockTime;
+        this.remainingTime = remainingTime;
     }
 
+    // 실패한 시도 횟수 반환
     public int getFailedAttempts() {
         return failedAttempts;
     }
 
-    public long getLockoutDuration() {
-        return lockoutDuration;
-    }
-
-    public LocalDateTime getLockTime() {
-        return lockTime;
+    // 남은 잠금 시간 반환
+    public long getRemainingTime() {
+        return remainingTime;
     }
 }
