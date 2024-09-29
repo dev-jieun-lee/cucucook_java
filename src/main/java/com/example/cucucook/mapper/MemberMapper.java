@@ -77,7 +77,7 @@ public interface MemberMapper {
     void resetFailedAttempts(@Param("userId") String userId);
 
     // 실패 횟수 업데이트 메서드 (새로운 실패 횟수를 파라미터로 받음)
-    void updateFailedAttempts(@Param("userId") String userId, @Param("failedAttempts") int failedAttempts);
+    void updateFailedAttempts(String userId);
 
     // 계정 잠금
     void lockAccount(Map<String, Object> params);

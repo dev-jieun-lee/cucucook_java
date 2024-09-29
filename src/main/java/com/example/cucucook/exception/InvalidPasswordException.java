@@ -1,20 +1,21 @@
 package com.example.cucucook.exception;
 
 public class InvalidPasswordException extends RuntimeException {
-    private int failedAttempts;
-    private long lockoutRemainingSeconds;
 
-    public InvalidPasswordException(String message, int failedAttempts, long lockoutRemainingSeconds) {
+    private final int failedAttempts;
+    private final long lockoutTimeRemaining;
+
+    public InvalidPasswordException(String message, int failedAttempts, long lockoutTimeRemaining) {
         super(message);
         this.failedAttempts = failedAttempts;
-        this.lockoutRemainingSeconds = lockoutRemainingSeconds;
+        this.lockoutTimeRemaining = lockoutTimeRemaining;
     }
 
     public int getFailedAttempts() {
         return failedAttempts;
     }
 
-    public long getLockoutRemainingSeconds() {
-        return lockoutRemainingSeconds;
+    public long getLockoutTimeRemaining() {
+        return lockoutTimeRemaining;
     }
 }
