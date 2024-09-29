@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -91,9 +92,16 @@ public class BoardController {
     return boardService.insertBoardCategory(boardCategory);
   }
 
+  // 카테고리 수정
+  @PutMapping(value = "/updateBoardCategory")
+  public HashMap<String, Object> updateBoardCategory(@RequestParam String boardCategoryId,
+      @RequestBody BoardCategory boardCategory) {
+    return boardService.updateBoardCategory(boardCategoryId, boardCategory);
+  }
+
   // 카테고리 삭제
   @DeleteMapping(value = "/deleteBoardCategory")
-  public HashMap<String, Object> deleteBoardCategory(@RequestParam String boardCategoryId) {
+  public ResponseEntity<HashMap<String, Object>> deleteBoardCategory(@RequestParam String boardCategoryId) {
     return boardService.deleteBoardCategory(boardCategoryId);
   }
 

@@ -182,12 +182,24 @@
                 </when>
             </choose>
         </if>
-        <if test="division != '' and division != null and division != 'all'">
+        <!-- <if test="division != '' and division != null and division != 'all'">
             AND division = #{division}
-        </if>
+        </if> -->
     </where>
     ORDER BY udt_dt desc
 </select>
+
+<!-- 카테고리 수정 -->
+<update id="updateBoardCategory" parameterType="BoardCategory">
+    UPDATE board_category
+      SET 
+        name = #{boardCategory.name},
+        name_en = #{boardCategory.nameEn},
+        division = #{boardCategory.division},
+        color = #{boardCategory.color},
+        udt_dt = #{boardCategory.udtDt}
+      WHERE board_category_id = #{boardCategory.boardCategoryId}
+</update>
 
 <!-- 카테고리 상세 조회 -->
 <select id="getBoardCategory" resultMap="CategoryResultMap">
