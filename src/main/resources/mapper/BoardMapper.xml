@@ -180,14 +180,21 @@
                 <when test="searchType == 'name'">
                     AND name LIKE CONCAT('%', #{search}, '%')
                 </when>
+                <when test="searchType == 'division'">
+                    <!-- search가 'all'일 경우 전체 조회 -->
+                    <if test="search == 'all'">
+                        1 = 1 <!-- 조건 없음, 전체 조회 -->
+                    </if>
+                    <if test="search != 'all'">
+                        AND division LIKE CONCAT('%', #{search}, '%')
+                    </if>
+                </when>
             </choose>
         </if>
-        <!-- <if test="division != '' and division != null and division != 'all'">
-            AND division = #{division}
-        </if> -->
     </where>
-    ORDER BY udt_dt desc
+    ORDER BY udt_dt DESC
 </select>
+
 
 <!-- 카테고리 수정 -->
 <update id="updateBoardCategory" parameterType="BoardCategory">
