@@ -9,19 +9,17 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.multipart.MultipartFile;
 
-import com.example.cucucook.domain.MemberRecipeImages;
-
 /**
  * 파일 업로드를 처리하는 유틸리티 클래스.
  */
 @Component
-public class FileUpload {
+public class FileUploadUtil {
 
-  // 파일 저장 경로 (application.properties 에서 주입)
+  // 파일 저장 경로
   @Value("${file.dir}")
   private String fileDir;
 
-  // 파일 저장 경로 (application.properties 에서 주입)
+  // 파일 웹경로
   @Value("${file.web.dir}")
   private String fileWebDir;
 
@@ -88,7 +86,7 @@ public class FileUpload {
       return fileExtension;
     }
 
-    throw new IllegalArgumentException("지원하지 않는 확장자: " + fileExtension);
+    throw new IllegalArgumentException("E_SUPPORTED_FILE_EXT");
   }
 
   /**
@@ -101,7 +99,7 @@ public class FileUpload {
   public boolean validateExtension(String fileExtension, String fileType) {
     String[] allowedExtensions = getAllowedExtensions(fileType);
     if (allowedExtensions == null) {
-      throw new IllegalArgumentException("지원하지 않는 파일 형식입니다: " + fileType);
+      throw new IllegalArgumentException("E_SUPPORTED_FILE_EXT");
     }
 
     // 대소문자 구분 없이 비교
@@ -133,7 +131,7 @@ public class FileUpload {
       case "video/mp4" -> new String[] { "mp4", "m4v" };
       case "video/x-msvideo" -> new String[] { "avi" };
       case "video/x-matroska" -> new String[] { "mkv" };
-      default -> throw new IllegalArgumentException("지원하지 않는 파일 형식입니다: " + fileType);
+      default -> throw new IllegalArgumentException("파일형식오류 " + fileType);
     };
   }
 
@@ -159,7 +157,7 @@ public class FileUpload {
     // 원래 파일 이름
     String fileName = extractOriginalFileName(file.getOriginalFilename());
     if (fileName == null) {
-      throw new IllegalArgumentException("파일 이름이 유효하지 않습니다.");
+      throw new IllegalArgumentException("E_IS_FILE_NAME");
     }
 
     // 저장될 파일 이름
@@ -187,10 +185,10 @@ public class FileUpload {
     } catch (IOException e) {
       // 파일 입출력 관련 오류 처리
       System.err.println("파일 저장 중 오류 발생: " + e.getMessage());
-      throw new IllegalArgumentException("파일 저장 중 오류가 발생하였습니다.");
+      throw new IllegalArgumentException("E_IS_FILE_NAME");
     } catch (IllegalStateException e) {
       System.err.println(e.getMessage());
-      throw new IllegalArgumentException("오류가 발생하였습니다.");
+      throw new IllegalArgumentException("E_IS_FILE_NAME");
     }
     return serverFileName;
   }
@@ -202,10 +200,7 @@ public class FileUpload {
    * @return 삭제 실패 이유
    * @throws IOException 파일 삭제 중 오류 발생
    */
-  public String deleteFile(MemberRecipeImages memberRecipeImages) throws IOException {
-
-    String filePath = memberRecipeImages.getServerImgPath() + "/" + memberRecipeImages.getServerImgName() + "."
-        + memberRecipeImages.getExtension();
+  public void deleteFile(String filePath, String folderPath) throws IOException {
 
     File file = new File(filePath);
 
@@ -213,11 +208,11 @@ public class FileUpload {
       // 파일 삭제 시도
       if (!file.delete()) {
         // 파일 삭제에 실패한 경우 IOException 던지기
-        throw new IOException("파일 삭제에 실패했습니다: " + filePath);
+        throw new IOException("E_DEL_FILE");
       }
     }
 
-    File directory = new File(memberRecipeImages.getServerImgPath());
+    File directory = new File(folderPath);
 
     if (directory.exists() && directory.isDirectory()) {
       // 폴더가 존재하고 디렉토리인 경우
@@ -226,11 +221,10 @@ public class FileUpload {
       if (files == null || files.length == 0) {
         if (!directory.delete()) {
           // 파일 삭제에 실패한 경우 IOException 던지기
-          throw new IOException("폴더 삭제에 실패했습니다: " + filePath);
+          throw new IOException("E_DEL_FILE");
         }
       }
     }
-    return "파일이 삭제되었습니다.";
   }
 
 }

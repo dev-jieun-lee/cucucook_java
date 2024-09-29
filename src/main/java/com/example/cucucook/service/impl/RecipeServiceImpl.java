@@ -11,7 +11,6 @@ import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.nio.charset.StandardCharsets;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -26,7 +25,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.common.CommonMethod;
-import com.example.cucucook.common.FileUpload;
+import com.example.cucucook.common.FileUploadUtil;
 import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.MemberRecipeImages;
 import com.example.cucucook.domain.MemberRecipeIngredient;
@@ -37,7 +36,6 @@ import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.mapper.RecipeMapper;
 import com.example.cucucook.service.RecipeService;
-import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
@@ -56,8 +54,9 @@ public class RecipeServiceImpl implements RecipeService {
   @Autowired
   private RecipeMapper recipeMapper;
   @Autowired
-  private FileUpload fileUpload;
+  private FileUploadUtil fileUploadUtil;
 
+  /* 공공 api */
   // 회원 레시피 목록 외부API
   @Override
   public ApiResponse<List<PublicRecipe>> getPublicRecipeList(String search, int start, int display,
@@ -136,49 +135,6 @@ public class RecipeServiceImpl implements RecipeService {
     return new ApiResponse<>(success, message, publicRecipeList, addDataMap);
   }
 
-  // 회원 레시피 목록
-  @Override
-  public ApiResponse<List<MemberRecipe>> getMemberRecipeList(String search, String recipeCategoryId, int start,
-      int display, String orderby, int memberId) {
-
-    String message;
-    String recipeId;
-    boolean success = false;
-    boolean hasMore = false;
-    int memberRecipeTotalCnt;
-
-    Map<String, Object> addDataMap = new HashMap<>();
-
-    List<MemberRecipe> memberRecipeList = null;
-
-    try {
-      memberRecipeList = recipeMapper.getMemberRecipeList(search, recipeCategoryId, start, display,
-          orderby);
-
-      for (MemberRecipe memberRecipe : memberRecipeList) {
-        boolean isMemberRecipeLike = false;
-        recipeId = memberRecipe.getRecipeId();
-        if (memberId > 0)
-          isMemberRecipeLike = recipeMapper.isMemberRecipeLike(recipeId, memberId) > 0;
-        memberRecipe.setMemberRecipeLike(isMemberRecipeLike);
-      }
-
-      memberRecipeTotalCnt = recipeMapper.getMemberRecipeCount(search, recipeCategoryId, orderby);
-      message = (memberRecipeList == null || memberRecipeList.isEmpty()) ? "E_IS_DATA"
-          : "S_IS_DATA";
-      success = memberRecipeList != null && !memberRecipeList.isEmpty();
-      if (memberRecipeList != null && memberRecipeList.size() == display)
-        hasMore = true;
-      addDataMap.put("hasMore", hasMore);
-      addDataMap.put("totalCnt", memberRecipeTotalCnt);
-    } catch (Exception e) {
-      message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
-      System.err.println("An error occurred: " + e.getMessage());
-    }
-
-    return new ApiResponse<>(success, message, memberRecipeList, addDataMap);
-  }
-
   // 회원 레시피 목록 외부API
   @Override
   public ApiResponse<PublicRecipe> getPublicRecipe(String search, int start,
@@ -234,6 +190,50 @@ public class RecipeServiceImpl implements RecipeService {
     return new ApiResponse<>(success, message, publicRecipe, addDataMap);
   }
 
+  /* 회원 레시피 */
+  // 회원 레시피 목록
+  @Override
+  public ApiResponse<List<MemberRecipe>> getMemberRecipeList(String search, String recipeCategoryId, int start,
+      int display, String orderby, int memberId) {
+
+    String message;
+    String recipeId;
+    boolean success = false;
+    boolean hasMore = false;
+    int memberRecipeTotalCnt;
+
+    Map<String, Object> addDataMap = new HashMap<>();
+
+    List<MemberRecipe> memberRecipeList = null;
+
+    try {
+      memberRecipeList = recipeMapper.getMemberRecipeList(search, recipeCategoryId, start, display,
+          orderby);
+
+      for (MemberRecipe memberRecipe : memberRecipeList) {
+        boolean isMemberRecipeLike = false;
+        recipeId = memberRecipe.getRecipeId();
+        if (memberId > 0)
+          isMemberRecipeLike = recipeMapper.isMemberRecipeLike(recipeId, memberId) > 0;
+        memberRecipe.setMemberRecipeLike(isMemberRecipeLike);
+      }
+
+      memberRecipeTotalCnt = recipeMapper.getMemberRecipeCount(search, recipeCategoryId, orderby);
+      message = (memberRecipeList == null || memberRecipeList.isEmpty()) ? "E_IS_DATA"
+          : "S_IS_DATA";
+      success = memberRecipeList != null && !memberRecipeList.isEmpty();
+      if (memberRecipeList != null && memberRecipeList.size() == display)
+        hasMore = true;
+      addDataMap.put("hasMore", hasMore);
+      addDataMap.put("totalCnt", memberRecipeTotalCnt);
+    } catch (Exception e) {
+      message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
+      System.err.println("An error occurred: " + e.getMessage());
+    }
+
+    return new ApiResponse<>(success, message, memberRecipeList, addDataMap);
+  }
+
   // 회원 레시피 상세보기
   // 레시피, 재료, 과정, 이미지, 레시피 찜수 다 포함되어야함
   @Override
@@ -259,31 +259,17 @@ public class RecipeServiceImpl implements RecipeService {
       // 재료 있으면 넣어주기
       List<MemberRecipeIngredient> memberRecipeIngredient = recipeMapper.getMemberRecipeIngredientList(recipeId);
       if (memberRecipeIngredient == null || memberRecipeIngredient.isEmpty()) {
-        throw new Exception("재료없음");
+        throw new Exception("E_IS_DATA");
       }
       result.put("memberRecipeIngredient", memberRecipeIngredient);
 
       // 과정 있으면 넣어주기
       List<MemberRecipeProcess> memberRecipeProcessList = recipeMapper.getMemberRecipeProcessList(recipeId);
       if (memberRecipeProcessList == null || memberRecipeProcessList.isEmpty()) {
-        throw new Exception("과정없음");
-      }
-
-      // 수정용
-      HashMap<String, Object> memberRecipeProcessForUpdate;
-      List<HashMap<String, Object>> memberRecipeProcessListForUpdate = new ArrayList<HashMap<String, Object>>();
-
-      for (MemberRecipeProcess memberRecipeProcess : memberRecipeProcessList) {
-        memberRecipeProcessForUpdate = new HashMap<>();
-        memberRecipeProcessForUpdate.put("image", null);
-        memberRecipeProcessForUpdate.put("serverImage", memberRecipeProcess.getMemberRecipeImages());
-        memberRecipeProcessForUpdate.put("isServerImgVisible", true);
-        memberRecipeProcessForUpdate.put("processContents", memberRecipeProcess.getContents());
-        memberRecipeProcessListForUpdate.add(memberRecipeProcessForUpdate);
+        throw new Exception("E_IS_DATA");
       }
 
       result.put("memberRecipeProcessList", memberRecipeProcessList);
-      result.put("memberRecipeProcessListForUpdate", memberRecipeProcessListForUpdate);
 
       memberRecipeHashMap = result;
 
@@ -305,8 +291,11 @@ public class RecipeServiceImpl implements RecipeService {
   // 회원 레시피 글쓰기 레시피, 재료, 과정, 이미지 다 포함되어야함
   @Override
   @Transactional(rollbackFor = Exception.class)
-  public ApiResponse<Integer> insertMemberRecipe(Map<String, Object> memberRecipeInfo,
-      MultipartFile thumbnail, List<MultipartFile> recipeProcessImages) throws Exception {
+  public ApiResponse<Integer> insertMemberRecipe(MemberRecipe memberRecipe,
+      List<MemberRecipeIngredient> memberRecipeIngredientList,
+      MultipartFile thumbnailImage, List<String> recipeProcessItemsContentsList,
+      List<MultipartFile> recipeProcessItemsImageList)
+      throws Exception {
     String message = "";
     boolean success = false;
 
@@ -316,34 +305,21 @@ public class RecipeServiceImpl implements RecipeService {
 
     Map<String, Object> addDataMap = new HashMap<>();
 
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, Object> recipeInfoMap = (Map<String, Object>) memberRecipeInfo.get("recipeInfo");
-    List<Map<String, Object>> recipeIngredientsList = (List<Map<String, Object>>) memberRecipeInfo
-        .get("recipeIngredients");
-    List<String> recipeProcessContentList = (List<String>) memberRecipeInfo
-        .get("recipeProcessContents");
-
-    MemberRecipe memberRecipe = objectMapper.convertValue(recipeInfoMap, MemberRecipe.class);
-
-    List<MemberRecipeIngredient> memberRecipeIngredientList = objectMapper.convertValue(
-        recipeIngredientsList,
-        new TypeReference<List<MemberRecipeIngredient>>() {
-        });
-
     try {
       // 1.레시피 기본정보 넣기
       recipeMapper.insertMemberRecipe(memberRecipe);
       resultRecipeId = memberRecipe.getRecipeId();
 
       // 2. 성공시 썸네일 파일 넣기 (파일 넣기 및 DB에 파일정보 넣어주기)
-      if (thumbnail != null && !"".equals(thumbnail.getOriginalFilename())) {
-        String serverFileName = fileUpload.uploadFile(thumbnail, "recipe/" + resultRecipeId);
+      if (thumbnailImage != null && thumbnailImage.getSize() > 0) {
+        String serverFileName = fileUploadUtil.uploadFile(thumbnailImage, "recipe/" + resultRecipeId);
 
-        resultImgId = insertMemberRecipeImages(thumbnail, serverFileName, resultRecipeId);
+        resultImgId = insertMemberRecipeImages(thumbnailImage, serverFileName, resultRecipeId);
 
         recipeMapper.updateMemberRecipeImgId(resultRecipeId, resultImgId);
       } else {
-        throw new Exception("썸네일없음");
+        message = "E_IS_THUMBNAIL";
+        throw new Exception(message);
       }
 
       // 3. 재료 넣기
@@ -354,31 +330,29 @@ public class RecipeServiceImpl implements RecipeService {
         recipeMapper.insertMemberRecipeIngredient(resultRecipeId, ingredient);
       }
 
-      // 4. 레시피 과정 넣기 (이미지 수, 과정수 일치 하는지 체크)
+      // 4. 레시피 과정 넣기
       int validFileCount = 0;
-
-      for (MultipartFile file : recipeProcessImages) {
+      for (MultipartFile recipeProcessItemsImage : recipeProcessItemsImageList) {
         // 유효성 검사: null이 아니고, 빈 파일이 아닌지 확인
-        if (file != null && !file.isEmpty()) {
+        if (recipeProcessItemsImage != null && recipeProcessItemsImage.getSize() > 0) {
           validFileCount++;
         }
       }
+      if (validFileCount == 0) {
+        message = "E_IS_RECIPE_IMG";
+        throw new Exception(message);
+      }
 
-      if (validFileCount == 0)
-        throw new Exception("받아온 레시피중 빈 파일이 있음");
+      for (int i = 0; i < recipeProcessItemsContentsList.size(); i++) {
 
-      if (validFileCount != recipeProcessContentList.size())
-        throw new Exception("레시피 과정내용 , 이미지 매치 안됨");
+        String serverFileName = fileUploadUtil.uploadFile(recipeProcessItemsImageList.get(i),
+            "recipe/" + resultRecipeId);
 
-      for (int i = 0; i < recipeProcessContentList.size(); i++) {
-
-        String serverFileName = fileUpload.uploadFile(recipeProcessImages.get(i), "recipe/" + resultRecipeId);
-
-        resultImgId = insertMemberRecipeImages(recipeProcessImages.get(i), serverFileName, resultRecipeId);
+        resultImgId = insertMemberRecipeImages(recipeProcessItemsImageList.get(i), serverFileName, resultRecipeId);
 
         MemberRecipeProcess process = new MemberRecipeProcess();
         process.setRecipeNumber(i + 1);
-        process.setContents(recipeProcessContentList.get(i));
+        process.setContents(recipeProcessItemsContentsList.get(i));
         process.setImgId(resultImgId);
 
         recipeMapper.insertMemberRecipeProcess(resultRecipeId, process);
@@ -390,9 +364,9 @@ public class RecipeServiceImpl implements RecipeService {
       insertResult = 1;
 
     } catch (Exception e) {
-      message = "E_ADD_DATA";
-      System.err.println("An error occurred: " + e.getMessage());
-      throw new Exception(); // Spring에 던져준다
+      message = "".equals(message) ? "E_ADD_DATA" : message;
+      throw new Exception(message);
+
     }
 
     return new ApiResponse<>(success, message, insertResult, addDataMap);
@@ -402,31 +376,20 @@ public class RecipeServiceImpl implements RecipeService {
   // 회원 레시피 수정 레시피, 재료, 과정, 이미지 다 포함되어야함
   @Override
   @Transactional(rollbackFor = Exception.class)
-  public ApiResponse<Integer> updateMemberRecipe(Map<String, Object> memberRecipeInfo,
-      MultipartFile thumbnail, List<MultipartFile> recipeProcessImages, String thumbnailServerImgId)
+  public ApiResponse<Integer> updateMemberRecipe(String recipeId, MemberRecipe memberRecipe,
+      List<MemberRecipeIngredient> memberRecipeIngredientList,
+      MultipartFile thumbnailImage, List<String> recipeProcessItemsImgIdList,
+      List<String> recipeProcessItemsContentsList, List<MultipartFile> recipeProcessItemsImageList)
       throws Exception {
     String message = "";
     boolean success = false;
 
     int insertResult = 0;
-    String recipeId;
     String resultImgId;
 
     Map<String, Object> addDataMap = new HashMap<>();
 
     ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, Object> recipeInfoMap = (Map<String, Object>) memberRecipeInfo.get("recipeInfo");
-    List<Map<String, Object>> recipeIngredientsList = (List<Map<String, Object>>) memberRecipeInfo
-        .get("recipeIngredients");
-    List<String> recipeProcessContentList = (List<String>) memberRecipeInfo
-        .get("recipeProcessContents");
-
-    MemberRecipe memberRecipe = objectMapper.convertValue(recipeInfoMap, MemberRecipe.class);
-
-    List<MemberRecipeIngredient> memberRecipeIngredientList = objectMapper.convertValue(
-        recipeIngredientsList,
-        new TypeReference<List<MemberRecipeIngredient>>() {
-        });
 
     try {
       // 1.레시피 기본정보 수정하기
@@ -438,20 +401,24 @@ public class RecipeServiceImpl implements RecipeService {
       // 1) 해당 이미지값에 해당하는 이미지 서버 데이터 삭제
       // 2) 해당 이미지값에 해당하는 이미지테이블 db삭제
       // 3) 받아온 파일 처리 업로드랑 동일하게 처리
-      if (thumbnail != null && !"".equals(thumbnail.getOriginalFilename())) {
-        if (!"".equals(thumbnailServerImgId)) {
-          MemberRecipeImages memberRecipeImages = recipeMapper.getMemberRecipeImages(thumbnailServerImgId);
-          fileUpload.deleteFile(memberRecipeImages);
-          recipeMapper.deleteMemberRecipeImages(thumbnailServerImgId);
-        }
-        String serverFileName = fileUpload.uploadFile(thumbnail, "recipe/" +
+      if (thumbnailImage != null && thumbnailImage.getSize() > 0) {
+        // 기존파일 삭제
+        MemberRecipeImages memberRecipeImages = recipeMapper.getMemberRecipeImages(memberRecipe.getImgId());
+        fileUploadUtil
+            .deleteFile(memberRecipeImages.getServerImgPath() + "/" + memberRecipeImages.getServerImgName() + "."
+                + memberRecipeImages.getExtension(), memberRecipeImages.getServerImgPath());
+        recipeMapper.deleteMemberRecipeImages(memberRecipe.getImgId());
+
+        // 새로운 파일 저장
+        String serverFileName = fileUploadUtil.uploadFile(thumbnailImage, "recipe/" +
             recipeId);
 
-        resultImgId = insertMemberRecipeImages(thumbnail, serverFileName, recipeId);
+        resultImgId = insertMemberRecipeImages(thumbnailImage, serverFileName, recipeId);
 
         recipeMapper.updateMemberRecipeImgId(recipeId, resultImgId);
       } else {
-        throw new Exception("썸네일없음");
+        message = "E_IS_THUMBNAIL";
+        throw new Exception(message);
       }
 
       // 3. 재료 넣기
@@ -465,36 +432,55 @@ public class RecipeServiceImpl implements RecipeService {
       }
 
       // 4. 레시피 과정 넣기 (이미지 수, 과정수 일치 하는지 체크)
-      // 해당 레시피에 있는 과정 일괄 삭제 후 다시 insert
-
-      // int validFileCount = 0;
-
-      // for (MultipartFile file : recipeProcessImages) {
-      // // 유효성 검사: null이 아니고, 빈 파일이 아닌지 확인
-      // if (file != null && !file.isEmpty()) {
-      // validFileCount++;
-      // }
-      // }
-
-      // if (validFileCount == 0)
-      // throw new Exception("받아온 레시피중 빈 파일이 있음");
-
-      // if (validFileCount != recipeProcessContentList.size())
-      // throw new Exception("레시피 과정내용 , 이미지 매치 안됨");
-
+      // 1) 해당 레시피에 있는 과정 일괄 삭제 후 다시 insert
+      // 2) 받아온 이미지가 있으면 새로 넣어주고 기존 이미지 삭제
+      // 3) 해당 이미지 값에 해당하는 이미지 테이블 db삭제
+      // 4) 받아온 파일 처리 업로드랑 동일하게 처리
       recipeMapper.deleteMemberRecipeProcess(recipeId, "");
-      for (int i = 0; i < recipeProcessContentList.size(); i++) {
+      int validFileCount = 0;
+      if (recipeProcessItemsImgIdList.size() != recipeProcessItemsImageList.size())
+        throw new Exception("E_IS_RECIPE_IMG");
 
-        // String serverFileName = fileUpload.uploadFile(recipeProcessImages.get(i),
-        // "recipe/" + recipeId);
+      for (int i = 0; i < recipeProcessItemsImageList.size(); i++) {
+        // 새로 업로드한 이미지가 있을 때
+        if (recipeProcessItemsImageList.get(i) != null && recipeProcessItemsImageList.get(i).getSize() > 0) {
+          validFileCount++;
+        } else {
+          if (recipeProcessItemsImgIdList.get(i).isEmpty())
+            throw new Exception("E_IS_RECIPE_IMG");
+          validFileCount++;
+        }
+      }
 
-        // resultImgId = insertMemberRecipeImages(recipeProcessImages.get(i),
-        // serverFileName, recipeId);
+      if (validFileCount == 0) {
+        message = "E_IS_RECIPE_IMG";
+        throw new Exception(message);
+      }
+
+      for (int i = 0; i < recipeProcessItemsContentsList.size(); i++) {
+
+        if (recipeProcessItemsImageList.get(i) != null && recipeProcessItemsImageList.get(i).getSize() > 0) {
+          // 기존파일 삭제
+          MemberRecipeImages memberRecipeImages = recipeMapper
+              .getMemberRecipeImages(recipeProcessItemsImgIdList.get(i));
+          fileUploadUtil
+              .deleteFile(memberRecipeImages.getServerImgPath() + "/" + memberRecipeImages.getServerImgName() + "."
+                  + memberRecipeImages.getExtension(), memberRecipeImages.getServerImgPath());
+          recipeMapper.deleteMemberRecipeImages(recipeProcessItemsImgIdList.get(i));
+
+          // 새로 업로드한 이미지 넣기
+          String serverFileName = fileUploadUtil.uploadFile(recipeProcessItemsImageList.get(i),
+              "recipe/" + recipeId);
+          resultImgId = insertMemberRecipeImages(recipeProcessItemsImageList.get(i), serverFileName, recipeId);
+        } else {
+          // 새로 업로드한 이미지가 없을 때 현재 이미지 아이디 넣어줌
+          resultImgId = recipeProcessItemsImgIdList.get(i);
+        }
 
         MemberRecipeProcess process = new MemberRecipeProcess();
         process.setRecipeNumber(i + 1);
-        process.setContents(recipeProcessContentList.get(i));
-        // process.setImgId(resultImgId);
+        process.setContents(recipeProcessItemsContentsList.get(i));
+        process.setImgId(resultImgId);
 
         recipeMapper.insertMemberRecipeProcess(recipeId, process);
       }
@@ -505,9 +491,8 @@ public class RecipeServiceImpl implements RecipeService {
       insertResult = 1;
 
     } catch (Exception e) {
-      message = "E_UPDATE_DATA";
-      System.err.println("An error occurred: " + e.getMessage());
-      throw new Exception(); // Spring에 던져준다
+      message = "".equals(message) ? "E_UPDATE_DATA" : message;
+      throw new Exception(message); // Spring에 던져준다
     }
 
     return new ApiResponse<>(success, message, insertResult, addDataMap);
@@ -539,7 +524,9 @@ public class RecipeServiceImpl implements RecipeService {
       List<MemberRecipeImages> memberRecipeImagesList = recipeMapper.getMemberRecipeImagesList(recipeId);
 
       for (MemberRecipeImages memberRecipeImages : memberRecipeImagesList) {
-        fileUpload.deleteFile(memberRecipeImages);
+        fileUploadUtil
+            .deleteFile(memberRecipeImages.getServerImgPath() + "/" + memberRecipeImages.getServerImgName() + "."
+                + memberRecipeImages.getExtension(), memberRecipeImages.getServerImgPath());
         recipeMapper.deleteMemberRecipeImages(memberRecipeImages.getImgId());
       }
 
@@ -553,17 +540,45 @@ public class RecipeServiceImpl implements RecipeService {
       success = true;
       message = "S_DEL_DATA";
       deleteResult = 1;
+    } catch (IOException e) {
+      message = "E_DEL_DATA"; // 코드 잘못됐을때 보여줄 내용
+      System.err.println("An error occurred: " + e.getMessage());
+      // e.printStackTrace(); // 오류 자세히 확인할때만 주석해제하고사용
+      throw new Exception(message); // Spring에 던져준다
     } catch (Exception e) {
       message = "E_DEL_DATA"; // 코드 잘못됐을때 보여줄 내용
       System.err.println("An error occurred: " + e.getMessage());
-      e.printStackTrace(); // 오류 자세히 확인할때만 주석해제하고사용
-      throw new Exception(); // Spring에 던져준다
+      // e.printStackTrace(); // 오류 자세히 확인할때만 주석해제하고사용
+      throw new Exception(message); // Spring에 던져준다
     }
 
     return new ApiResponse<>(success, message, deleteResult, addDataMap);
 
   }
 
+  // 이미지 정보 DB저장
+  public String insertMemberRecipeImages(MultipartFile imageFile, String serverFileName, String recipeId)
+      throws Exception {
+
+    MemberRecipeImages memberRecipeImage = new MemberRecipeImages();
+    try {
+      memberRecipeImage.setOrgImgName(fileUploadUtil.extractOriginalFileName(imageFile.getOriginalFilename()));
+      memberRecipeImage.setServerImgName(serverFileName);
+      memberRecipeImage.setExtension(fileUploadUtil.extractExtension(imageFile.getOriginalFilename(),
+          imageFile.getContentType()));
+      memberRecipeImage.setImgFileSize(Long.toString(imageFile.getSize()));
+      memberRecipeImage.setServerImgPath(fileUploadUtil.getFileDir("recipe/" + recipeId));
+      memberRecipeImage.setWebImgPath(fileUploadUtil.getFileWebDir("recipe/" + recipeId));
+      recipeMapper.insertMemberRecipeImages(memberRecipeImage);
+    } catch (Exception e) {
+      throw new Exception("E_ADD_IMG_DATA"); // Spring에 던져준다
+    }
+
+    return memberRecipeImage.getImgId();
+
+  }
+
+  /* 레시피 댓글 */
   // 회원레시피 별 댓글목록
   @Override
   public ApiResponse<List<RecipeComment>> getRecipeCommentList(String recipeId, int start, int display) {
@@ -641,8 +656,7 @@ public class RecipeServiceImpl implements RecipeService {
       success = insrtComment > 0;
     } catch (Exception e) {
       message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
-      System.err.println("An error occurred: " + e.getMessage());
-      throw new Exception(); // Spring에 던져준다
+      throw new Exception(message); // Spring에 던져준다
     }
 
     return new ApiResponse<>(success, message, insrtComment, addDataMap);
@@ -672,7 +686,7 @@ public class RecipeServiceImpl implements RecipeService {
     } catch (Exception e) {
       message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
       System.err.println("An error occurred: " + e.getMessage());
-      throw new Exception(); // Spring에 던져준다
+      throw new Exception(message); // Spring에 던져준다
     }
 
     return new ApiResponse<>(success, message, updateComment, addDataMap);
@@ -702,7 +716,7 @@ public class RecipeServiceImpl implements RecipeService {
     } catch (Exception e) {
       message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
       System.err.println("An error occurred: " + e.getMessage());
-      throw new Exception(); // Spring에 던져준다
+      throw new Exception(message); // Spring에 던져준다
     }
 
     return new ApiResponse<>(success, message, deleteComment, addDataMap);
@@ -733,11 +747,36 @@ public class RecipeServiceImpl implements RecipeService {
     } catch (Exception e) {
       message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
       System.err.println("An error occurred: " + e.getMessage());
-      throw new Exception(); // Spring에 던져준다
+      throw new Exception(message); // Spring에 던져준다
     }
 
     return new ApiResponse<>(success, message, deleteComment, addDataMap);
   }
+
+  // 댓글 평점 계산
+  public String calcAvgCommentRate(String recipeId) {
+
+    double commentAvg = 0;
+    int[] getRecipeCommentRateList = recipeMapper.getRecipeCommentRateList(recipeId);
+
+    if (getRecipeCommentRateList.length > 0) {
+      double sum = 0;
+      for (int number : getRecipeCommentRateList) {
+        sum += number; // 합계 계산
+      }
+
+      commentAvg = sum / getRecipeCommentRateList.length;
+    }
+    // 반올림
+    BigDecimal roundedAverage = BigDecimal.valueOf(commentAvg)
+        .setScale(2, RoundingMode.HALF_UP);
+    // 소수점 0 제거
+    String formattedAverage = roundedAverage.stripTrailingZeros().toPlainString();
+
+    return formattedAverage;
+  }
+
+  /* 레시피 카테고리 */
 
   // 레시피 카테고리 목록(카운터수 넣어야함)
   @Override
@@ -843,6 +882,8 @@ public class RecipeServiceImpl implements RecipeService {
 
   }
 
+  /* 좋아요 */
+
   // 회원레시피 좋아요
   @Override
   @Transactional(rollbackFor = Exception.class)
@@ -869,6 +910,7 @@ public class RecipeServiceImpl implements RecipeService {
     } catch (Exception e) {
       message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
       System.err.println("An error occurred: " + e.getMessage());
+      throw new Exception(message); // Spring에 던져준다
     }
 
     return new ApiResponse<>(success, message, recipeLikeCount, addDataMap);
@@ -901,49 +943,11 @@ public class RecipeServiceImpl implements RecipeService {
     } catch (Exception e) {
       message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
       System.err.println("An error occurred: " + e.getMessage());
+      throw new Exception(message); // Spring에 던져준다
     }
 
     return new ApiResponse<>(success, message, recipeLikeCount, addDataMap);
 
   }
 
-  // 이미지 정보 DB저장
-  public String insertMemberRecipeImages(MultipartFile imageFile, String serverFileName, String recipeId)
-      throws Exception {
-    MemberRecipeImages memberRecipeImage = new MemberRecipeImages();
-    memberRecipeImage.setOrgImgName(fileUpload.extractOriginalFileName(imageFile.getOriginalFilename()));
-    memberRecipeImage.setServerImgName(serverFileName);
-    memberRecipeImage.setExtension(fileUpload.extractExtension(imageFile.getOriginalFilename(),
-        imageFile.getContentType()));
-    memberRecipeImage.setImgFileSize(Long.toString(imageFile.getSize()));
-    memberRecipeImage.setServerImgPath(fileUpload.getFileDir("recipe/" + recipeId));
-    memberRecipeImage.setWebImgPath(fileUpload.getFileWebDir("recipe/" + recipeId));
-    recipeMapper.insertMemberRecipeImages(memberRecipeImage);
-
-    return memberRecipeImage.getImgId();
-
-  }
-
-  // 댓글 평점 계산
-  public String calcAvgCommentRate(String recipeId) {
-
-    double commentAvg = 0;
-    int[] getRecipeCommentRateList = recipeMapper.getRecipeCommentRateList(recipeId);
-
-    if (getRecipeCommentRateList.length > 0) {
-      double sum = 0;
-      for (int number : getRecipeCommentRateList) {
-        sum += number; // 합계 계산
-      }
-
-      commentAvg = sum / getRecipeCommentRateList.length;
-    }
-    // 반올림
-    BigDecimal roundedAverage = BigDecimal.valueOf(commentAvg)
-        .setScale(2, RoundingMode.HALF_UP);
-    // 소수점 0 제거
-    String formattedAverage = roundedAverage.stripTrailingZeros().toPlainString();
-
-    return formattedAverage;
-  }
 }
