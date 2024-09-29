@@ -88,13 +88,6 @@
     </association>    
 </resultMap>
 
-  <!-- 외부레시피 내부레시피 반환 -->
-  <select id="getMemberRecipeDivision" resultType="int">
-    SELECT COUNT(*)
-      FROM member_recipe
-     WHERE recipe_id = #{recipeId}
-  </select>
-
   <!-- 카테고리별 레시피 수 -->
   <select id="getRecipeCategoryListWithMemberRecipeCount" resultType="RecipeCategory">
   SELECT recipe_category_id

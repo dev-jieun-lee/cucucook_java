@@ -95,4 +95,5 @@ public class MemberRecipe implements Serializable {
 
   // 조인해서 가져오는 이미지 정보
   private MemberRecipeImages memberRecipeImages;
+
 }
