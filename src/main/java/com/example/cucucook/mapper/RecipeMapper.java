@@ -15,10 +15,6 @@ import com.example.cucucook.domain.RecipeLike;
 
 @Mapper
 public interface RecipeMapper {
-
-  // 외부레시피 내부레시피 반환
-  int getMemberRecipeDivision(@Param("recipeId") String recipeId);
-
   // 레시피 카테고리 목록(카운트별 레시피 카운트수 포함)
   List<RecipeCategory> getRecipeCategoryListWithMemberRecipeCount(@Param("search") String search);
 
@@ -162,6 +158,7 @@ public interface RecipeMapper {
   // 레시피 조회수 증가
   void updateRecipeViewCount(@Param("recipeId") String recipeId);
 
+  // 레시피 댓글 평점 목록
   int[] getRecipeCommentRateList(@Param("recipeId") String recipe_id);
 
   // 레시피 조회수 증가

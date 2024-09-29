@@ -2,7 +2,6 @@ package com.example.cucucook.controller;
 
 import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
@@ -19,14 +18,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.domain.MemberRecipe;
+import com.example.cucucook.domain.MemberRecipeIngredient;
 import com.example.cucucook.domain.PublicRecipe;
 import com.example.cucucook.domain.RecipeCategory;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.service.RecipeService;
 import com.fasterxml.jackson.core.JsonProcessingException;
-import com.fasterxml.jackson.core.type.TypeReference;
-import com.fasterxml.jackson.databind.ObjectMapper;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -38,6 +36,7 @@ public class RecipeController {
   @Autowired
   private RecipeService recipeService;
 
+  /* 공공레시피 */
   // 공공레시피 목록조회
   @GetMapping(value = "/getPublicRecipeList")
   public ApiResponse<List<PublicRecipe>> getPublicRecipeList(
@@ -57,6 +56,7 @@ public class RecipeController {
     return recipeService.getPublicRecipe(search, start, display);
   }
 
+  /* 회원레시피 */
   // 회원 레시피 목록조회
   @GetMapping(value = "/getMemberRecipeList")
   public ApiResponse<List<MemberRecipe>> getMemberRecipeList(@RequestParam String search,
@@ -79,65 +79,33 @@ public class RecipeController {
   }
 
   // 회원레시피등록
-  @PostMapping(value = "/insertMemberRecipe", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+  @PostMapping(value = "/insertMemberRecipe", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ApiResponse<Integer> insertMemberRecipe(
-      @RequestPart("recipeInfo") String recipeInfoJson,
-      @RequestPart("recipeIngredients") String recipeIngredientsJson,
-      @RequestPart("thumbnail") MultipartFile thumbnail,
-      @RequestPart("recipeProcessContents") String recipeProcessContentsJson,
-      @RequestPart("recipeProcessImages") List<MultipartFile> recipeProcessImages
-  //
-  ) throws JsonProcessingException, Exception {
-    // map으로 만들어서 서비스로 넘기기 (파일은 각각 넘겨줘야함)
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, Object> recipeInfo = objectMapper.readValue(
-        recipeInfoJson, new TypeReference<Map<String, Object>>() {
-        });
-    List<Map<String, String>> recipeIngredients = objectMapper.readValue(
-        recipeIngredientsJson, new TypeReference<List<Map<String, String>>>() {
-        });
-    List<String> recipeProcessContents = objectMapper.readValue(
-        recipeProcessContentsJson, new TypeReference<List<String>>() {
-        });
+      @RequestPart("recipeInfo") MemberRecipe memberRecipe,
+      @RequestPart("recipeIngredients") List<MemberRecipeIngredient> memberRecipeIngredientList,
+      @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage,
+      @RequestParam("recipeProcessItems.contents") List<String> recipeProcessItemsContentsList,
+      @RequestPart(value = "recipeProcessItems.image", required = false) List<MultipartFile> recipeProcessItemsImageList)
+      throws JsonProcessingException, Exception {
 
-    Map<String, Object> memberRecipeInfo = new HashMap<>();
-    memberRecipeInfo.put("recipeInfo", recipeInfo);
-    memberRecipeInfo.put("recipeIngredients", recipeIngredients);
-    memberRecipeInfo.put("recipeProcessContents", recipeProcessContents);
-
-    return recipeService.insertMemberRecipe(memberRecipeInfo, thumbnail, recipeProcessImages);
+    return recipeService.insertMemberRecipe(memberRecipe, memberRecipeIngredientList,
+        thumbnailImage, recipeProcessItemsContentsList, recipeProcessItemsImageList);
   }
 
   // 회원레시피수정
   @PostMapping(value = "/updateMemberRecipe", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
   public ApiResponse<Integer> updateMemberRecipe(
       @RequestParam("recipeId") String recipeId,
-      @RequestPart("recipeInfo") String recipeInfoJson,
-      @RequestPart("recipeIngredients") String recipeIngredientsJson,
-      @RequestPart("thumbnail") MultipartFile thumbnail,
-      @RequestPart("recipeProcessContents") String recipeProcessContentsJson,
-      @RequestPart("recipeProcessImages") List<MultipartFile> recipeProcessImages,
-      @RequestParam("thumbnailServerImgId") String thumbnailServerImgId)
+      @RequestPart("recipeInfo") MemberRecipe memberRecipe,
+      @RequestPart("recipeIngredients") List<MemberRecipeIngredient> memberRecipeIngredientList,
+      @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage,
+      @RequestParam("recipeProcessItems.imgId") List<String> recipeProcessItemsImgIdList,
+      @RequestParam("recipeProcessItems.contents") List<String> recipeProcessItemsContentsList,
+      @RequestPart(value = "recipeProcessItems.image", required = false) List<MultipartFile> recipeProcessItemsImageList)
       throws JsonProcessingException, Exception {
-    // map으로 만들어서 서비스로 넘기기 (파일은 각각 넘겨줘야함)
-    ObjectMapper objectMapper = new ObjectMapper();
-    Map<String, Object> recipeInfo = objectMapper.readValue(
-        recipeInfoJson, new TypeReference<Map<String, Object>>() {
-        });
-    List<Map<String, String>> recipeIngredients = objectMapper.readValue(
-        recipeIngredientsJson, new TypeReference<List<Map<String, String>>>() {
-        });
-    List<String> recipeProcessContents = objectMapper.readValue(
-        recipeProcessContentsJson, new TypeReference<List<String>>() {
-        });
 
-    Map<String, Object> memberRecipeInfo = new HashMap<>();
-    memberRecipeInfo.put("recipeInfo", recipeInfo);
-    memberRecipeInfo.put("recipeIngredients", recipeIngredients);
-    memberRecipeInfo.put("recipeProcessContents", recipeProcessContents);
-
-    return recipeService.updateMemberRecipe(memberRecipeInfo, thumbnail,
-        recipeProcessImages, thumbnailServerImgId);
+    return recipeService.updateMemberRecipe(recipeId, memberRecipe, memberRecipeIngredientList, thumbnailImage,
+        recipeProcessItemsImgIdList, recipeProcessItemsContentsList, recipeProcessItemsImageList);
   }
 
   // 회원 레시피 삭제
@@ -146,19 +114,7 @@ public class RecipeController {
     return recipeService.deleteMemberRecipe(recipeId);
   }
 
-  // 레시피 카테고리 목록(카운트별 레시피 카운트수 포함)
-  @GetMapping(value = "/getRecipeCategoryListWithMemberRecipeCount")
-  public ApiResponse<List<RecipeCategory>> getRecipeCategoryListWithMemberRecipeCount(@RequestParam String search) {
-    return recipeService.getRecipeCategoryListWithMemberRecipeCount(search);
-  }
-
-  // 레시피 카테고리 목록(레시피 작성을 위함)
-  @GetMapping(value = "/getRecipeCategoryListForWrite")
-  public ApiResponse<HashMap<String, Object>> getRecipeCategoryListForWrite() {
-
-    return recipeService.getRecipeCategoryListForWrite();
-  }
-
+  /* 레시피 댓글 */
   // 회원 레시피 별 댓글 조회
   @GetMapping(value = "/getRecipeCommentList")
   public ApiResponse<List<RecipeComment>> getRecipeCommentList(@RequestParam String recipeId,
@@ -200,6 +156,19 @@ public class RecipeController {
     return recipeService.deleteRecipeCommentHasChild(recipeId, commentId);
   }
 
+  /* 카테고리 */
+  // 레시피 카테고리 목록(카운트별 레시피 카운트수 포함)
+  @GetMapping(value = "/getRecipeCategoryListWithMemberRecipeCount")
+  public ApiResponse<List<RecipeCategory>> getRecipeCategoryListWithMemberRecipeCount(@RequestParam String search) {
+    return recipeService.getRecipeCategoryListWithMemberRecipeCount(search);
+  }
+
+  // 레시피 카테고리 목록(레시피 작성을 위함)
+  @GetMapping(value = "/getRecipeCategoryListForWrite")
+  public ApiResponse<HashMap<String, Object>> getRecipeCategoryListForWrite() {
+    return recipeService.getRecipeCategoryListForWrite();
+  }
+
   // 레시피 카테고리 목록 가져오기
   @GetMapping(value = "/getRecipeCategoryList")
   public ApiResponse<List<RecipeCategory>> getRecipeCategoryList(@RequestParam String search,
@@ -207,6 +176,8 @@ public class RecipeController {
       @RequestParam(value = "display", defaultValue = "10") int display) {
     return recipeService.getRecipeCategoryList(search, start, display);
   }
+
+  /* 좋아요 */
 
   // 회원 레시피 좋아요 등록 (회원직접등록)
   @PostMapping(value = "/insertMemberRecipeLike")
