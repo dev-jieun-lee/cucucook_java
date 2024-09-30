@@ -20,7 +20,9 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
+import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.service.MypageService;
 
 @RestController
@@ -55,14 +57,14 @@ public class MypageController {
             @RequestParam int page,
             @RequestParam int pageSize,
             @RequestParam int memberId,
-            @RequestParam(required = false, defaultValue = "comment") String sortOption,
+            @RequestParam(required = false, defaultValue = "reg_dt") String sortOption,
             @RequestParam(required = false, defaultValue = "DESC") String sortDirection) {
-        // logger.info("가져온 memberId 확인: {}, 정렬 옵션: {}, 정렬 방향: {}", memberId,
-        // sortOption, sortDirection);
+        logger.info("가져온 memberId 확인: {}, 정렬 옵션: {}, 정렬 방향: {}", memberId,
+                sortOption, sortDirection);
         try {
             List<RecipeComment> comments = mypageService.getMyComments(page, pageSize, memberId, sortOption,
                     sortDirection);
-            // logger.info("컨트롤러에서 받은 댓글 개수: {}", comments.size());
+            logger.info("컨트롤러에서 받은 댓글 개수: {}", comments.size());
             return ResponseEntity.ok(comments);
         } catch (Exception e) {
             logger.error("컨트롤러 댓글 목록 조회 실패: 페이지 {}, 페이지 크기 {}, 정렬 옵션: {}, 정렬 방향: {}", page, pageSize, sortOption,
@@ -229,4 +231,50 @@ public class MypageController {
         }
     }
 
+    // 레시피목록
+    @GetMapping("/getMemberRecipeList")
+    public ResponseEntity<List<MemberRecipe>> getMemberRecipeList(
+            @RequestParam int memberId,
+            @RequestParam(defaultValue = "0") int start,
+            @RequestParam(defaultValue = "5") int limit) {
+        // 로그로 컨트롤러 진입 확인
+        logger.info("Received request to fetch member board list. memberId: {}, start: {}, limit: {}", memberId, start,
+                limit);
+
+        try {
+            List<MemberRecipe> recipes = mypageService.getMemberRecipeList(memberId, start, limit);
+            logger.info("Returning {} boards for memberId: {}", recipes.size(), memberId);
+            return ResponseEntity.ok(recipes);
+        } catch (Exception e) {
+            logger.error("Error fetching member board list for memberId: {}", memberId, e);
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
+        }
+    }
+
+    @GetMapping("/getLikedRecipes")
+    public ResponseEntity<?> getLikedRecipes(@RequestParam("memberId") int memberId,
+            @RequestParam(defaultValue = "0") int start,
+            @RequestParam(defaultValue = "5") int limit) {
+        try {
+            List<RecipeLike> likedRecipes = mypageService.getRecipeLikeList(memberId, start, limit);
+            return ResponseEntity.ok(likedRecipes);
+        } catch (Exception e) {
+            return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("Error retrieving liked recipes");
+        }
+    }
+
+    // 찜 진입 시 정보 가져오기
+    @GetMapping("/getRecipeLikeListOtherInfo")
+    public List<MemberRecipe> getRecipeLikeListOtherInfo(@RequestParam("memberId") int memberId,
+            @RequestParam(required = false) String recipeCategoryId,
+            @RequestParam(required = false) String orderby,
+            @RequestParam(defaultValue = "10") int display,
+            @RequestParam(defaultValue = "0") int start) {
+        // 파라미터 로그 출력
+        logger.info(
+                "Fetching liked recipes with params: memberId={}, recipeCategoryId={}, orderby={}, display={}, start={}",
+                memberId, recipeCategoryId, orderby, display, start);
+
+        return mypageService.getRecipeLikeListOtherInfo(memberId, recipeCategoryId, orderby, display, start);
+    }
 }
