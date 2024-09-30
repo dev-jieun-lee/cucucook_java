@@ -169,14 +169,6 @@ public class RecipeController {
     return recipeService.getRecipeCategoryListForWrite();
   }
 
-  // 레시피 카테고리 목록 가져오기
-  @GetMapping(value = "/getRecipeCategoryList")
-  public ApiResponse<List<RecipeCategory>> getRecipeCategoryList(@RequestParam String search,
-      @RequestParam(value = "start", defaultValue = "0") int start,
-      @RequestParam(value = "display", defaultValue = "10") int display) {
-    return recipeService.getRecipeCategoryList(search, start, display);
-  }
-
   /* 좋아요 */
 
   // 회원 레시피 좋아요 등록 (회원직접등록)
@@ -191,6 +183,39 @@ public class RecipeController {
       @RequestParam(value = "memberId", required = false, defaultValue = "0") int memberId)
       throws Exception {
     return recipeService.deleteMemberRecipeLike(recipeId, memberId);
+  }
+
+  /* 관리자 */
+  // 레시피 카테고리 목록 가져오기
+  @GetMapping(value = "/getRecipeCategoryList")
+  public ApiResponse<List<RecipeCategory>> getRecipeCategoryList(@RequestParam String search,
+      @RequestParam(value = "start", defaultValue = "0") int start,
+      @RequestParam(value = "display", defaultValue = "10") int display,
+      @RequestParam String searchType) {
+    return recipeService.getRecipeCategoryList(search, start, display, searchType);
+  }
+
+  // 레시피 카테고리 가져오기
+  @GetMapping(value = "/getRecipeCategory")
+  public ApiResponse<RecipeCategory> getRecipeCategory(@RequestParam String recipeCategoryId) {
+    return recipeService.getRecipeCategory(recipeCategoryId);
+  }
+
+  @PostMapping(value = "/insertRecipeCategory")
+  public ApiResponse<Integer> insertRecipeCategory(@RequestBody RecipeCategory recipeCategory) throws Exception {
+    return recipeService.insertRecipeCategory(recipeCategory);
+  }
+
+  @PutMapping(value = "/updateRecipeCategory")
+  public ApiResponse<Integer> updateRecipeCategory(@RequestParam String recipeCategoryId,
+      @RequestBody RecipeCategory recipeCategory) throws Exception {
+    return recipeService.updateRecipeCategory(recipeCategoryId, recipeCategory);
+  }
+
+  // 레시피 카테고리 목록 삭제
+  @DeleteMapping(value = "/deleteRecipeCategory")
+  public ApiResponse<Integer> deleteRecipeCategory(@RequestParam String recipeCategoryId) throws Exception {
+    return recipeService.deleteRecipeCategory(recipeCategoryId);
   }
 
 }
