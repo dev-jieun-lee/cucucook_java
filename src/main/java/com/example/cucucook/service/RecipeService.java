@@ -72,14 +72,6 @@ public interface RecipeService {
   public ApiResponse<Integer> deleteRecipeCommentHasChild(String recipeId, String commentId) throws Exception;
 
   /* 레시피 카테고리 */
-  // 레시피 카테고리 목록(카운터수 넣어야함)
-  public ApiResponse<List<RecipeCategory>> getRecipeCategoryList(String search, int start, int display);
-
-  // 레시피 카테고리 수정
-  public HashMap<String, Object> insertRecipeCategory(RecipeCategory recipeCategory) throws Exception;
-
-  // 레시피 카테고리 삭제
-  public HashMap<String, Object> updateRecipeCategory(RecipeCategory recipeCategory) throws Exception;
 
   // 레시피 카테고리 목록(카운트별 레시피 카운트수 포함)
   public ApiResponse<List<RecipeCategory>> getRecipeCategoryListWithMemberRecipeCount(
@@ -94,5 +86,23 @@ public interface RecipeService {
 
   // 회원레시피 좋아요 삭제
   public ApiResponse<Integer> deleteMemberRecipeLike(String recipeId, int memberId) throws Exception;
+
+  /* 관리자 */
+  // 레시피 카테고리 목록
+  public ApiResponse<List<RecipeCategory>> getRecipeCategoryList(String search, int start, int display,
+      String searchType);
+
+  // 레시피 카테고리 조회
+  public ApiResponse<RecipeCategory> getRecipeCategory(String recipeCategoryId);
+
+  // 레시피 카테고리 추가
+  public ApiResponse<Integer> insertRecipeCategory(RecipeCategory recipeCategory) throws Exception;
+
+  // 레시피 카테고리 수정
+  public ApiResponse<Integer> updateRecipeCategory(String recipeCategoryId, RecipeCategory recipeCategory)
+      throws Exception;
+
+  // 레시피 카테고리 삭제
+  public ApiResponse<Integer> deleteRecipeCategory(String recipeCategoryId) throws Exception;
 
 }

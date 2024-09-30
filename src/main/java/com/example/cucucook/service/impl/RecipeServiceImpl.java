@@ -777,47 +777,6 @@ public class RecipeServiceImpl implements RecipeService {
   }
 
   /* 레시피 카테고리 */
-
-  // 레시피 카테고리 목록(카운터수 넣어야함)
-  @Override
-  public ApiResponse<List<RecipeCategory>> getRecipeCategoryList(String search, int start, int display) {
-
-    String message;
-    boolean success = false;
-
-    List<RecipeCategory> recipeCategoryList = null;
-    Map<String, Object> addDataMap = new HashMap<>();
-
-    try {
-      recipeCategoryList = recipeMapper.getRecipeCategoryList(start, display);
-
-      message = (recipeCategoryList == null || recipeCategoryList.isEmpty()) ? "E_IS_DATA"
-          : "S_IS_DATA";
-      success = recipeCategoryList != null && !recipeCategoryList.isEmpty();
-    } catch (Exception e) {
-      message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
-      System.err.println("An error occurred: " + e.getMessage());
-    }
-
-    return new ApiResponse<>(success, message, recipeCategoryList, addDataMap);
-  }
-
-  // 레시피 카테고리 수정
-  @Override
-  @Transactional(rollbackFor = Exception.class)
-  public HashMap<String, Object> insertRecipeCategory(RecipeCategory recipeCategory) throws Exception {
-    HashMap<String, Object> result = new HashMap<>();
-    return result;
-  }
-
-  // 레시피 카테고리 삭제
-  @Override
-  @Transactional(rollbackFor = Exception.class)
-  public HashMap<String, Object> updateRecipeCategory(RecipeCategory recipeCategory) throws Exception {
-    HashMap<String, Object> result = new HashMap<>();
-    return result;
-  }
-
   // 레시피 카테고리 목록(카운트별 레시피 카운트수 포함)
   @Override
   public ApiResponse<List<RecipeCategory>> getRecipeCategoryListWithMemberRecipeCount(
@@ -856,7 +815,7 @@ public class RecipeServiceImpl implements RecipeService {
     Map<String, Object> addDataMap = new HashMap<>();
 
     try {
-      List<RecipeCategory> allCategoryList = recipeMapper.getRecipeCategoryList(0, 0);
+      List<RecipeCategory> allCategoryList = recipeMapper.getRecipeCategoryList(0, 0, "", "");
       List<RecipeCategory> recipeCategoryList = allCategoryList.stream()
           .filter(category -> category.getDivision().equals("C")).collect(Collectors.toList());
       List<RecipeCategory> recipeMethodList = allCategoryList.stream()
@@ -948,6 +907,141 @@ public class RecipeServiceImpl implements RecipeService {
 
     return new ApiResponse<>(success, message, recipeLikeCount, addDataMap);
 
+  }
+
+  /* 관리자 */
+
+  // 레시피 카테고리 목록(카운터수 넣어야함)
+  @Override
+  public ApiResponse<List<RecipeCategory>> getRecipeCategoryList(String search, int start, int display,
+      String searchType) {
+
+    String message;
+    boolean success = false;
+
+    List<RecipeCategory> recipeCategoryList = null;
+    Map<String, Object> addDataMap = new HashMap<>();
+
+    try {
+      recipeCategoryList = recipeMapper.getRecipeCategoryList(start, display, search, searchType);
+      message = (recipeCategoryList == null || recipeCategoryList.isEmpty()) ? "E_IS_DATA"
+          : "S_IS_DATA";
+      success = recipeCategoryList != null && !recipeCategoryList.isEmpty();
+    } catch (Exception e) {
+      message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
+      System.err.println("An error occurred: " + e.getMessage());
+    }
+
+    return new ApiResponse<>(success, message, recipeCategoryList, addDataMap);
+  }
+
+  // 레시피 카테고리 보기
+  @Override
+  // 레시피 카테고리 조회
+  public ApiResponse<RecipeCategory> getRecipeCategory(String recipeCategoryId) {
+
+    String message;
+    boolean success = false;
+
+    RecipeCategory recipeCategory = null;
+    Map<String, Object> addDataMap = new HashMap<>();
+
+    try {
+      recipeCategory = recipeMapper.getRecipeCategory(recipeCategoryId);
+
+      message = recipeCategory == null ? "E_IS_DATA"
+          : "S_IS_DATA";
+      success = recipeCategory != null;
+
+    } catch (Exception e) {
+      message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
+      System.err.println("An error occurred: " + e.getMessage());
+    }
+
+    return new ApiResponse<>(success, message, recipeCategory, addDataMap);
+
+  }
+
+  // 레시피 카테고리 추가
+  @Override
+  @Transactional(rollbackFor = Exception.class)
+  public ApiResponse<Integer> insertRecipeCategory(RecipeCategory recipeCategory) throws Exception {
+    String message;
+    boolean success = false;
+
+    int result = 0;
+    Map<String, Object> addDataMap = new HashMap<>();
+
+    try {
+      result = recipeMapper.insertRecipeCategory(recipeCategory);
+
+      message = result == 0 ? "E_ADD_DATA"
+          : "E_ADD_DATA";
+      success = result > 0;
+
+    } catch (Exception e) {
+      message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
+      System.err.println("An error occurred: " + e.getMessage());
+      throw new Exception(message); // Spring에 던져준다
+    }
+
+    return new ApiResponse<>(success, message, result, addDataMap);
+
+  }
+
+  // 레시피 카테고리 수정
+  @Override
+  @Transactional(rollbackFor = Exception.class)
+  public ApiResponse<Integer> updateRecipeCategory(String recipeCategoryId, RecipeCategory recipeCategory)
+      throws Exception {
+    String message;
+    boolean success = false;
+
+    int result = 0;
+    Map<String, Object> addDataMap = new HashMap<>();
+
+    try {
+      result = recipeMapper.updateRecipeCategory(recipeCategoryId, recipeCategory);
+
+      message = result == 0 ? "E_UPDATE_DATA"
+          : "S_UPDATE_DATA";
+      success = result > 0;
+
+    } catch (Exception e) {
+      message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
+      System.err.println("An error occurred: " + e.getMessage());
+      throw new Exception(message); // Spring에 던져준다
+    }
+
+    return new ApiResponse<>(success, message, result, addDataMap);
+  }
+
+  // 레시피 카테고리 삭제
+  @Override
+  @Transactional(rollbackFor = Exception.class)
+  public ApiResponse<Integer> deleteRecipeCategory(String recipeCategoryId) throws Exception {
+    String message;
+    boolean success = false;
+    int result = 0;
+    Map<String, Object> addDataMap = new HashMap<>();
+    try {
+      // 해당 카테고리를 사용하는 레시피가 있는지 확인
+      int count = recipeMapper.countByRecipeCategoryId(recipeCategoryId);
+      if (count > 0) {
+        message = "ERR_CG_01";
+        return new ApiResponse<>(success, message, result, addDataMap);
+      }
+
+      result = recipeMapper.deleteRecipeCategory(recipeCategoryId);
+
+      message = (result > 0) ? "S_DEL_DATA" : "ERR_CG_02";
+      success = result > 0;
+    } catch (Exception e) {
+      message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
+      System.err.println("An error occurred: " + e.getMessage());
+      throw new Exception(message); // Spring에 던져준다
+    }
+    return new ApiResponse<>(success, message, result, addDataMap);
   }
 
 }

@@ -126,7 +126,8 @@ public interface RecipeMapper {
   int getRecipeCategoryCount();
 
   // 레시피 카테고리 목록
-  List<RecipeCategory> getRecipeCategoryList(@Param("start") int start, @Param("display") int display);
+  List<RecipeCategory> getRecipeCategoryList(@Param("start") int start, @Param("display") int display,
+      @Param("search") String search, @Param("searchType") String searchType);
 
   // 레시피 카테고리 보기
   RecipeCategory getRecipeCategory(@Param("recipeCategoryId") String recipeCategoryId);
@@ -135,7 +136,8 @@ public interface RecipeMapper {
   int insertRecipeCategory(@Param("recipeCategory") RecipeCategory recipeCategory);
 
   // 레시피 카테고리 수정
-  int updateRecipeCategory(@Param("recipeCategory") RecipeCategory recipeCategory);
+  int updateRecipeCategory(@Param("recipeCategoryId") String recipeCategoryId,
+      @Param("recipeCategory") RecipeCategory recipeCategory);
 
   // 레시피 카테고리 삭제
   int deleteRecipeCategory(@Param("recipeCategoryId") String recipeCategoryId);
@@ -164,4 +166,6 @@ public interface RecipeMapper {
   // 레시피 조회수 증가
   void updateRecipeCommentRate(@Param("recipeId") String recipeId, @Param("commentAvg") String commentAvg);
 
+  // 카테고리 안 레시피 존재여부
+  int countByRecipeCategoryId(@Param("recipeCategoryId") String recipeCategoryId);
 }
