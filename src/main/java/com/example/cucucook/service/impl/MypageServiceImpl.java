@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.Member;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.mapper.MemberMapper;
@@ -104,37 +105,9 @@ public class MypageServiceImpl implements MypageService {
     }
 
     @Override
-    public List<RecipeComment> getRecipeCommentList(Long memberId, int start, int display) {
-        // 구현이 필요함
-        return Collections.emptyList();
-    }
-
-    @Override
     public int getMemberRecipeLikeCount(Long memberId) {
         // 구현이 필요함
         return 0;
-    }
-
-    @Override
-    public List<RecipeLike> getRecipeLikeList(Long memberId, int start, int display) {
-        // 구현이 필요함
-        return Collections.emptyList();
-    }
-
-    @Override
-    public RecipeLike getRecipeLike(Long memberId, String recipeId) {
-        // 구현이 필요함
-        return new RecipeLike();
-    }
-
-    @Override
-    public void addRecipeLike(RecipeLike recipeLike) {
-        // 구현이 필요함
-    }
-
-    @Override
-    public void removeRecipeLike(Long memberId, String recipeId) {
-        // 구현이 필요함
     }
 
     ///////// 댓글
@@ -241,5 +214,34 @@ public class MypageServiceImpl implements MypageService {
             logger.error("Error fetching member board list for memberId: {}", memberId, e);
             throw e; // 오류를 다시 던져서 컨트롤러에서 처리
         }
+    }
+
+    @Override
+    public List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit) {
+
+        logger.info("Fetching member board list. memberId: {}, start: {}, limit: {}", memberId, start, limit);
+
+        try {
+            List<MemberRecipe> recipes = mypageMapper.getMemberRecipeList(memberId, start, limit);
+            logger.info("Fetched {} recipes for memberId: {}", recipes.size(), memberId);
+            return recipes;
+        } catch (Exception e) {
+            logger.error("Error fetching member recipe list for memberId: {}", memberId, e);
+            throw e;
+        }
+    }
+
+    // 찜
+    @Override
+    public List<RecipeLike> getRecipeLikeList(int memberId, int start, int limit) {
+        return mypageMapper.getRecipeLikeList(memberId, start, limit);
+    }
+
+    // 찜 진입시 가져오기
+    @Override
+    public List<MemberRecipe> getRecipeLikeListOtherInfo(int memberId, String recipeCategoryId,
+            String orderby,
+            int display, int start) {
+        return mypageMapper.getRecipeLikeListOtherInfo(memberId, recipeCategoryId, orderby, display, start);
     }
 }

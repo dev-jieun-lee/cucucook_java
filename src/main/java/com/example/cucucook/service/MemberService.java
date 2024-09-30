@@ -53,4 +53,7 @@ public interface MemberService {
 
     Member validateMemberByUserId(String userId);
 
+    // 카카오 로그인
+    String kakaoLogin(String code) throws Exception;
+
 }

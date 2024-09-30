@@ -6,6 +6,7 @@ import org.apache.ibatis.annotations.Mapper;
 import org.apache.ibatis.annotations.Param;
 
 import com.example.cucucook.domain.Board;
+import com.example.cucucook.domain.MemberRecipe;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 
@@ -33,12 +34,6 @@ public interface MypageMapper {
 
         // 회원 레시피 찜 보기
         RecipeLike getRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
-
-        // 회원 레시피 찜 추가
-        void insertRecipeLike(@Param("recipeLike") RecipeLike recipeLike);
-
-        // 회원 레시피 찜 삭제
-        void deleteRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
 
         // 댓글//
         // 내가 쓴 댓글 가져오기
@@ -89,5 +84,16 @@ public interface MypageMapper {
         int getWriteCount(int memberId);
 
         int getReplyCount(int memberId);
+
+        // 회원 레시피 가져오기
+        List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit);
+
+        // 찜페이지 진입시 정보가져오기
+        List<MemberRecipe> getRecipeLikeListOtherInfo(
+                        @Param("memberId") int memberId,
+                        @Param("recipeCategoryId") String recipeCategoryId,
+                        @Param("orderby") String orderby,
+                        @Param("display") int display,
+                        @Param("start") int start);
 
 }
