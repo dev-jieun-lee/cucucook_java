@@ -5,6 +5,18 @@
 
 <mapper namespace="com.example.cucucook.mapper.MemberMapper">
 
+<resultMap id="MemberResultMap" type="Member">
+    <result property="memberId" column="member_id"/>
+    <result property="userId" column="user_id"/>
+    <result property="name" column="name"/>
+    <result property="phone" column="phone"/>
+    <result property="password" column="password"/>
+    <result property="role" column="role"/>
+    <result property="email" column="email"/>
+    <result property="smsNoti" column="sms_noti"/>
+    <result property="emailNoti" column="email_noti"/>
+</resultMap>
+
     <!-- 사용자 아이디를 기준으로 사용자를 조회 -->
     <select id="findByUserId" parameterType="String" resultType="com.example.cucucook.domain.Member">
         SELECT member_id, user_id, name, phone, password, role, email, sms_noti, email_noti, failed_attempts
@@ -27,13 +39,27 @@
     </select>
 
     <!-- 회원 목록 조회 -->
-    <select id="getMemberList" parameterType="map" resultType="com.example.cucucook.domain.Member">
-        SELECT member_id, user_id, name, phone, password, role, email, sms_noti, email_noti
-        FROM member
-        WHERE name LIKE CONCAT('%', #{search}, '%')
-        ORDER BY member_id
-        LIMIT #{start}, #{display}
+    <select id="getMemberList" resultMap="MemberResultMap">
+    SELECT member_id, user_id, name, phone, password, role, email, sms_noti, email_noti
+    FROM member
+    <where>
+        <if test="search != null and search.trim() != ''">
+            <choose>
+                <when test="searchType == 'name'">
+                    AND name LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'userId'">
+                    AND user_id LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'all'">
+                    AND (name LIKE CONCAT('%', #{search}, '%') OR user_id LIKE CONCAT('%', #{search}, '%'))
+                </when>
+            </choose>
+        </if>
+    </where>
+    ORDER BY member_id DESC
     </select>
+
 
     <!-- 회원 보기 -->
     <select id="getMember" parameterType="int" resultType="com.example.cucucook.domain.Member">

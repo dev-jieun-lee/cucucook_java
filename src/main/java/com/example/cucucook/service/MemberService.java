@@ -2,6 +2,7 @@ package com.example.cucucook.service;
 
 import java.util.List;
 
+import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
 
@@ -29,7 +30,8 @@ public interface MemberService {
 
     int getMemberCount(String search);
 
-    List<Member> getMemberList(String search, int start, int display);
+    // 회원 리스트 조회
+    public ApiResponse<List<Member>> getMemberList(String search, String searchType, int start, int display);
 
     // 아이디 찾기
     Member findId(Member member);
