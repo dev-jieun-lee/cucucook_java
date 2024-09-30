@@ -684,13 +684,46 @@
       FROM recipe_category
   </select>
 
+  <!-- 카테고리 사용하는 레시피 조회 -->
+  <select id="countByRecipeCategoryId" resultType="int">
+  SELECT COUNT(*)
+    FROM member_recipe
+   WHERE recipe_category_id = #{recipeCategoryId}
+      OR method = #{recipeCategoryId}
+      OR img_id = #{recipeCategoryId}
+  </select>
+
   <!-- 레시피 카테고리 목록 -->
   <select id="getRecipeCategoryList" resultType="RecipeCategory">
     SELECT recipe_category_id
           ,name
           ,name_en
           ,division
+          ,reg_dt
+          ,upt_dt
       FROM recipe_category
+    <where>
+      <if test="search != '' and search != null">
+        <choose>
+          <when test="searchType == 'nameEn'">
+              AND name_en LIKE CONCAT('%', #{search}, '%')
+          </when>
+          <when test="searchType == 'name'">
+              AND name LIKE CONCAT('%', #{search}, '%')
+          </when>
+          <when test="searchType == 'division'">
+              <!-- search가 'all'일 경우 전체 조회 -->
+              <if test="search == 'all'">
+                  1 = 1 <!-- 조건 없음, 전체 조회 -->
+              </if>
+              <if test="search != 'all'">
+                  AND division LIKE CONCAT('%', #{search}, '%')
+              </if>
+          </when>
+        </choose>
+      </if>
+    </where>
+    ORDER BY reg_dt DESC
     <if test="start != 0 and display != 0">
     LIMIT #{start}, #{display}
     </if>    
@@ -700,6 +733,8 @@
   <select id="getRecipeCategory" resultType="RecipeCategory">
     SELECT recipe_category_id
           ,name
+          ,name_en
+          ,division
       FROM recipe_category
      WHERE recipe_category_id = #{recipeCategoryId}
   </select>
@@ -707,16 +742,23 @@
   <!-- 레시피 카테고리 추가 -->
   <insert id="insertRecipeCategory">
     INSERT INTO recipe_category
-                (recipe_category_id
-                ,name)
-            VALUES #{recipeCategory.recipe_category_id}
-                  ,#{recipeCategory.name}
+                (name
+                ,name_en
+                ,division
+                ,reg_dt)
+            VALUES( #{recipeCategory.name}
+                    ,#{recipeCategory.nameEn}
+                    ,#{recipeCategory.division}
+                    ,TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'))
   </insert>
 
   <!-- 레시피 카테고리 수정 -->
   <update id="updateRecipeCategory">
     UPDATE recipe_category
-       SET name = #{name}
+       SET name = #{recipeCategory.name}
+          ,name_en = #{recipeCategory.nameEn}
+          ,division = #{recipeCategory.division}
+          ,upt_dt = TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS')
      WHERE recipe_category_id = #{recipeCategoryId}
   </update>
 
@@ -740,7 +782,6 @@
      WHERE recipe_id = #{recipeId}
        AND member_id = #{memberId}
   </select>
-
 
   <!-- 레시피 찜 수 추가(회원이 등록) -->
   <insert id="insertMemberRecipeLike">
