@@ -14,8 +14,10 @@ import org.slf4j.LoggerFactory;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import com.example.cucucook.common.ApiResponse;
+import com.example.cucucook.domain.KakaoProperties;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
 import com.example.cucucook.domain.VerificationCode;
@@ -33,14 +35,17 @@ public class MemberServiceImpl implements MemberService {
     private final MemberMapper memberMapper;
     private final PasswordEncoder passwordEncoder;
     private final EmailService emailService;
+    private final KakaoProperties kakaoProperties;
 
-    // 추가된 필드 - 로그인 실패 기록 저장
+    // 로그인 실패 기록 저장
     private final Map<String, Integer> failedAttemptsMap = new HashMap<>();
 
-    public MemberServiceImpl(MemberMapper memberMapper, PasswordEncoder passwordEncoder, EmailService emailService) {
+    public MemberServiceImpl(MemberMapper memberMapper, PasswordEncoder passwordEncoder, EmailService emailService,
+            KakaoProperties kakaoProperties) {
         this.memberMapper = memberMapper;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
+        this.kakaoProperties = kakaoProperties;
     }
 
     @Override
@@ -53,10 +58,12 @@ public class MemberServiceImpl implements MemberService {
         Member member = memberMapper.findByUserId(userId);
         if (member != null) {
             if (member.getLockoutTime() != null && member.getLockoutTime().isAfter(LocalDateTime.now())) {
+                // AccountLockedException 예외 발생 시
                 throw new AccountLockedException("계정이 잠금 상태입니다.", member.getFailedAttempts(),
-                        ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime()), null);
+                        ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime()));
             }
-            // validateMember 메서드에서 비밀번호가 틀렸을 때 예외 발생
+
+            // 비밀번호가 틀렸을 때 예외 발생
             if (!passwordEncoder.matches(password, member.getPassword())) {
                 increaseFailedAttempts(userId);
                 member = memberMapper.findByUserId(userId); // 업데이트된 데이터를 다시 가져옴
@@ -66,16 +73,13 @@ public class MemberServiceImpl implements MemberService {
                         ? ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime())
                         : 0;
 
-                // InvalidPasswordException을 던져서 컨트롤러에서 처리
-                logger.info("InvalidPasswordException 발생: userId: {}, 실패 횟수: {}, 남은 잠금 시간: {}초",
+                logger.warn("InvalidPasswordException 발생: userId: {}, 실패 횟수: {}, 남은 잠금 시간: {}초",
                         userId, member.getFailedAttempts(), lockoutTimeRemaining);
 
                 throw new InvalidPasswordException(
                         "비밀번호가 잘못되었습니다.",
-                        member.getFailedAttempts(), // 이 부분에서 member 객체의 실패 횟수를 가져옴
-                        lockoutTimeRemaining // 잠금 시간이 남아있는 경우 해당 값 전달
-                );
-
+                        member.getFailedAttempts(),
+                        lockoutTimeRemaining);
             }
 
             resetFailedAttempts(userId);
@@ -86,31 +90,34 @@ public class MemberServiceImpl implements MemberService {
 
     @Transactional
     public void increaseFailedAttempts(String userId) {
+        logger.info("사용자 ID {}에 대한 로그인 실패 횟수를 업데이트합니다.", userId);
+
+        // 실패 횟수 조회
         Member member = memberMapper.findByUserId(userId);
         if (member != null) {
-            // 실패 기록을 메모리에서도 관리하여 이전에 입력한 아이디 추적
-            int failedAttempts = failedAttemptsMap.getOrDefault(userId, member.getFailedAttempts()) + 1;
+            int currentAttempts = member.getFailedAttempts();
+            logger.info("업데이트 전 실패 횟수: {}", currentAttempts);
 
-            // 실패 횟수 데이터베이스 업데이트
-            memberMapper.updateFailedAttempts(userId, failedAttempts);
-            failedAttemptsMap.put(userId, failedAttempts); // 메모리에서도 업데이트
+            // 실패 횟수 업데이트
 
-            logger.info("서비스임플의 increase 사용자 '{}'의 실패 횟수가 '{}'로 업데이트되었습니다.", userId, failedAttempts);
+            memberMapper.updateFailedAttempts(userId);
+            logger.info("실패 횟수 업데이트 쿼리 실행 완료: 사용자 ID = {}", userId);
 
-            // 실패 횟수가 5회 이상이면 계정 잠금
-            if (failedAttempts >= 5) {
-                lockMemberAccount(userId);
+            // 업데이트 후 실패 횟수 재조회
+            Member updatedMember = memberMapper.findByUserId(userId);
+            if (updatedMember != null) {
+                logger.info("업데이트 후 실패 횟수: {}", updatedMember.getFailedAttempts());
+            } else {
+                logger.error("업데이트 후 사용자 정보를 다시 조회하는데 실패했습니다. 사용자 ID = {}", userId);
             }
         } else {
-            logger.warn("사용자 '{}'를 데이터베이스에서 찾을 수 없습니다. 실패 횟수를 증가시킬 수 없습니다.", userId);
+            logger.warn("해당 사용자 ID를 찾을 수 없습니다: {}", userId);
         }
     }
 
     @Transactional
     public void resetFailedAttempts(String userId) {
         memberMapper.resetFailedAttempts(userId);
-        failedAttemptsMap.remove(userId); // 메모리에서도 초기화
-        logger.info("사용자 '{}'의 실패 횟수가 초기화되었습니다.", userId);
     }
 
     @Transactional
@@ -120,7 +127,6 @@ public class MemberServiceImpl implements MemberService {
         params.put("userId", userId);
         params.put("lockoutTime", lockoutTime);
         memberMapper.lockAccount(params);
-        logger.info("사용자 '{}'의 계정이 '{}'까지 잠금되었습니다.", userId, lockoutTime);
     }
 
     @Override
@@ -283,6 +289,29 @@ public class MemberServiceImpl implements MemberService {
     @Override
     public void deleteMember(int memberId) {
         memberMapper.deleteMember(memberId);
+    }
+
+    // 카카오로그인
+    @Override
+    public String kakaoLogin(String code) throws Exception {
+        // REST API로 카카오 토큰 요청
+        RestTemplate restTemplate = new RestTemplate();
+        String tokenUrl = "https://kauth.kakao.com/oauth/token";
+
+        // 토큰 요청 파라미터 설정
+        String requestBody = String.format(
+                "grant_type=authorization_code&client_id=%s&redirect_uri=%s&code=%s&client_secret=%s",
+                kakaoProperties.getClientId(), kakaoProperties.getRedirectUri(), code,
+                kakaoProperties.getClientSecret());
+
+        // 요청 및 응답 처리
+        Map<String, Object> response = restTemplate.postForObject(tokenUrl, requestBody, Map.class);
+        if (response == null || !response.containsKey("access_token")) {
+            throw new Exception("카카오 토큰 요청 실패");
+        }
+
+        // access_token 반환
+        return response.get("access_token").toString();
     }
 
 }

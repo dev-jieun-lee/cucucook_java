@@ -162,11 +162,12 @@
     </insert>
 
     <!-- 실패 횟수 업데이트 -->
-<update id="updateFailedAttempts" parameterType="map">
-    UPDATE member
-    SET failed_attempts = #{failedAttempts}
-    WHERE user_id = #{userId}
-</update>
+    <update id="updateFailedAttempts" parameterType="String">
+        UPDATE member
+        SET failed_attempts = failed_attempts + 1
+        WHERE user_id = #{userId}
+    </update>
+
 
     <!-- 실패 횟수 초기화 -->
     <update id="resetFailedAttempts" parameterType="String">
