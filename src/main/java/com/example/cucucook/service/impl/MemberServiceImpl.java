@@ -15,6 +15,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
 import com.example.cucucook.domain.VerificationCode;
@@ -169,9 +170,16 @@ public class MemberServiceImpl implements MemberService {
         return memberMapper.getMemberCount(search);
     }
 
+    // 회원 목록 조회
     @Override
-    public List<Member> getMemberList(String search, int start, int display) {
-        return memberMapper.getMemberList(search, start, display);
+    public ApiResponse<List<Member>> getMemberList(String search, String searchType, int start, int display) {
+        start = start > 0 ? start : 1;
+        display = display > 0 ? display : 10;
+
+        List<Member> memberList = memberMapper.getMemberList(search, searchType, start, display);
+        String message = (memberList == null || memberList.isEmpty()) ? "회원 목록이 없습니다." : "회원 목록 조회 성공";
+        boolean success = memberList != null && !memberList.isEmpty();
+        return new ApiResponse<>(success, message, memberList, null);
     }
 
     // 아이디찾기
@@ -276,4 +284,5 @@ public class MemberServiceImpl implements MemberService {
     public void deleteMember(int memberId) {
         memberMapper.deleteMember(memberId);
     }
+
 }
