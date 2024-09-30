@@ -3,6 +3,8 @@ package com.example.cucucook.service;
 import java.util.HashMap;
 import java.util.List;
 
+import org.springframework.http.ResponseEntity;
+
 import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.BoardCategory;
@@ -29,11 +31,19 @@ public interface BoardService {
   public HashMap<String, Object> deleteBoard(String boardId);
 
   // 카테고리 목록
-  public ApiResponse<List<BoardCategory>> getBoardCategoryList(int start, int display);
+  public ApiResponse<List<BoardCategory>> getBoardCategoryList(int start, int display, String search,
+      String searchType);
 
   // 카테고리 상세
   public HashMap<String, Object> getBoardCategory(String boardCategoryId);
 
   // 카테고리 등록
   public HashMap<String, Object> insertBoardCategory(BoardCategory boardCategory);
+
+  // 카테고리 수정
+  public HashMap<String, Object> updateBoardCategory(String boardCategoryId, BoardCategory boardCategory);
+
+  // 카테고리 삭제
+  public ResponseEntity<HashMap<String, Object>> deleteBoardCategory(String boardCategoryId);
+
 }
