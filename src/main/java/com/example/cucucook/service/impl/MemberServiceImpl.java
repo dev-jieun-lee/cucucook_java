@@ -24,6 +24,7 @@ import com.example.cucucook.exception.AccountLockedException;
 import com.example.cucucook.exception.InvalidPasswordException;
 import com.example.cucucook.mapper.MemberMapper;
 import com.example.cucucook.service.EmailService;
+import com.example.cucucook.service.LoginAttemptService;
 import com.example.cucucook.service.MemberService;
 
 @Service
@@ -39,12 +40,15 @@ public class MemberServiceImpl implements MemberService {
     // 로그인 실패 기록 저장
     private final Map<String, Integer> failedAttemptsMap = new HashMap<>();
 
+    private LoginAttemptService loginAttemptService;
+
     public MemberServiceImpl(MemberMapper memberMapper, PasswordEncoder passwordEncoder, EmailService emailService,
-            KakaoProperties kakaoProperties) {
+            KakaoProperties kakaoProperties, LoginAttemptService loginAttemptService) {
         this.memberMapper = memberMapper;
         this.passwordEncoder = passwordEncoder;
         this.emailService = emailService;
         this.kakaoProperties = kakaoProperties;
+        this.loginAttemptService = loginAttemptService;
     }
 
     @Override
@@ -57,27 +61,22 @@ public class MemberServiceImpl implements MemberService {
         Member member = memberMapper.findByUserId(userId);
         if (member != null) {
             if (member.getLockoutTime() != null && member.getLockoutTime().isAfter(LocalDateTime.now())) {
-                // AccountLockedException 예외 발생 시
                 throw new AccountLockedException("계정이 잠금 상태입니다.", member.getFailedAttempts(),
                         ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime()));
             }
 
-            // 비밀번호가 틀렸을 때 예외 발생
             if (!passwordEncoder.matches(password, member.getPassword())) {
-                increaseFailedAttempts(userId);
-                member = memberMapper.findByUserId(userId); // 업데이트된 데이터를 다시 가져옴
-
-                // 남은 잠금 시간 계산
+                int updatedAttempts = loginAttemptService.increaseFailedAttempts(userId);
                 long lockoutTimeRemaining = member.getLockoutTime() != null
                         ? ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime())
                         : 0;
 
                 logger.warn("InvalidPasswordException 발생: userId: {}, 실패 횟수: {}, 남은 잠금 시간: {}초",
-                        userId, member.getFailedAttempts(), lockoutTimeRemaining);
+                        userId, updatedAttempts, lockoutTimeRemaining);
 
                 throw new InvalidPasswordException(
                         "비밀번호가 잘못되었습니다.",
-                        member.getFailedAttempts(),
+                        updatedAttempts, // 최신 실패 횟수 사용
                         lockoutTimeRemaining);
             }
 
@@ -85,33 +84,6 @@ public class MemberServiceImpl implements MemberService {
             return member;
         }
         throw new RuntimeException("사용자를 찾을 수 없습니다.");
-    }
-
-    @Transactional
-    public void increaseFailedAttempts(String userId) {
-        logger.info("사용자 ID {}에 대한 로그인 실패 횟수를 업데이트합니다.", userId);
-
-        // 실패 횟수 조회
-        Member member = memberMapper.findByUserId(userId);
-        if (member != null) {
-            int currentAttempts = member.getFailedAttempts();
-            logger.info("업데이트 전 실패 횟수: {}", currentAttempts);
-
-            // 실패 횟수 업데이트
-
-            memberMapper.updateFailedAttempts(userId);
-            logger.info("실패 횟수 업데이트 쿼리 실행 완료: 사용자 ID = {}", userId);
-
-            // 업데이트 후 실패 횟수 재조회
-            Member updatedMember = memberMapper.findByUserId(userId);
-            if (updatedMember != null) {
-                logger.info("업데이트 후 실패 횟수: {}", updatedMember.getFailedAttempts());
-            } else {
-                logger.error("업데이트 후 사용자 정보를 다시 조회하는데 실패했습니다. 사용자 ID = {}", userId);
-            }
-        } else {
-            logger.warn("해당 사용자 ID를 찾을 수 없습니다: {}", userId);
-        }
     }
 
     @Transactional

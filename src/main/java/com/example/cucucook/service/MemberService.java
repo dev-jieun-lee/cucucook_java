@@ -43,7 +43,7 @@ public interface MemberService {
     boolean verifyEmailCode(String email, String code);
 
     // 로그인 실패 시 처리 로직 추가
-    void increaseFailedAttempts(String userId);
+    // void increaseFailedAttempts(String userId);
 
     void resetFailedAttempts(String userId);
 
