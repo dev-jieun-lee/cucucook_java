@@ -36,7 +36,6 @@ import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.mapper.RecipeMapper;
 import com.example.cucucook.service.RecipeService;
-import com.fasterxml.jackson.databind.ObjectMapper;
 import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonElement;
@@ -389,8 +388,6 @@ public class RecipeServiceImpl implements RecipeService {
 
     Map<String, Object> addDataMap = new HashMap<>();
 
-    ObjectMapper objectMapper = new ObjectMapper();
-
     try {
       // 1.레시피 기본정보 수정하기
       recipeId = memberRecipe.getRecipeId();
@@ -417,8 +414,10 @@ public class RecipeServiceImpl implements RecipeService {
 
         recipeMapper.updateMemberRecipeImgId(recipeId, resultImgId);
       } else {
-        message = "E_IS_THUMBNAIL";
-        throw new Exception(message);
+        if (memberRecipe.getImgId().isEmpty()) {
+          message = "E_IS_THUMBNAIL";
+          throw new Exception(message);
+        }
       }
 
       // 3. 재료 넣기

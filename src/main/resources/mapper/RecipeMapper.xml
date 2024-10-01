@@ -29,6 +29,7 @@
     <result property="likeCount" column="like_count"/>
     
     <association property="member" javaType="Member">
+      <result property="memberId" column="member_id"/>
       <result property="userId" column="user_id"/>
       <result property="name" column="name"/>
       <result property="phone" column="phone"/>
