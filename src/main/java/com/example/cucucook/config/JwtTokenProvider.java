@@ -25,8 +25,8 @@ public class JwtTokenProvider {
 
   @Value("${jwt.secret}")
   private String secretKey; // JWT 비밀 키
-  @Value("${cookie.expired}")
-  private int cookeExpired;
+  @Value("${token.expired}")
+  private int tokenExpired;
   @Autowired
   private MemberMapper memberMapper;
 
@@ -38,7 +38,7 @@ public class JwtTokenProvider {
   // JWT 토큰 생성 메서드
   public String createToken(String userId, String role) {
     Date now = new Date();
-    Date validity = new Date(now.getTime() + cookeExpired); // 토큰 유효 시간: 1시간
+    Date validity = new Date(now.getTime() + tokenExpired); // 토큰 유효 시간: 1시간
 
     // JwtBuilder를 사용하여 JWT 생성
     JwtBuilder builder = Jwts.builder()
