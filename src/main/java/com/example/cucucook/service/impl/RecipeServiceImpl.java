@@ -920,12 +920,15 @@ public class RecipeServiceImpl implements RecipeService {
 
     List<RecipeCategory> recipeCategoryList = null;
     Map<String, Object> addDataMap = new HashMap<>();
+    int total_cnt;
 
     try {
       recipeCategoryList = recipeMapper.getRecipeCategoryList(start, display, search, searchType);
+      total_cnt = recipeMapper.getRecipeCategoryCount(search, searchType);
       message = (recipeCategoryList == null || recipeCategoryList.isEmpty()) ? "E_IS_DATA"
           : "S_IS_DATA";
       success = recipeCategoryList != null && !recipeCategoryList.isEmpty();
+      addDataMap.put("totalCnt", total_cnt);
     } catch (Exception e) {
       message = "E_ADMIN"; // 코드 잘못됐을때 보여줄 내용
       System.err.println("An error occurred: " + e.getMessage());
