@@ -123,7 +123,7 @@ public interface RecipeMapper {
   int deleteRecipeCommentHasChild(@Param("recipeId") String recipeId, @Param("commentId") String commentId);
 
   // 레시피 카테고리 수
-  int getRecipeCategoryCount();
+  int getRecipeCategoryCount(@Param("search") String search, @Param("searchType") String searchType);
 
   // 레시피 카테고리 목록
   List<RecipeCategory> getRecipeCategoryList(@Param("start") int start, @Param("display") int display,
