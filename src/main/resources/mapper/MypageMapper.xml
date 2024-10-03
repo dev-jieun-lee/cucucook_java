@@ -68,6 +68,13 @@
         WHERE member_id = #{memberId}
     </select>
 
+    <!-- 회원이 쓴 레시피 갯수 -->
+    <select id="getRecipeCount" resultType="int">
+        SELECT COUNT(*)
+        FROM member_recipe
+        WHERE member_id = #{memberId}
+    </select>
+
     <!-- 회원이 쓴 글 목록 -->
     <select id="getMemberBoardList" resultType="com.example.cucucook.domain.Board">
         SELECT *
