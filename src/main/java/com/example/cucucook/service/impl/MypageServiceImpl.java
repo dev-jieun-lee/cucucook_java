@@ -191,10 +191,12 @@ public class MypageServiceImpl implements MypageService {
             int likeCount = mypageMapper.getLikeCount(memberId);
             int writeCount = mypageMapper.getWriteCount(memberId);
             int replyCount = mypageMapper.getReplyCount(memberId);
+            int recipeCount = mypageMapper.getRecipeCount(memberId);
 
             stats.put("likeCount", likeCount);
             stats.put("writeCount", writeCount);
             stats.put("replyCount", replyCount);
+            stats.put("recipeCount", recipeCount);
         } catch (Exception e) {
             throw new RuntimeException("활동 통계 조회 중 오류가 발생했습니다.", e);
         }

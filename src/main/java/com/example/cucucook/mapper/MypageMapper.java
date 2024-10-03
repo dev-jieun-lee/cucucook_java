@@ -85,6 +85,8 @@ public interface MypageMapper {
 
         int getReplyCount(int memberId);
 
+        int getRecipeCount(int memberId);
+
         // 회원 레시피 가져오기
         List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit);
 

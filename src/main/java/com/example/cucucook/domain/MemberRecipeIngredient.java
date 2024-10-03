@@ -11,21 +11,21 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class MemberRecipeIngredient {
 
-    //재료 아이디
-    private String ingredientId;
+  // 재료 아이디
+  private String ingredientId;
 
-    //순번
-    private int orderId;
+  // 순번
+  private int orderId;
 
-    //레시피 아이디
-    private String recipeId;
+  // 레시피 아이디
+  private String recipeId;
 
-    //재료명
-    private String name;
+  // 재료명
+  private String name;
 
-    //재료단위
-    private String unit;
+  // 재료단위
+  private String unit;
 
-    //재료량
-    private String amount;
+  // 재료량
+  private String amount;
 }
