@@ -11,16 +11,16 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class RecipeLike {
 
-    // 레시피 아이디
-    private String recipeId;
+  // 레시피 아이디
+  private String recipeId;
 
-    // 회원고유번호
-    private int memberId;
+  // 회원고유번호
+  private int memberId;
 
-    // 등록일
-    private String regDt;
+  // 등록일
+  private String regDt;
 
-    // 레시피제목
-    private String title;
+  // 레시피제목
+  private String title;
 
 }
