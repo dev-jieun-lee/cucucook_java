@@ -23,6 +23,15 @@ public class Member implements Serializable {
 
     // 회원아이디
     private String userId;
+    private String socialId; // 카카오 ID 추가
+
+    public String getSocialId() {
+        return socialId;
+    }
+
+    public void setSocialId(String socialId) {
+        this.socialId = socialId;
+    }
 
     // 회원이름
     private String name;

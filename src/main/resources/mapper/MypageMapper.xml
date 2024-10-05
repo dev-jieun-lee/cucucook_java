@@ -59,6 +59,7 @@
         SELECT COUNT(*)
         FROM recipe_comment
         WHERE member_id = #{memberId}
+        AND del_yn = 'N'
     </select>
 
     <!-- 회원이 쓴 글 갯수 -->

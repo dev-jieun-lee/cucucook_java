@@ -42,4 +42,8 @@ public class LoginAttemptService {
     return updatedAttempts; // 최신 실패 횟수 반환
   }
 
+  public void resetFailedAttempts(String userId) {
+    memberMapper.resetFailedAttempts(userId);
+  }
+
 }

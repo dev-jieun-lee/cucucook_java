@@ -28,7 +28,7 @@ public class MemberResponse {
         return memberId;
     }
 
-    public void setMemberId(int memberId) {
+    public void berId(int memberId) {
         this.memberId = memberId;
     }
 
