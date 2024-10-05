@@ -70,8 +70,8 @@
 
     <!-- 회원 등록 -->
     <insert id="insertMember" useGeneratedKeys="true" keyProperty="memberId" keyColumn="member_id">
-        INSERT INTO member (user_id, password, name, phone, role, email, sms_noti, email_noti)
-        VALUES (#{userId}, #{password}, #{name}, #{phone}, '1', #{email}, false, false)
+        INSERT INTO member (user_id, password, name, phone, role, email, sms_noti, email_noti, reg_dt)
+        VALUES (#{userId}, #{password}, #{name}, #{phone}, '1', #{email}, false, false, TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM-DD HH24:MI:SS'));
     </insert>
 
     <!-- 회원 정보 업데이트 쿼리 -->
