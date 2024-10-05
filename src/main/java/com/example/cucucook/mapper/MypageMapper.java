@@ -44,9 +44,6 @@ public interface MypageMapper {
                         @Param("sortOption") String sortOption,
                         @Param("sortDirection") String sortDirection);
 
-        // 댓글 삭제
-        void deleteComment(int memberId, String commentId);
-
         // 댓글 검색
         List<RecipeComment> searchByContent(@Param("keyword") String keyword,
                         @Param("offset") int offset,
