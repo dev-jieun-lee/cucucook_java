@@ -80,6 +80,7 @@
         SET name = #{name},
             phone = #{phone},
             email = #{email},
+            role = #{role},
             sms_noti = #{smsNoti},
             email_noti = #{emailNoti}
         WHERE member_id = #{memberId}
