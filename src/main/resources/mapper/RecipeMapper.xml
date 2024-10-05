@@ -740,6 +740,15 @@
      WHERE recipe_id = #{recipeId}
   </select>
 
+  <!-- 레시피 찜 여부 -->
+  <select id="isMemberRecipeLike" resultType="int">
+    SELECT COUNT(*)
+      FROM recipe_like
+     WHERE recipe_id = #{recipeId}
+       AND member_id = #{memberId}
+  </select>
+
+
   <!-- 레시피 찜 수 추가(회원이 등록) -->
   <insert id="insertMemberRecipeLike">
     INSERT INTO recipe_like
@@ -763,7 +772,6 @@
     DELETE FROM recipe_like
      WHERE recipe_id = #{recipeId}
   </delete>
-
 
   <!-- 레시피 조회수 증가 -->
   <update id="updateRecipeViewCount">

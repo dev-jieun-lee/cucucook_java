@@ -179,7 +179,19 @@ public class FileUpload {
 
         // 파일 저장
         File dest = new File(directory, serverFileName + "." + ext);
-        file.transferTo(dest); // 실제 파일 저장
+
+        try {
+            // 실제 파일 저장
+            file.transferTo(dest);
+
+        } catch (IOException e) {
+            // 파일 입출력 관련 오류 처리
+            System.err.println("파일 저장 중 오류 발생: " + e.getMessage());
+            throw new IllegalArgumentException("파일 저장 중 오류가 발생하였습니다.");
+        } catch (IllegalStateException e) {
+            System.err.println(e.getMessage());
+            throw new IllegalArgumentException("오류가 발생하였습니다.");
+        }
         return serverFileName;
     }
 
