@@ -227,7 +227,7 @@ public class RecipeServiceImpl implements RecipeService {
     // 회원 레시피 상세보기
     // 레시피, 재료, 과정, 이미지, 레시피 찜수 다 포함되어야함
     @Override
-    public ApiResponse<HashMap<String, Object>> getMemberRecipe(String recipeId, boolean isUpdate) {
+    public ApiResponse<HashMap<String, Object>> getMemberRecipe(String recipeId, int memberId, boolean isUpdate) {
 
         String message;
         boolean success = false;
@@ -241,10 +241,11 @@ public class RecipeServiceImpl implements RecipeService {
             MemberRecipe memberRecipe = recipeMapper.getMemberRecipe(recipeId);
             result.put("memberRecipe", memberRecipe);
 
-            // 이미지 있으면 넣어주기
-            MemberRecipeImages memberRecipeImages = recipeMapper.getMemberRecipeImages(memberRecipe.getImgId());
+            boolean isMemberRecipeLike = false;
+            if (memberId > 0)
+                isMemberRecipeLike = recipeMapper.isMemberRecipeLike(recipeId, memberId) > 0;
 
-            result.put("memberRecipeImages", memberRecipeImages);
+            result.put("isMemberRecipeLike", isMemberRecipeLike);
 
             // 재료 있으면 넣어주기
             List<MemberRecipeIngredient> memberRecipeIngredient = recipeMapper.getMemberRecipeIngredientList(recipeId);
@@ -844,7 +845,9 @@ public class RecipeServiceImpl implements RecipeService {
 
         try {
 
-            int result = recipeMapper.insertMemberRecipeLike(recipeLike);
+            int result = 0;
+            if (recipeLike.getMemberId() > 0)
+                recipeMapper.insertMemberRecipeLike(recipeLike);
 
             if (result > 0) {
                 recipeLikeCount = recipeMapper.getMemberRecipeLikeCount(recipeLike.getRecipeId());
@@ -874,7 +877,9 @@ public class RecipeServiceImpl implements RecipeService {
 
         try {
 
-            int result = recipeMapper.deleteMemberRecipeLike(recipeId, memberId);
+            int result = 0;
+            if (memberId > 0)
+                result = recipeMapper.deleteMemberRecipeLike(recipeId, memberId);
 
             if (result > 0) {
                 recipeLikeCount = recipeMapper.getMemberRecipeLikeCount(recipeId);

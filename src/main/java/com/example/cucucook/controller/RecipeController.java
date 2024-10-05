@@ -52,8 +52,8 @@ public class RecipeController {
     // 공공레시피 상세조회
     @GetMapping(value = "/getPublicRecipe")
     public ApiResponse<PublicRecipe> getPublicRecipe(@RequestParam String search,
-            @RequestParam(value = "start", defaultValue = "0") int start,
-            @RequestParam(value = "display", defaultValue = "20") int display) {
+            @RequestParam(value = "start", defaultValue = "1") int start,
+            @RequestParam(value = "display", defaultValue = "1") int display) {
         return recipeService.getPublicRecipe(search, start, display);
     }
 
@@ -72,8 +72,9 @@ public class RecipeController {
     // 회원레시피 조회
     @GetMapping(value = "/getMemberRecipe")
     public ApiResponse<HashMap<String, Object>> getMemberRecipe(@RequestParam String recipeId,
+            @RequestParam(value = "memberId", required = false, defaultValue = "0") int memberId,
             @RequestParam(value = "isUpdate", defaultValue = "false") boolean isUpdate) {
-        return recipeService.getMemberRecipe(recipeId, isUpdate);
+        return recipeService.getMemberRecipe(recipeId, memberId, isUpdate);
     }
 
     // 회원레시피등록
@@ -214,7 +215,8 @@ public class RecipeController {
 
     // 회원 레시피 좋아요 삭제 (회원직접삭제)
     @DeleteMapping(value = "/deleteMemberRecipeLike")
-    public ApiResponse<Integer> deleteMemberRecipeLike(@RequestParam String recipeId, @RequestParam int memberId)
+    public ApiResponse<Integer> deleteMemberRecipeLike(@RequestParam String recipeId,
+            @RequestParam(value = "memberId", required = false, defaultValue = "0") int memberId)
             throws Exception {
         return recipeService.deleteMemberRecipeLike(recipeId, memberId);
     }
