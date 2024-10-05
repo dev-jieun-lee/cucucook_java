@@ -39,9 +39,6 @@ public interface MypageService {
         List<RecipeComment> getMyComments(int page, int pageSize, int memberId, String sortOption,
                         String sortDirection);
 
-        // 댓글 삭제
-        void deleteComment(String memberId, String commentId);
-
         // 댓글검색
         List<RecipeComment> searchComments(
                         String keyword,
