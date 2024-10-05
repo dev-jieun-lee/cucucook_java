@@ -144,6 +144,9 @@ public interface RecipeMapper {
         // 레시피 카테고리 삭제
         int deleteRecipeCategory(@Param("recipeCategoryId") String recipeCategoryId);
 
+        // 레시피 찜여부
+        int isMemberRecipeLike(@Param("recipeId") String recipeId, @Param("memberId") int memberId);
+
         // 레시피 찜 수
         int getMemberRecipeLikeCount(@Param("recipeId") String recipeId);
 
