@@ -130,15 +130,30 @@ public class MypageController {
     ///////////////////// 게시글
     // 내가 쓴 게시글 목록 가져오기
     @GetMapping("/getMyBoards")
-    public ResponseEntity<List<Board>> getMyBoards(@RequestParam int page, @RequestParam int pageSize,
-            @RequestParam int memberId, @RequestParam String boardDivision) {
+    public ResponseEntity<Map<String, Object>> getMyBoards(
+            @RequestParam int page,
+            @RequestParam int pageSize,
+            @RequestParam int memberId,
+            @RequestParam String boardDivision,
+            @RequestParam String search,
+            @RequestParam String searchType) {
+
         logger.info("가져온 memberId 확인: {}", memberId);
         logger.info("boardDivision: {}", boardDivision);
+
         try {
-            List<Board> boards = mypageService.getMyBoards(memberId, page, pageSize, boardDivision);
-            logger.info("컨트롤러에서 받은 게시물 개수: {},페이지 {}, 페이지 크기 {}, boardDivision{}", boards.size(), page, pageSize,
-                    boardDivision);
-            return ResponseEntity.ok(boards);
+            // 서비스에서 totalItems와 boards 데이터를 함께 가져옴
+            Map<String, Object> result = mypageService.getMyBoards(memberId, page, pageSize, boardDivision, search,
+                    searchType);
+
+            List<Board> boards = (List<Board>) result.get("boards");
+            int totalItems = (int) result.get("totalItems");
+
+            logger.info("컨트롤러에서 받은 게시물 개수: {}, totalItems: {}, 페이지: {}, 페이지 크기: {}, boardDivision: {}",
+                    boards.size(), totalItems, page, pageSize, boardDivision);
+
+            // totalItems와 boards를 함께 반환
+            return ResponseEntity.ok(result);
         } catch (Exception e) {
             logger.error("컨트롤러 게시물 목록 조회 실패: 페이지 {}, 페이지 크기 {}", page, pageSize);
             return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
