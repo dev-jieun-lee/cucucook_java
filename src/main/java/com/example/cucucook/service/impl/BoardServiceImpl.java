@@ -7,6 +7,8 @@ import java.util.List;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
 
 import com.example.cucucook.common.ApiResponse;
@@ -177,11 +179,12 @@ public class BoardServiceImpl implements BoardService {
 
   // 카테고리 목록 조회
   @Override
-  public ApiResponse<List<BoardCategory>> getBoardCategoryList(int start, int display) {
+  public ApiResponse<List<BoardCategory>> getBoardCategoryList(int start, int display, String search,
+      String searchType) {
     start = start > 0 ? start : 1;
     display = display > 0 ? display : 10;
 
-    List<BoardCategory> boardCategoryList = boardMapper.getBoardCategoryList(start, display);
+    List<BoardCategory> boardCategoryList = boardMapper.getBoardCategoryList(start, display, search, searchType);
     String message = (boardCategoryList == null || boardCategoryList.isEmpty()) ? "카테고리 목록이 없습니다." : "카테고리 목록 조회 성공";
     boolean success = boardCategoryList != null && !boardCategoryList.isEmpty();
     return new ApiResponse<>(success, message, boardCategoryList, null);
@@ -239,4 +242,66 @@ public class BoardServiceImpl implements BoardService {
 
     return result;
   }
+
+  // 카테고리 수정
+  @Override
+  public HashMap<String, Object> updateBoardCategory(String boardCategoryId, BoardCategory boardCategory) {
+    HashMap<String, Object> result = new HashMap<>();
+
+    // 카테고리 아이디 설정
+    boardCategory.setBoardCategoryId(boardCategoryId);
+
+    // 현재 시간 설정
+    LocalDateTime now = LocalDateTime.now();
+    DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss");
+    String formattedNow = now.format(formatter);
+
+    // 수정 시간 설정
+    boardCategory.setUdtDt(formattedNow);
+
+    // 카테고리 수정
+    int updateCount = boardMapper.updateBoardCategory(boardCategory);
+
+    // 수정이 성공했는지 여부 체크
+    if (updateCount > 0) {
+      result.put("success", true);
+      result.put("message", "카테고리가 성공적으로 수정되었습니다.");
+    } else {
+      result.put("success", false);
+      result.put("message", "해당 카테고리를 수정할 수 없습니다.");
+    }
+    return result;
+  }
+
+  // 카테고리 삭제
+  @Override
+  public ResponseEntity<HashMap<String, Object>> deleteBoardCategory(String boardCategoryId) {
+    HashMap<String, Object> result = new HashMap<>();
+
+    // 해당 카테고리를 사용하는 게시글이 있는지 확인
+    int count = boardMapper.countByBoardCategoryId(boardCategoryId);
+
+    if (count > 0) {
+      // 카테고리를 사용하는 게시글이 있는 경우
+      result.put("success", false);
+      result.put("message1", "해당 카테고리를 사용하는 게시글이 있어 삭제할 수 없습니다.");
+      result.put("errorCode", "ERR_CG_01");
+      return new ResponseEntity<>(result, HttpStatus.BAD_REQUEST);
+    }
+
+    // 카테고리를 사용하는 게시글이 없는 경우 삭제
+    int updateCount = boardMapper.deleteBoardCategory(boardCategoryId);
+
+    if (updateCount > 0) {
+      result.put("success", true);
+      result.put("message", "카테고리가 성공적으로 삭제되었습니다.");
+      return new ResponseEntity<>(result, HttpStatus.OK);
+    } else {
+      result.put("success", false);
+      result.put("message", "해당 카테고리를 삭제할 수 없습니다.");
+      result.put("errorCode", "ERR_CG_02");
+      return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
+    }
+  }
+
 }
