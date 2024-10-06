@@ -2,7 +2,6 @@ package com.example.cucucook.config;
 
 import java.io.IOException;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -17,36 +16,41 @@ import jakarta.servlet.http.HttpServletRequest;
 
 public class JwtTokenFilter extends UsernamePasswordAuthenticationFilter {
 
-    @Autowired
-    private JwtTokenProvider tokenProvider;
+  private final JwtTokenProvider tokenProvider;
 
-    @Override
-    public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
-            throws IOException, ServletException {
+  public JwtTokenFilter(JwtTokenProvider tokenProvider) {
+    this.tokenProvider = tokenProvider;
+  }
 
-        HttpServletRequest httpRequest = (HttpServletRequest) request;
-        String token = getTokenFromCookies(httpRequest);
+  @Override
+  public void doFilter(ServletRequest request, ServletResponse response, FilterChain chain)
+      throws IOException, ServletException {
 
-        if (token != null && tokenProvider.validateToken(token)) {
-            String userId = tokenProvider.getUserId(token);
-            UserDetails userDetails = tokenProvider.loadUserByUserId(userId);
-            if (userDetails != null) {
-                SecurityContextHolder.getContext().setAuthentication(
-                        new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities()));
-            }
-        }
-        chain.doFilter(request, response);
+    HttpServletRequest httpRequest = (HttpServletRequest) request;
+    String token = getTokenFromCookies(httpRequest);
+
+    if (token != null && tokenProvider.validateToken(token)) {
+      String userId = tokenProvider.getUserId(token);
+      UserDetails userDetails = tokenProvider.loadUserByUserId(userId);
+      if (userDetails != null) {
+        SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(userDetails, null,
+            userDetails.getAuthorities()));
+      } else {
+        System.out.println("유효하지 않은 사용자 정보입니다. member_id: " + userId);
+      }
     }
+    chain.doFilter(request, response);
+  }
 
-    private String getTokenFromCookies(HttpServletRequest request) {
-        Cookie[] cookies = request.getCookies(); // 수정된 부분
-        if (cookies != null) {
-            for (Cookie cookie : cookies) {
-                if ("auth_token".equals(cookie.getName())) {
-                    return cookie.getValue();
-                }
-            }
+  private String getTokenFromCookies(HttpServletRequest request) {
+    Cookie[] cookies = request.getCookies(); // 수정된 부분
+    if (cookies != null) {
+      for (Cookie cookie : cookies) {
+        if ("auth_token".equals(cookie.getName())) {
+          return cookie.getValue();
         }
-        return null;
+      }
     }
+    return null;
+  }
 }

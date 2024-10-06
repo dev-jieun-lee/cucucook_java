@@ -131,7 +131,7 @@ public class MypageController {
 
             // 로그: 성공 시 메시지 출력
             logger.info("회원 정보가 성공적으로 업데이트되었습니다. memberId={}", member.getMemberId());
-            return ResponseEntity.ok("회원 정보가 성공적으로 업데이트되었습니다.");
+            return ResponseEntity.ok(member);
         } catch (Exception e) {
             // 로그: 실패 시 에러 및 입력된 데이터 출력
             logger.error("회원 정보 업데이트 실패: memberId={}, name={}, email={}, phone={}, 오류={}",
