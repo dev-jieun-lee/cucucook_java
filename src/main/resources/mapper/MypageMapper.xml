@@ -59,6 +59,7 @@
         SELECT COUNT(*)
         FROM recipe_comment
         WHERE member_id = #{memberId}
+        AND del_yn = 'N'
     </select>
 
     <!-- 회원이 쓴 글 갯수 -->
@@ -183,6 +184,7 @@
         LIMIT #{pageSize} OFFSET GREATEST(0, #{offset})
     </select>
 
+
     <!-- 댓글 삭제 -->
     <update id="deleteComment" parameterType="map">
         UPDATE recipe_comment
@@ -245,8 +247,24 @@
             user_name
         FROM BOARD
         WHERE member_id = #{memberId}
-        AND board_division = #{boardDivision}
-        ORDER BY reg_dt
+        <!-- AND board_division = #{boardDivision} -->
+        <if test="search != '' and search != null">
+            <choose>
+                <when test="searchType == 'title'">
+                    AND title LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'contents'">
+                    AND contents LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'all'">
+                    AND (title LIKE CONCAT('%', #{search}, '%') OR contents LIKE CONCAT('%', #{search}, '%'))
+                </when>
+            </choose>
+        </if>
+        <if test="boardDivision != '' and boardDivision != null and boardDivision != 'all'">
+            AND board_division = #{boardDivision}
+        </if>
+        ORDER BY reg_dt DESC
         LIMIT #{pageSize} OFFSET #{offset}
     </select>
 
