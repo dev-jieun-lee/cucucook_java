@@ -4,6 +4,7 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -12,11 +13,14 @@ import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.BoardCategory;
+import com.example.cucucook.domain.BoardFiles;
 import com.example.cucucook.service.BoardService;
 
 import lombok.extern.slf4j.Slf4j;
@@ -52,15 +56,18 @@ public class BoardController {
   }
 
   // 게시판 글 등록
-  @PostMapping(value = "/insertBoard")
-  public HashMap<String, Object> insertBoard(@RequestBody Board board) {
-    return boardService.insertBoard(board);
+  @PostMapping(value = "/insertBoard", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public HashMap<String, Object> insertBoard(@RequestPart Board board,
+      @RequestPart(value = "uploadFileList", required = false) List<MultipartFile> uploadFileList) {
+
+    return boardService.insertBoard(board, uploadFileList);
   }
 
   // 게시판 글 수정
-  @PutMapping(value = "/updateBoard")
-  public HashMap<String, Object> updateBoard(@RequestParam String boardId, @RequestBody Board board) {
-    return boardService.updateBoard(boardId, board);
+  @PutMapping(value = "/updateBoard", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public HashMap<String, Object> updateBoard(@RequestParam String boardId, @RequestPart Board board,
+      @RequestPart(value = "uploadFileList", required = false) List<MultipartFile> uploadFileList) {
+    return boardService.updateBoard(boardId, board, uploadFileList);
   }
 
   // 게시판 글 삭제
@@ -103,6 +110,13 @@ public class BoardController {
   @DeleteMapping(value = "/deleteBoardCategory")
   public ResponseEntity<HashMap<String, Object>> deleteBoardCategory(@RequestParam String boardCategoryId) {
     return boardService.deleteBoardCategory(boardCategoryId);
+  }
+
+  // 첨부파일 목록 보기
+  @GetMapping(value = "/getBoardFilesList")
+  public ApiResponse<List<BoardFiles>> getBoardFilesList(@RequestParam String boardId) {
+
+    return boardService.getBoardFilesList(boardId);
   }
 
 }
