@@ -158,15 +158,28 @@ public class MypageServiceImpl implements MypageService {
     ///////// 게시판
     // 내가 쓴 게시판 목록 가져오기
     @Override
-    public List<Board> getMyBoards(int memberId, int page, int pageSize, String boardDivision) {
+    public Map<String, Object> getMyBoards(int memberId, int page, int pageSize, String boardDivision, String search,
+            String searchType) {
         int offset = page > 0 ? (page - 1) * pageSize : 0;
+        Map<String, Object> result = new HashMap<>();
         try {
-            List<Board> boards = mypageMapper.getMyBoards(memberId, offset, pageSize, boardDivision);
+            // 전체 게시물 수 조회
+            int totalItems = mypageMapper.getWriteCount(memberId);
+
+            // 페이징된 게시물 리스트 조회
+            List<Board> boards = mypageMapper.getMyBoards(memberId, offset, pageSize, search, searchType,
+                    boardDivision);
             logger.info("게시물 로딩 성공: 페이지 {}, 페이지 크기 {}, offset {}, 반환된 게시물 수 {}", page, pageSize, offset, boards.size());
-            return boards;
+
+            // 결과를 Map에 담아 반환
+            result.put("totalItems", totalItems);
+            result.put("boards", boards);
+            return result;
         } catch (Exception e) {
             logger.error("게시물 로딩 실패: {}", e.getMessage(), e);
-            return Collections.emptyList();
+            result.put("totalItems", 0);
+            result.put("boards", Collections.emptyList());
+            return result;
         }
     }
 
