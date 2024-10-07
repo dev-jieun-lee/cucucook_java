@@ -73,6 +73,8 @@ public interface MypageMapper {
                         @Param("memberId") int memberId,
                         @Param("offset") int offset,
                         @Param("pageSize") int pageSize,
+                        @Param("search") String search,
+                        @Param("searchType") String searchType,
                         @Param("boardDivision") String boardDivision);
 
         // 회원정보 통계 가져오기

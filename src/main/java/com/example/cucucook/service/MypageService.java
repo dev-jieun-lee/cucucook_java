@@ -51,7 +51,8 @@ public interface MypageService {
 
         // 내가 쓴 글
         // 내가 쓴 게시글 조회
-        List<Board> getMyBoards(int memberId, int page, int pageSize, String boardDivision);
+        Map<String, Object> getMyBoards(int memberId, int page, int pageSize, String boardDivision, String search,
+                        String searchType);
 
         // 회원이 쓴 글 목록 (최신 5개 또는 페이지네이션 지원)
         List<Board> getMemberBoardList(int memberId, int start, int limit);
