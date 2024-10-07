@@ -83,6 +83,7 @@
             role = #{role},
             sms_noti = #{smsNoti},
             email_noti = #{emailNoti}
+             social_id = #{socialId}
         WHERE member_id = #{memberId}
     </update>
 
@@ -187,7 +188,14 @@
         <!-- 회원 조회-->
 <select id="getFailedAttempts" parameterType="string" resultType="int">
     SELECT failedAttempts
-    FROM members
+    FROM member
     WHERE userId = #{userId}
 </select>
+
+<select id="findByEmailAndSocialId" resultType="com.example.cucucook.domain.Member">
+    SELECT * FROM member
+    WHERE email = #{email} AND social_id = #{socialId}
+</select>
+
+
 </mapper>

@@ -184,7 +184,6 @@
         LIMIT #{pageSize} OFFSET GREATEST(0, #{offset})
     </select>
 
-
     <!-- 댓글 삭제 -->
     <update id="deleteComment" parameterType="map">
         UPDATE recipe_comment

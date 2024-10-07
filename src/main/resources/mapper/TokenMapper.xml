@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.example.cucucook.mapper.TokenMapper">
+
+ <insert id="insertToken" parameterType="com.example.cucucook.domain.Token">
+    INSERT INTO tokens (member_id, token, token_type, created_at, expires_at)
+    VALUES (#{memberId}, #{token}, #{tokenType}, #{createdAt}, #{expiresAt});
+</insert>
+
+    <select id="existsByTokenAndType" resultType="boolean">
+        SELECT COUNT(*) > 0
+        FROM public.tokens
+        WHERE token = #{token} AND token_type = #{tokenType} AND expires_at > CURRENT_TIMESTAMP
+    </select>
+
+    <delete id="deleteTokenByToken">
+        DELETE FROM public.tokens WHERE token = #{token}
+    </delete>
+
+    <delete id="deleteTokensByMemberId">
+        DELETE FROM public.tokens WHERE member_id = #{memberId}
+    </delete>
+
+</mapper>
