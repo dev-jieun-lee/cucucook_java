@@ -131,6 +131,8 @@ public class FileUploadUtil {
       case "video/mp4" -> new String[] { "mp4", "m4v" };
       case "video/x-msvideo" -> new String[] { "avi" };
       case "video/x-matroska" -> new String[] { "mkv" };
+      case "application/haansofthwp" -> new String[] { "hwp" };
+
       default -> throw new IllegalArgumentException("파일형식오류 " + fileType);
     };
   }
