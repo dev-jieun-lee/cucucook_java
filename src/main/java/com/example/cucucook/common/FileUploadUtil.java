@@ -116,23 +116,30 @@ public class FileUploadUtil {
    */
   private String[] getAllowedExtensions(String fileType) {
     return switch (fileType) {
-      case "image/jpeg" -> new String[] { "jpg", "jpeg", "bmp", "gif", "png" };
-      case "image/png" -> new String[] { "png", "jpg", "jpeg", "gif" };
-      case "image/gif" -> new String[] { "gif", "jpg", "jpeg", "png" };
+      case "image/jpeg" -> new String[] { "jpg", "jpeg" };
+      case "image/png" -> new String[] { "png" };
+      case "image/gif" -> new String[] { "gif" };
+      case "image/bmp" -> new String[] { "bmp" };
+      case "image/svg+xml" -> new String[] { "svg" };
       case "application/pdf" -> new String[] { "pdf" };
       case "application/msword" -> new String[] { "doc", "docx" };
       case "application/vnd.openxmlformats-officedocument.wordprocessingml.document" -> new String[] { "docx" };
       case "application/vnd.ms-excel" -> new String[] { "xls", "xlsx" };
       case "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet" -> new String[] { "xlsx" };
+      case "application/vnd.ms-powerpoint" -> new String[] { "ppt", "pptx" };
+      case "application/vnd.openxmlformats-officedocument.presentationml.presentation" -> new String[] { "pptx" };
       case "text/plain" -> new String[] { "txt" };
+      case "application/vnd.hancom.hwp" -> new String[] { "hwp" };
+      case "application/vnd.hancom.hwpx" -> new String[] { "hwpx" };
+      case "application/vnd.hancom.hwt" -> new String[] { "hwt" };
       case "application/zip" -> new String[] { "zip" };
+      case "application/x-7z-compressed" -> new String[] { "7z" };
       case "audio/mpeg" -> new String[] { "mp3" };
       case "audio/wav" -> new String[] { "wav" };
-      case "video/mp4" -> new String[] { "mp4", "m4v" };
+      case "video/mp4" -> new String[] { "mp4" };
+      case "video/quicktime" -> new String[] { "mov" };
       case "video/x-msvideo" -> new String[] { "avi" };
       case "video/x-matroska" -> new String[] { "mkv" };
-      case "application/haansofthwp" -> new String[] { "hwp" };
-
       default -> throw new IllegalArgumentException("파일형식오류 " + fileType);
     };
   }
