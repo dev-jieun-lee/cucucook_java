@@ -1,6 +1,8 @@
 package com.example.cucucook.controller;
 
 import java.util.Map;
+import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.TimeUnit;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -23,7 +25,6 @@ import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
 import com.example.cucucook.config.JwtTokenProvider;
-import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.SocialLogin;
 import com.example.cucucook.service.SocialLoginService;
 
@@ -55,46 +56,50 @@ public class KakaoAuthController {
     this.jwtTokenProvider = jwtTokenProvider;
   }
 
+  private final ConcurrentHashMap<String, Long> requestCache = new ConcurrentHashMap<>();
+  private static final long DUPLICATE_TIMEOUT = TimeUnit.MINUTES.toMillis(1); // 1분 타임아웃
+
+  private boolean isDuplicateRequest(String code) {
+    Long lastTime = requestCache.putIfAbsent(code, System.currentTimeMillis());
+    if (lastTime != null) {
+      long currentTime = System.currentTimeMillis();
+      if ((currentTime - lastTime) < DUPLICATE_TIMEOUT) {
+        return true; // 이는 타임아웃 기간 내 중복 요청임을 의미합니다
+      } else {
+        // 새 시간으로 업데이트하고 요청을 허용합니다
+        requestCache.put(code, currentTime);
+        return false;
+      }
+    }
+    return false;
+  }
+
   @PostMapping("/kakao/login")
   public ResponseEntity<?> kakaoLogin(@RequestParam("code") String code) {
     logger.info("카카오 로그인 요청 받음, 인증 코드: {}", code);
 
-    if (code == null || code.trim().isEmpty()) {
-      logger.warn("받은 인증 코드가 유효하지 않거나 비어 있습니다.");
-      return ResponseEntity.badRequest().body("인증 코드가 필요합니다.");
+    // 중복 요청 확인 로직 추가 예시
+    if (isDuplicateRequest(code)) {
+      logger.info("중복 요청 감지, 인증 코드: {}", code);
+      return ResponseEntity.status(HttpStatus.CONFLICT).body("Duplicate request detected");
     }
 
     try {
       String accessToken = getAccessToken(code);
       if (accessToken == null) {
-        logger.error("액세스 토큰을 가져오는 데 실패했습니다.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("액세스 토큰을 가져오는 데 실패했습니다.");
       }
 
-      // 사용자 정보를 가져오기
       SocialLogin socialLogin = getKakaoUserInfo(accessToken);
       if (socialLogin == null) {
-        logger.error("사용자 정보를 가져오는 데 실패했습니다.");
         return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("사용자 정보를 가져오는 데 실패했습니다.");
       }
 
-      // socialId를 Long에서 String으로 변환
-      socialLogin.setProviderId(String.valueOf(socialLogin.getProviderId()));
-
-      // 기존 멤버 검색 및 생성
-      Member member = socialLoginService.getOrCreateMember(socialLogin);
-      String jwtToken = jwtTokenProvider.createToken(String.valueOf(member.getMemberId()), "ROLE_USER");
-
-      HttpHeaders headers = new HttpHeaders();
-      headers.add(HttpHeaders.AUTHORIZATION, "Bearer " + jwtToken);
-
-      return ResponseEntity.ok().headers(headers).body(member);
-    } catch (HttpClientErrorException ex) {
-      logger.error("카카오 로그인 과정 중 오류 발생, HTTP 상태: {}, 오류 내용: {}", ex.getStatusCode(), ex.getResponseBodyAsString());
-      return ResponseEntity.status(ex.getStatusCode()).body(ex.getResponseBodyAsString());
-    } catch (Exception ex) {
-      logger.error("카카오 로그인 처리 중 예상치 못한 오류 발생: {}", ex.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("예상치 못한 오류가 발생했습니다.");
+      // 사용자 정보 반환
+      return ResponseEntity.ok().body(socialLogin);
+    } catch (Exception e) {
+      logger.error("서버 오류 발생: {}", e.getMessage());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("서버 오류 발생: " + e.getMessage());
     }
   }
 
@@ -110,8 +115,8 @@ public class KakaoAuthController {
     params.add("redirect_uri", redirectUri);
     params.add("code", code);
     params.add("client_secret", clientSecret);
-    // 이메일 수집 동의를 추가합니다.
-    params.add("scope", "account_email, profile");
+    // 닉네임,프로필사진,이메일 수집 동의를 추가합니다.
+    params.add("scope", "account_email, profile_nickname, profile_image");
 
     HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
 
