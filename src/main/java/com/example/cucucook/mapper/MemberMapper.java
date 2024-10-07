@@ -85,4 +85,7 @@ public interface MemberMapper {
 
     // 사용자 ID로 실패 횟수 조회
     int getFailedAttempts(@Param("userId") String userId);
+
+    // 소셜이메일,소셜아이디로 회원찾기
+    Member findByEmailAndSocialId(@Param("email") String email, @Param("socialId") String socialId);
 }
