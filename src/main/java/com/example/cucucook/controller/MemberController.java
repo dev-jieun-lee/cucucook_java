@@ -29,6 +29,7 @@ import com.example.cucucook.domain.PasswordFindResponse;
 import com.example.cucucook.exception.AccountLockedException;
 import com.example.cucucook.exception.InvalidPasswordException;
 import com.example.cucucook.service.MemberService;
+import com.example.cucucook.service.TokenService;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -46,60 +47,62 @@ public class MemberController {
   @Autowired
   private JwtTokenProvider tokenProvider;
 
+  @Autowired
+  private TokenService tokenService;
+
   private String key;
 
-  // 로그인 처리
   @PostMapping("/login")
   public ResponseEntity<?> login(@RequestBody Member loginRequest, HttpServletResponse response,
       HttpServletRequest request) {
     String userId = loginRequest.getUserId();
 
     try {
-      // 로그인 시도
-      Member member = memberService.validateMember(userId, loginRequest.getPassword());
+      // 서비스에서 로그인 처리 후 토큰 데이터를 반환받음
+      Map<String, String> tokenData = memberService.login(loginRequest.getUserId(), loginRequest.getPassword());
 
-      // 로그인 성공 시 토큰 발급
-      String token = tokenProvider.createToken(userId, member.getRole());
+      // 액세스 토큰과 리프레시 토큰을 쿠키에 설정
+      setTokenInCookie(response, tokenData.get("accessToken"), "access_token", true, request.isSecure(), "/");
+      setTokenInCookie(response, tokenData.get("refreshToken"), "refresh_token", true, request.isSecure(), "/");
 
-      // 쿠키에 토큰 설정
-      Cookie authCookie = new Cookie("auth_token", token);
-      authCookie.setHttpOnly(true);
-      authCookie.setSecure(request.isSecure());
-      authCookie.setPath("/");
-      response.addCookie(authCookie);
+      // 응답 데이터 구성
+      Map<String, String> responseBody = new HashMap<>();
+      responseBody.put("message", "로그인 성공");
+      responseBody.put("accessToken", tokenData.get("accessToken"));
+      responseBody.put("refreshToken", tokenData.get("refreshToken"));
+      responseBody.put("userId", tokenData.get("userId"));
+      responseBody.put("memberId", tokenData.get("memberId")); // 이미 String 타입이므로 변환 불필요
+      responseBody.put("name", tokenData.get("name")); // 이름 필드 추가
+      responseBody.put("role", tokenData.get("role")); // 역할 필드 추가
+      responseBody.put("failedAttempts", tokenData.get("failedAttempts")); // 실패 횟수 추가
 
-      // 성공 응답 데이터 설정
-      Map<String, Object> responseBody = new HashMap<>();
-      responseBody.put("token", token);
-      responseBody.put("userId", userId);
-      responseBody.put("memberId", member.getMemberId());
-      responseBody.put("name", member.getName());
-      responseBody.put("role", member.getRole());
-      responseBody.put("memberId", member.getMemberId());
-      responseBody.put("failedAttempts", member.getFailedAttempts());
-
-      // 로그인 성공 로그
-      logger.info("사용자 '{}' 로그인 성공", userId);
       return ResponseEntity.ok().body(responseBody);
 
     } catch (InvalidPasswordException e) {
-      // 비밀번호 오류 처리
       String message = getMessageFromKey(getMessageKey(e.getFailedAttempts()));
       logger.warn("사용자 '{}' 비밀번호 오류: {}", userId, message);
       return buildErrorResponse(message, "InvalidPassword", HttpStatus.UNAUTHORIZED, e.getFailedAttempts(), null);
 
     } catch (AccountLockedException e) {
-      // 계정 잠금 처리
       logger.warn("사용자 '{}' 계정 잠김. 남은 잠금 시간: {}초", userId, e.getRemainingTime());
       return buildErrorResponse(getMessageFromKey("locked_time"), "AccountLocked", HttpStatus.FORBIDDEN, null,
           e.getRemainingTime());
 
     } catch (Exception e) {
-      // 일반 오류 처리
       logger.error("로그인 처리 중 서버 오류 발생", e);
       return buildErrorResponse("서버 오류가 발생했습니다. 관리자에게 문의하세요.", "ServerError", HttpStatus.INTERNAL_SERVER_ERROR,
           null, null);
     }
+  }
+
+  // 토큰 쿠키 설정 메서드
+  private void setTokenInCookie(HttpServletResponse response, String token,
+      String name, boolean isHttpOnly, boolean secure, String path) {
+    Cookie cookie = new Cookie(name, token);
+    cookie.setHttpOnly(isHttpOnly);
+    cookie.setSecure(secure);
+    cookie.setPath(path);
+    response.addCookie(cookie);
   }
 
   // 실패 횟수에 따른 메시지 키 반환 메서드
@@ -389,15 +392,4 @@ public class MemberController {
     return memberService.getMemberList(search, searchType, start, display);
   }
 
-  // 카카오 로그인 처리
-  @PostMapping("/kakao")
-  public ResponseEntity<?> kakaoLogin(@RequestBody Map<String, String> codeMap) {
-    String code = codeMap.get("code");
-    try {
-      String token = memberService.kakaoLogin(code); // 서비스에서 토큰 생성 로직
-      return ResponseEntity.ok().body(Map.of("token", token));
-    } catch (Exception e) {
-      return ResponseEntity.status(500).body("카카오 로그인 실패: " + e.getMessage());
-    }
-  }
 }

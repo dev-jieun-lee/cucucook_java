@@ -1,6 +1,8 @@
 package com.example.cucucook.service;
 
+import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 
 import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.domain.Member;
@@ -10,7 +12,7 @@ public interface MemberService {
 
     Member validateMember(String userId, String password);
 
-    Member login(String userId, String password);
+    Map<String, String> login(String userId, String password);
 
     boolean checkPhoneExists(String phone);
 
@@ -47,13 +49,10 @@ public interface MemberService {
     // 로그인 실패 시 처리 로직 추가
     // void increaseFailedAttempts(String userId);
 
-    void resetFailedAttempts(String userId);
+    // void resetFailedAttempts(String userId);
 
-    void lockMemberAccount(String userId);
+    LocalDateTime lockMemberAccount(String userId);
 
     Member validateMemberByUserId(String userId);
-
-    // 카카오 로그인
-    String kakaoLogin(String code) throws Exception;
 
 }
