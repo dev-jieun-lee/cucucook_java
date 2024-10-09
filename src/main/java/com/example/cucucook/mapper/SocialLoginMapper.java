@@ -1,11 +1,17 @@
 package com.example.cucucook.mapper;
 
-import com.example.cucucook.domain.Member;
+import org.apache.ibatis.annotations.Mapper;
+import org.apache.ibatis.annotations.Param;
+
 import com.example.cucucook.domain.SocialLogin;
 
+@Mapper
 public interface SocialLoginMapper {
+
   void insertSocialLogin(SocialLogin socialLogin);
 
-  // 카카오로그인시 회원정보 찾아오기
-  Member findBySocialId(String socialId);
+  void updateSocialLogin(SocialLogin socialLogin);
+
+  // 소셜 로그인 정보 조회
+  SocialLogin findSocialLoginByProviderId(@Param("providerId") String providerId, @Param("provider") String provider);
 }

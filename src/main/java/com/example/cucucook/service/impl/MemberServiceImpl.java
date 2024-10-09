@@ -129,6 +129,13 @@ public class MemberServiceImpl implements MemberService {
   public Member validateMember(String userId, String password) {
     Member member = memberMapper.findByUserId(userId);
     if (member != null) {
+      logger.info("사용자 정보 확인: userId: {}, isSocialLogin: {}", userId, member.isSocialLogin()); // 추가된 로그
+      if (member.isSocialLogin()) {
+        logger.info("소셜 로그인으로 인증된 사용자입니다. 비밀번호 확인을 건너뜁니다. userId: {}", userId);
+        return member; // 비밀번호 검증을 건너뛰고 회원 정보를 반환
+      }
+
+      // 나머지 기존 로직
       if (member.getLockoutTime() != null && member.getLockoutTime().isAfter(LocalDateTime.now())) {
         throw new AccountLockedException("계정이 잠금 상태입니다.", member.getFailedAttempts(),
             ChronoUnit.SECONDS.between(LocalDateTime.now(), member.getLockoutTime()));
@@ -137,7 +144,6 @@ public class MemberServiceImpl implements MemberService {
       if (!passwordEncoder.matches(password, member.getPassword())) {
         int updatedAttempts = loginAttemptService.increaseFailedAttempts(userId);
         if (updatedAttempts >= 5) {
-          // 실패 횟수가 5에 도달하면 잠금 시간을 설정
           LocalDateTime lockoutTime = lockMemberAccount(userId);
           logger.warn("계정 잠금: userId: {}, 잠금 시간: {}", userId, lockoutTime);
 
@@ -154,7 +160,7 @@ public class MemberServiceImpl implements MemberService {
 
         throw new InvalidPasswordException(
             "비밀번호가 잘못되었습니다.",
-            updatedAttempts, // 최신 실패 횟수 사용
+            updatedAttempts,
             lockoutTimeRemaining);
       }
 

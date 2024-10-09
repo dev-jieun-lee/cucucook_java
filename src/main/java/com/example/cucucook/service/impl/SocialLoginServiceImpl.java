@@ -1,7 +1,10 @@
 package com.example.cucucook.service.impl;
 
-import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
+import java.util.HashMap;
 import java.util.Map;
+import java.util.UUID;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -14,6 +17,7 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
 import org.springframework.util.MultiValueMap;
 import org.springframework.web.client.HttpClientErrorException;
@@ -55,65 +59,80 @@ public class SocialLoginServiceImpl implements SocialLoginService {
     this.tokenMapper = tokenMapper; // TokenMapper 초기화
   }
 
+  @Override
+  @Transactional
   public Member getOrCreateMember(SocialLogin socialLogin) {
-    String socialId = socialLogin.getProviderId(); // SocialLogin 객체의 providerId를 socialId로 사용
-    logger.info("소셜 ID와 이메일로 기존 멤버 검색 중: socialId={}, 이메일={}", socialId, socialLogin.getEmail());
-
-    boolean exists = memberMapper.existsByEmail(socialLogin.getEmail());
-    Member member = memberMapper.findByEmailAndSocialId(socialLogin.getEmail(), socialId);
-
-    if (!exists || member == null) {
-      logger.info("기존 멤버가 존재하지 않음. 새로운 멤버 생성 시작.");
-      member = createMember(socialLogin, socialId);
-    } else {
-      logger.info("기존 멤버 발견: memberId={}", member.getMemberId());
-      updateMemberInformation(member, socialLogin);
+    // social_login_id가 null인 경우 UUID 생성
+    if (socialLogin.getSocialLoginId() == null) {
+      socialLogin.setSocialLoginId(UUID.randomUUID().toString());
     }
 
-    return member;
+    // 1. 이메일로 기존 회원 찾기
+    Member existingMember = memberMapper.findByEmail(socialLogin.getEmail());
+
+    // 2. 기존 회원이 존재하지 않으면 회원 정보 생성
+    if (existingMember == null) {
+      Member newMember = new Member();
+      newMember.setUserId(socialLogin.getProviderId()); // 사용자 ID는 소셜 로그인에서 제공받은 providerId로 설정
+      newMember.setEmail(socialLogin.getEmail());
+      newMember.setPassword("default_password");
+      newMember.setName(socialLogin.getNickname() != null ? socialLogin.getNickname() : "SocialUser");
+      newMember.setSocialLogin(true); // 소셜 로그인 플래그 설정
+
+      memberMapper.insertMember(newMember);
+      socialLogin.setMemberId(newMember.getMemberId());
+      socialLoginMapper.insertSocialLogin(socialLogin);
+
+      return newMember;
+    }
+
+    // 3. 소셜 로그인 정보 확인
+    SocialLogin existingSocialLogin = socialLoginMapper.findSocialLoginByProviderId(socialLogin.getProviderId(),
+        socialLogin.getProvider());
+
+    if (existingSocialLogin == null) {
+      // 4. 기존 소셜 로그인 정보가 없으면 등록
+      socialLogin.setMemberId(existingMember.getMemberId());
+      socialLoginMapper.insertSocialLogin(socialLogin);
+    } else {
+      // 5. 이미 존재하는 소셜 로그인 정보가 있으면 업데이트
+      socialLoginMapper.updateSocialLogin(socialLogin);
+    }
+
+    return existingMember;
   }
 
-  private Member createMember(SocialLogin socialLogin, String socialId) {
+  public Member createMember(SocialLogin socialLogin) {
     Member member = new Member();
-    member.setUserId(socialId); // 여기서 user_id를 socialId로 설정
-    member.setEmail(socialLogin.getEmail());
-    member.setName(socialLogin.getNickname());
-    member.setSocialId(socialId);
+    member.setUserId(socialLogin.getProviderId());
+    member.setPassword("default_password"); // 소셜 로그인 시 기본 비밀번호 설정
 
-    // 전화번호가 null이면 기본값으로 설정 (예: "없음" 또는 빈 문자열)
-    if (member.getPhone() != null) {
-      member.setPhone(member.getPhone());
-    } else {
-      member.setPhone(""); // 기본값으로 설정
-    }
+    // 이름 필드가 비어 있을 경우 기본값으로 설정
+    String memberName = socialLogin.getNickname() != null && !socialLogin.getNickname().trim().isEmpty()
+        ? socialLogin.getNickname()
+        : "KakaoUser";
+    member.setName(memberName);
+
+    member.setEmail(socialLogin.getEmail());
+    member.setRole("1");
+    member.setPhone(""); // 기본값 설정
+    member.setEmailNoti(false);
+    member.setSmsNoti(false);
 
     memberMapper.insertMember(member);
-    logger.info("새로운 멤버가 데이터베이스에 저장되었습니다: memberId={}", member.getMemberId());
+    logger.info("신규 회원 생성 완료: {}", member);
     return member;
   }
 
-  private void updateMemberInformation(Member member, SocialLogin socialLogin) {
-    member.setEmail(socialLogin.getEmail());
-    member.setName(socialLogin.getNickname());
-    member.setSocialId(socialLogin.getProviderId());
-    memberMapper.updateMemberInfo(member);
-    logger.info("멤버 정보 업데이트: memberId={}", member.getMemberId());
-  }
-
-  private void insertSocialLoginInfo(Member member, SocialLogin socialLogin) {
-    // 소셜 로그인 정보 저장
-    socialLogin.setMemberId(member.getMemberId());
-    socialLoginMapper.insertSocialLogin(socialLogin);
-    logger.info("소셜 로그인 정보가 저장되었습니다: memberId={}, provider={}", member.getMemberId(), socialLogin.getProvider());
-
-    // 토큰 저장 로직 (필요한 경우)
-    Token token = new Token();
-    token.setMemberId(member.getMemberId());
-    token.setTokenType("access");
-    token.setTokenType(socialLogin.getAccessToken());
-    token.setExpiresAt(getExpirationTime());
-    tokenMapper.insertToken(token);
-    logger.info("액세스 토큰이 데이터베이스에 저장되었습니다: memberId={}, token={}", member.getMemberId(), token.getToken());
+  @Override
+  public void insertOrUpdateSocialLoginInfo(Member member, SocialLogin socialLogin) {
+    SocialLogin existingSocialLogin = socialLoginMapper.findSocialLoginByProviderId(socialLogin.getProviderId(),
+        socialLogin.getProvider());
+    if (existingSocialLogin != null) {
+      socialLoginMapper.updateSocialLogin(socialLogin);
+    } else {
+      socialLoginMapper.insertSocialLogin(socialLogin);
+    }
   }
 
   // Access Token 요청 후 사용자 정보를 가져오는 메서드
@@ -177,14 +196,41 @@ public class SocialLoginServiceImpl implements SocialLoginService {
   }
 
   @Override
-  public void insertSocialLogin(SocialLogin socialLogin) {
-    socialLoginMapper.insertSocialLogin(socialLogin);
-  }
+  @Transactional
+  public Map<String, String> saveTokensForMember(Member member) {
+    // 1. 엑세스 토큰 및 리프레시 토큰 생성
+    String accessTokenValue = UUID.randomUUID().toString();
+    String refreshTokenValue = UUID.randomUUID().toString();
 
-  private String getExpirationTime() {
-    // 현재 시간에 1시간(3600초)을 더한 값을 Timestamp로 생성한 후, 문자열로 변환하여 반환
-    Timestamp timestamp = new Timestamp(System.currentTimeMillis() + (60 * 60 * 1000)); // 1시간 후의 Timestamp 객체
-    return timestamp.toString(); // Timestamp를 String으로 변환하여 반환
-  }
+    // 2. 만료 시간 설정
+    LocalDateTime accessTokenExpiresAt = LocalDateTime.now().plusHours(1); // 엑세스 토큰 유효기간: 1시간
+    LocalDateTime refreshTokenExpiresAt = LocalDateTime.now().plusDays(14); // 리프레시 토큰 유효기간: 14일
 
+    // 3. 엑세스 토큰 객체 생성
+    Token accessToken = new Token();
+    accessToken.setToken(accessTokenValue);
+    accessToken.setMemberId(member.getMemberId());
+    accessToken.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+    accessToken.setExpiresAt(accessTokenExpiresAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+    accessToken.setTokenType("access");
+
+    // 4. 리프레시 토큰 객체 생성
+    Token refreshToken = new Token();
+    refreshToken.setToken(refreshTokenValue);
+    refreshToken.setMemberId(member.getMemberId());
+    refreshToken.setCreatedAt(LocalDateTime.now().format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+    refreshToken.setExpiresAt(refreshTokenExpiresAt.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")));
+    refreshToken.setTokenType("refresh");
+
+    // 5. DB에 각각 저장
+    tokenMapper.insertToken(accessToken); // 엑세스 토큰 저장
+    tokenMapper.insertToken(refreshToken); // 리프레시 토큰 저장
+
+    // 6. 엑세스 토큰 및 리프레시 토큰 반환
+    Map<String, String> tokens = new HashMap<>();
+    tokens.put("accessToken", accessTokenValue);
+    tokens.put("refreshToken", refreshTokenValue);
+
+    return tokens;
+  }
 }

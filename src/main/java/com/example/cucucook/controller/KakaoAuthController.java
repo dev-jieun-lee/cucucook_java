@@ -1,5 +1,6 @@
 package com.example.cucucook.controller;
 
+import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
@@ -24,9 +25,12 @@ import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.client.HttpClientErrorException;
 import org.springframework.web.client.RestTemplate;
 
-import com.example.cucucook.config.JwtTokenProvider;
+import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.SocialLogin;
 import com.example.cucucook.service.SocialLoginService;
+
+import jakarta.servlet.http.HttpServletRequest;
+import jakarta.servlet.http.HttpServletResponse;
 
 @CrossOrigin(origins = "http://localhost:3000")
 @RestController
@@ -46,27 +50,28 @@ public class KakaoAuthController {
   private String clientSecret;
 
   private final SocialLoginService socialLoginService;
-  private final JwtTokenProvider jwtTokenProvider;
 
   @Autowired
-  public KakaoAuthController(RestTemplate restTemplate, SocialLoginService socialLoginService,
-      JwtTokenProvider jwtTokenProvider) {
+  private MemberController memberController;
+
+  private static final long DUPLICATE_TIMEOUT = TimeUnit.MINUTES.toMillis(1); // 1분 타임아웃
+  private final ConcurrentHashMap<String, Long> requestCache = new ConcurrentHashMap<>();
+
+  @Autowired
+  public KakaoAuthController(RestTemplate restTemplate, SocialLoginService socialLoginService) {
     this.restTemplate = restTemplate;
     this.socialLoginService = socialLoginService;
-    this.jwtTokenProvider = jwtTokenProvider;
   }
 
-  private final ConcurrentHashMap<String, Long> requestCache = new ConcurrentHashMap<>();
-  private static final long DUPLICATE_TIMEOUT = TimeUnit.MINUTES.toMillis(1); // 1분 타임아웃
-
+  // 중복 요청 감지 메서드
   private boolean isDuplicateRequest(String code) {
     Long lastTime = requestCache.putIfAbsent(code, System.currentTimeMillis());
     if (lastTime != null) {
       long currentTime = System.currentTimeMillis();
       if ((currentTime - lastTime) < DUPLICATE_TIMEOUT) {
-        return true; // 이는 타임아웃 기간 내 중복 요청임을 의미합니다
+        return true; // 이는 타임아웃 기간 내 중복 요청임을 의미합니다.
       } else {
-        // 새 시간으로 업데이트하고 요청을 허용합니다
+        // 새 시간으로 업데이트하고 요청을 허용합니다.
         requestCache.put(code, currentTime);
         return false;
       }
@@ -75,37 +80,53 @@ public class KakaoAuthController {
   }
 
   @PostMapping("/kakao/login")
-  public ResponseEntity<?> kakaoLogin(@RequestParam("code") String code) {
+  public ResponseEntity<?> kakaoLogin(@RequestParam("code") String code, HttpServletResponse response,
+      HttpServletRequest request) {
     logger.info("카카오 로그인 요청 받음, 인증 코드: {}", code);
 
-    // 중복 요청 확인 로직 추가 예시
     if (isDuplicateRequest(code)) {
-      logger.info("중복 요청 감지, 인증 코드: {}", code);
-      return ResponseEntity.status(HttpStatus.CONFLICT).body("Duplicate request detected");
+      logger.warn("중복 요청 감지, 인증 코드: {}", code);
+      return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS).body("중복 요청입니다. 잠시 후 다시 시도하세요.");
     }
 
     try {
       String accessToken = getAccessToken(code);
       if (accessToken == null) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("액세스 토큰을 가져오는 데 실패했습니다.");
+        logger.error("카카오 액세스 토큰을 가져오는 데 실패했습니다.");
+        return ResponseEntity.badRequest().body("액세스 토큰을 가져오는 데 실패했습니다.");
       }
 
+      // 사용자 정보 가져오기
       SocialLogin socialLogin = getKakaoUserInfo(accessToken);
       if (socialLogin == null) {
-        return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("사용자 정보를 가져오는 데 실패했습니다.");
+        logger.error("카카오 사용자 정보를 가져오는 데 실패했습니다.");
+        return ResponseEntity.badRequest().body("사용자 정보를 가져오는 데 실패했습니다.");
       }
 
-      // 사용자 정보 반환
-      return ResponseEntity.ok().body(socialLogin);
-    } catch (Exception e) {
-      logger.error("서버 오류 발생: {}", e.getMessage());
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("서버 오류 발생: " + e.getMessage());
+      // 회원 정보 생성 또는 가져오기
+      Member member = socialLoginService.getOrCreateMember(socialLogin);
+
+      // 1. 토큰 생성 및 저장
+      Map<String, String> tokens = socialLoginService.saveTokensForMember(member);
+
+      // 2. 사용자 정보와 함께 두 개의 토큰을 반환
+      Map<String, Object> responseBody = new HashMap<>();
+      responseBody.put("member", member);
+      responseBody.put("accessToken", tokens.get("accessToken"));
+      responseBody.put("refreshToken", tokens.get("refreshToken"));
+
+      logger.info("카카오 로그인 성공: userId: {}, accessToken: {}, refreshToken: {}", member.getUserId(),
+          tokens.get("accessToken"), tokens.get("refreshToken"));
+      return ResponseEntity.ok(responseBody);
+
+    } catch (Exception ex) {
+      logger.error("카카오 로그인 처리 중 오류 발생: {}", ex.getMessage());
+      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("로그인 처리 중 오류가 발생했습니다.");
     }
   }
 
   private String getAccessToken(String code) {
     String url = "https://kauth.kakao.com/oauth/token";
-
     HttpHeaders headers = new HttpHeaders();
     headers.setContentType(MediaType.APPLICATION_FORM_URLENCODED);
 
@@ -115,56 +136,43 @@ public class KakaoAuthController {
     params.add("redirect_uri", redirectUri);
     params.add("code", code);
     params.add("client_secret", clientSecret);
-    // 닉네임,프로필사진,이메일 수집 동의를 추가합니다.
-    params.add("scope", "account_email, profile_nickname, profile_image");
 
     HttpEntity<MultiValueMap<String, String>> request = new HttpEntity<>(params, headers);
-
-    try {
-      ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
-      if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
-        return (String) response.getBody().get("access_token");
-      }
-    } catch (HttpClientErrorException ex) {
-      logger.error("액세스 토큰 요청 중 오류 발생, HTTP 상태: {}, 응답 내용: {}", ex.getStatusCode(), ex.getResponseBodyAsString());
-      throw ex;
-    }
-    return null;
+    ResponseEntity<Map> response = restTemplate.postForEntity(url, request, Map.class);
+    return response.getBody() != null ? (String) response.getBody().get("access_token") : null;
   }
 
-  private SocialLogin getKakaoUserInfo(String accessToken) {
-    String url = "https://kapi.kakao.com/v2/user/me";
+  public SocialLogin getKakaoUserInfo(String accessToken) {
     HttpHeaders headers = new HttpHeaders();
-    headers.setBearerAuth(accessToken);
+    headers.add("Authorization", "Bearer " + accessToken);
 
     HttpEntity<String> request = new HttpEntity<>(headers);
 
     try {
-      ResponseEntity<Map> response = restTemplate.exchange(url, HttpMethod.GET, request, Map.class);
+      ResponseEntity<Map> response = restTemplate.exchange(
+          "https://kapi.kakao.com/v2/user/me",
+          HttpMethod.GET,
+          request,
+          Map.class);
 
-      // 응답 확인
-      if (response.getStatusCode().is2xxSuccessful() && response.getBody() != null) {
+      if (response.getBody() != null) {
         Map<String, Object> userInfo = response.getBody();
-        logger.info("카카오 사용자 정보: {}", userInfo); // 사용자 정보 로그 출력
-
-        // SocialLogin 객체 생성 및 정보 설정
         SocialLogin socialLogin = new SocialLogin();
-        socialLogin.setProviderId(String.valueOf(userInfo.get("id"))); // 사용자 ID 설정
-        // 이메일이 존재하는 경우 이메일 설정
-        if (userInfo.containsKey("kakao_account")) {
-          Map<String, Object> kakaoAccount = (Map<String, Object>) userInfo.get("kakao_account");
-          String kakaoEmail = (String) kakaoAccount.get("email"); // 변수명을 email에서 kakaoEmail로 변경
-          socialLogin.setEmail(kakaoEmail);
-        }
+        socialLogin.setProvider("kakao");
+        socialLogin.setProviderId(String.valueOf(userInfo.get("id"))); // 카카오 ID
+        socialLogin.setNickname((String) ((Map) userInfo.get("properties")).get("nickname")); // 사용자 이름
+        socialLogin.setEmail((String) ((Map) userInfo.get("kakao_account")).get("email")); // 사용자 이메일
+        socialLogin.setSocialLogin(true); // 소셜 로그인 플래그 설정
 
-        return socialLogin;
-      } else {
-        logger.error("사용자 정보를 가져오는 데 실패했습니다. HTTP 상태: {}, 응답 내용: {}", response.getStatusCode(), response.getBody());
+        return socialLogin; // 성공적으로 가져왔을 때 SocialLogin 객체 반환
       }
-    } catch (Exception ex) {
-      logger.error("카카오 사용자 정보를 가져오는 중 오류 발생: {}", ex.getMessage());
+    } catch (HttpClientErrorException e) {
+      logger.error("카카오 사용자 정보 요청 중 오류 발생: {}", e.getResponseBodyAsString());
+      throw new RuntimeException("카카오 사용자 정보 요청 실패"); // 예외 발생
     }
-    return null;
+
+    // 모든 경로에서 반환하도록 설정 (여기에서는 예외로 대체 가능)
+    throw new RuntimeException("카카오 사용자 정보를 가져올 수 없습니다.");
   }
 
 }
