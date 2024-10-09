@@ -57,6 +57,9 @@ public class Member implements Serializable {
     private LocalDateTime lockoutTime;
     private int failedAttempts;
 
+    // 소셜로그인 플래그
+    private boolean isSocialLogin;
+
     public String getUserId() {
         return userId;
     }
