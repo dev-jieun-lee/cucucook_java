@@ -7,9 +7,11 @@ import java.util.Date;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
+import com.example.cucucook.domain.Member;
 import com.example.cucucook.mapper.MemberMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
@@ -23,8 +25,10 @@ public class JwtTokenProvider {
 
   @Value("${jwt.secret}")
   private String secretKey; // JWT 비밀 키
-  @Value("${token.expired}")
-  private int tokenExpired;
+  @Value("${acessToken.expired}")
+  private int acessTokenExpired;
+  @Value("${refreshToken.expired}")
+  private int refreshTokenExpired;
   @Autowired
   private MemberMapper memberMapper;
 
@@ -33,10 +37,10 @@ public class JwtTokenProvider {
     return Keys.hmacShaKeyFor(Base64.getDecoder().decode(secretKey)); // Base64로 인코딩된 문자열을 byte 배열로 변환
   }
 
-  // JWT 토큰 생성 메서드
+  // JWT 토큰 생성 메서드 (엑세스)
   public String createToken(String userId, String role) {
     Date now = new Date();
-    Date validity = new Date(now.getTime() + 3600000); // 토큰 유효 시간: 1시간
+    Date validity = new Date(now.getTime() + acessTokenExpired); // 토큰 유효 시간: 1시간
 
     // JwtBuilder를 사용하여 JWT 생성
     JwtBuilder builder = Jwts.builder()
@@ -47,6 +51,20 @@ public class JwtTokenProvider {
         .signWith(this.getKey()); // Key 객체와 알고리즘을 사용하여 서명
 
     return builder.compact(); // JWT 문자열 반환
+  }
+
+  // 리프레시 토큰 생성 메서드
+  public String createRefreshToken(String userId) {
+    long validityInMilliseconds = refreshTokenExpired; // 7 days, 리프레시 토큰의 유효 기간 설정
+    Date now = new Date();
+    Date validity = new Date(now.getTime() + validityInMilliseconds);
+
+    return Jwts.builder()
+        .subject(userId) // 사용자 ID 설정
+        .issuedAt(now) // 발급 시간 설정
+        .expiration(validity) // 만료 시간 설정
+        .signWith(this.getKey())
+        .compact();
   }
 
   // JWT 토큰 유효성 검사 메서드
@@ -121,23 +139,26 @@ public class JwtTokenProvider {
     }
   }
 
-  // TODO: 추가 구현 필요한 메서드
   public UserDetails loadUserByUserId(String userId) {
-    throw new UnsupportedOperationException("Unimplemented method 'loadUserByUserId'");
+    Member member = memberMapper.findByUserId(userId);
+    if (member != null) {
+      String role = mapRoleToAuthority(member.getRole());
+      return new org.springframework.security.core.userdetails.User(
+          member.getUserId(),
+          member.getPassword(),
+          java.util.List.of(new SimpleGrantedAuthority(role)));
+    }
+
+    return null;
   }
 
-  // 리프레시 토큰 생성 메서드: 아직 구현되지 않음
-  public String createRefreshToken(String userId) {
-    long validityInMilliseconds = 604800000; // 7 days, 리프레시 토큰의 유효 기간 설정
-    Date now = new Date();
-    Date validity = new Date(now.getTime() + validityInMilliseconds);
-
-    return Jwts.builder()
-        .subject(userId) // 사용자 ID 설정
-        .issuedAt(now) // 발급 시간 설정
-        .expiration(validity) // 만료 시간 설정
-        .signWith(this.getKey())
-        .compact();
+  // 숫자 권한을 문자열 권한으로 매핑하는 메서드
+  private String mapRoleToAuthority(String roleNumber) {
+    return switch (roleNumber) {
+      case "0" -> "ADMIN";
+      case "1" -> "USER";
+      case "2" -> "SUPER_ADMIN";
+      default -> "GUEST";
+    };
   }
-
 }

@@ -7,6 +7,7 @@ import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
@@ -52,6 +53,13 @@ public class MemberController {
 
   private String key;
 
+  @Value("${acessCookie.expired}")
+  private int acessCookieExpired;
+  @Value("${refreshCookie.expired}")
+  private int refreshCookieExpired;
+  @Value("${autoLoginCookie.expired}")
+  private int autoLoginCookieExpired;
+
   @PostMapping("/login")
   public ResponseEntity<?> login(@RequestBody Member loginRequest, HttpServletResponse response,
       HttpServletRequest request) {
@@ -61,9 +69,22 @@ public class MemberController {
       // 서비스에서 로그인 처리 후 토큰 데이터를 반환받음
       Map<String, String> tokenData = memberService.login(loginRequest.getUserId(), loginRequest.getPassword());
 
+      // 사용자가 자동 로그인을 체크했는지 확인
+      boolean rememberLogin = loginRequest.isRememberLogin();
+      // 자동 로그인 체크 여부에 따라 쿠키 만료 시간을 다르게 설정
+      Integer accessTokenMaxAge = rememberLogin ? acessCookieExpired : null; // 자동 로그인 시 1일 유지, 아니면 세션 쿠키
+      Integer refreshTokenMaxAge = rememberLogin ? refreshCookieExpired : null; // 자동 로그인 시 7일 유지, 아니면 세션 쿠키
+
       // 액세스 토큰과 리프레시 토큰을 쿠키에 설정
-      setTokenInCookie(response, tokenData.get("accessToken"), "access_token", true, request.isSecure(), "/");
-      setTokenInCookie(response, tokenData.get("refreshToken"), "refresh_token", true, request.isSecure(), "/");
+      setTokenInCookie(response, tokenData.get("accessToken"), "access_token", true, request.isSecure(), "/",
+          accessTokenMaxAge);
+      setTokenInCookie(response, tokenData.get("refreshToken"), "refresh_token", true, request.isSecure(), "/",
+          refreshTokenMaxAge);
+      // 자동 로그인 체크 여부쿠키에 저장
+      if (rememberLogin) {
+        setTokenInCookie(response, "Y", "remember_login", false, request.isSecure(), "/",
+            autoLoginCookieExpired);
+      }
 
       // 응답 데이터 구성
       Map<String, String> responseBody = new HashMap<>();
@@ -97,11 +118,13 @@ public class MemberController {
 
   // 토큰 쿠키 설정 메서드
   private void setTokenInCookie(HttpServletResponse response, String token,
-      String name, boolean isHttpOnly, boolean secure, String path) {
+      String name, boolean isHttpOnly, boolean secure, String path, Integer maxAge) {
     Cookie cookie = new Cookie(name, token);
     cookie.setHttpOnly(isHttpOnly);
     cookie.setSecure(secure);
     cookie.setPath(path);
+    if (maxAge != null)
+      cookie.setMaxAge(maxAge);
     response.addCookie(cookie);
   }
 
@@ -154,12 +177,24 @@ public class MemberController {
   @PostMapping("/logout")
   public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
     // JWT 토큰 쿠키 삭제
-    Cookie authCookie = new Cookie("auth_token", null);
-    authCookie.setHttpOnly(true);
-    authCookie.setSecure(request.isSecure()); // HTTPS에서만 사용
-    authCookie.setPath("/"); // 전체 경로에 대해 유효
-    authCookie.setMaxAge(0); // 쿠키 삭제
-    response.addCookie(authCookie);
+    Cookie accessToken = new Cookie("access_token", null);
+    Cookie refreshToken = new Cookie("refresh_token", null);
+    Cookie isRemember = new Cookie("remember_login", null);
+    accessToken.setHttpOnly(true);
+    accessToken.setSecure(request.isSecure()); // HTTPS에서만 사용
+    accessToken.setPath("/"); // 전체 경로에 대해 유효
+    accessToken.setMaxAge(0); // 쿠키 삭제
+    response.addCookie(accessToken);
+    refreshToken.setHttpOnly(true);
+    refreshToken.setSecure(request.isSecure()); // HTTPS에서만 사용
+    refreshToken.setPath("/"); // 전체 경로에 대해 유효
+    refreshToken.setMaxAge(0); // 쿠키 삭제
+    response.addCookie(refreshToken);
+    isRemember.setHttpOnly(false);
+    isRemember.setSecure(request.isSecure()); // HTTPS에서만 사용
+    isRemember.setPath("/"); // 전체 경로에 대해 유효
+    isRemember.setMaxAge(0); // 쿠키 삭제
+    response.addCookie(isRemember);
 
     // 인증 정보 로그아웃 처리
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
@@ -390,6 +425,54 @@ public class MemberController {
       @RequestParam(value = "start", required = false, defaultValue = "1") int start,
       @RequestParam(value = "display", required = true, defaultValue = "20") int display) {
     return memberService.getMemberList(search, searchType, start, display);
+  }
+
+  // 자동로그인시 가져오는 회원정보
+  @GetMapping(value = "/getAutoLogin")
+  public ResponseEntity<?> getAutoLogin(HttpServletResponse response, HttpServletRequest request) {
+    String refreshToken = getTokenFromCookies(request);
+
+    if (refreshToken == null || !tokenProvider.validateToken(refreshToken)) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 토큰");
+    }
+
+    String userId = tokenProvider.getUserId(refreshToken);
+    if (userId == null) {
+      return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("사용자 정보 없음");
+    }
+    Member member = memberService.validateMemberByUserId(userId);
+
+    String accessToken = tokenProvider.createToken(userId, member.getRole());
+
+    setTokenInCookie(response, accessToken, "access_token", true, true, "/",
+        acessCookieExpired);
+    // 응답 데이터 구성
+
+    Map<String, String> responseBody = new HashMap<>();
+    responseBody.put("message", "로그인 성공");
+    responseBody.put("accessToken", accessToken);
+    responseBody.put("refreshToken", refreshToken);
+    responseBody.put("userId", userId);
+    responseBody.put("memberId", Integer.toString(member.getMemberId()));
+    responseBody.put("name", member.getName());
+    responseBody.put("role", member.getRole());
+    responseBody.put("failedAttempts", Integer.toString(member.getFailedAttempts())); // 실패 횟수 추가
+    return ResponseEntity.ok().body(responseBody);
+
+  }
+
+  public String getTokenFromCookies(HttpServletRequest request) {
+    Cookie[] cookies = request.getCookies(); // 수정된 부분
+    if (cookies != null) {
+      for (Cookie cookie : cookies) {
+
+        // refresh_token 으로 검사
+        if ("refresh_token".equals(cookie.getName())) {
+          return cookie.getValue();
+        }
+      }
+    }
+    return null;
   }
 
 }
