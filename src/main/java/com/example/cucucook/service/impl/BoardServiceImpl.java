@@ -128,7 +128,7 @@ public class BoardServiceImpl implements BoardService {
     int fileUploadResult = 0;
     // 첨부파일 업로드
     try {
-      if (!uploadFileList.isEmpty()) {
+      if (uploadFileList != null && !uploadFileList.isEmpty()) {
         for (MultipartFile uploadFile : uploadFileList) {
           if (uploadFile.getSize() > 0) {
             String serverFileName = fileUploadUtil.uploadFile(uploadFile, "board/" + uuid);
@@ -142,7 +142,8 @@ public class BoardServiceImpl implements BoardService {
       System.err.println("An error occurred: " + e.getMessage());
     }
     // 성공 여부에 따른 결과 처리
-    if (rowsAffected > 0 && ((fileUploadResult > 0 && !uploadFileList.isEmpty()) || uploadFileList.isEmpty())) {
+    if (rowsAffected > 0 && (fileUploadResult > 0 && (uploadFileList != null && !uploadFileList.isEmpty())
+        || (uploadFileList == null || uploadFileList.isEmpty()))) {
       result.put("success", true);
       message = "게시물이 성공적으로 등록되었습니다.";
     } else {
@@ -176,8 +177,10 @@ public class BoardServiceImpl implements BoardService {
 
     // 첨부파일 업로드
     try {
+      System.out.println("??????????????gggggggggggggggggg?????");
+      System.out.println(uploadFileList != null && !uploadFileList.isEmpty());
       // 새로 등록한파일 insert
-      if (!uploadFileList.isEmpty()) {
+      if (uploadFileList != null && !uploadFileList.isEmpty()) {
         for (MultipartFile uploadFile : uploadFileList) {
           if (uploadFile.getSize() > 0) {
             String serverFileName = fileUploadUtil.uploadFile(uploadFile, "board/" + boardId);
@@ -190,7 +193,9 @@ public class BoardServiceImpl implements BoardService {
       // 사용자가 선택한 기등록된 파일 삭제
       if (!board.getDelFileIds().isEmpty()) {
         for (String fileId : board.getDelFileIds()) {
+          System.out.println(fileId);
           BoardFiles boardFiles = boardMapper.getBoardFiles(boardId, fileId);
+          System.out.println(boardFiles);
           fileUploadUtil.deleteFile(
               boardFiles.getServerFilePath() + "/" + boardFiles.getServerFileName() + "." + boardFiles.getExtension(),
               fileId);
@@ -206,8 +211,13 @@ public class BoardServiceImpl implements BoardService {
       return result;
     }
 
+    System.out.println("???????????????!!!!!!!!!!!!!!????");
+    System.out.println("(uploadFileList != null && !uploadFileList.isEmpty()) "
+        + (uploadFileList != null && !uploadFileList.isEmpty()));
+    System.out.println((uploadFileList == null || uploadFileList.isEmpty()));
     // 수정이 성공했는지 여부 체크
-    if (updateCount > 0 && fileUploadCnt == uploadFileList.size()) {
+    if (updateCount > 0 && ((uploadFileList != null && !uploadFileList.isEmpty())
+        || (uploadFileList == null || uploadFileList.isEmpty()))) {
       result.put("success", true);
 
       result.put("message", "게시글이 성공적으로 수정되었습니다.");
