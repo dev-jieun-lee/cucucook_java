@@ -60,7 +60,6 @@ public class MemberController {
     try {
       // 서비스에서 로그인 처리 후 토큰 데이터를 반환받음
       Map<String, String> tokenData = memberService.login(loginRequest.getUserId(), loginRequest.getPassword());
-
       // 액세스 토큰과 리프레시 토큰을 쿠키에 설정
       setTokenInCookie(response, tokenData.get("accessToken"), "access_token", true, request.isSecure(), "/");
       setTokenInCookie(response, tokenData.get("refreshToken"), "refresh_token", true, request.isSecure(), "/");
@@ -98,6 +97,9 @@ public class MemberController {
   // 토큰 쿠키 설정 메서드
   private void setTokenInCookie(HttpServletResponse response, String token,
       String name, boolean isHttpOnly, boolean secure, String path) {
+
+    // setTokenInCookie(response, tokenData.get("accessToken"), "access_token",
+    // true, request.isSecure(), "/");
     Cookie cookie = new Cookie(name, token);
     cookie.setHttpOnly(isHttpOnly);
     cookie.setSecure(secure);
@@ -154,12 +156,18 @@ public class MemberController {
   @PostMapping("/logout")
   public ResponseEntity<?> logout(HttpServletRequest request, HttpServletResponse response) {
     // JWT 토큰 쿠키 삭제
-    Cookie authCookie = new Cookie("auth_token", null);
-    authCookie.setHttpOnly(true);
-    authCookie.setSecure(request.isSecure()); // HTTPS에서만 사용
-    authCookie.setPath("/"); // 전체 경로에 대해 유효
-    authCookie.setMaxAge(0); // 쿠키 삭제
-    response.addCookie(authCookie);
+    Cookie accessToken = new Cookie("access_token", null);
+    Cookie refreshToken = new Cookie("refresh_token", null);
+    accessToken.setHttpOnly(true);
+    accessToken.setSecure(request.isSecure()); // HTTPS에서만 사용
+    accessToken.setPath("/"); // 전체 경로에 대해 유효
+    accessToken.setMaxAge(0); // 쿠키 삭제
+    response.addCookie(accessToken);
+    refreshToken.setHttpOnly(true);
+    refreshToken.setSecure(request.isSecure()); // HTTPS에서만 사용
+    refreshToken.setPath("/"); // 전체 경로에 대해 유효
+    refreshToken.setMaxAge(0); // 쿠키 삭제
+    response.addCookie(refreshToken);
 
     // 인증 정보 로그아웃 처리
     Authentication authentication = SecurityContextHolder.getContext().getAuthentication();

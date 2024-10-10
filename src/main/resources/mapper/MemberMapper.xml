@@ -82,8 +82,8 @@
             email = #{email},
             role = #{role},
             sms_noti = #{smsNoti},
-            email_noti = #{emailNoti}
-             social_id = #{socialId}
+            email_noti = #{emailNoti},
+            social_id = #{socialId}
         WHERE member_id = #{memberId}
     </update>
 
