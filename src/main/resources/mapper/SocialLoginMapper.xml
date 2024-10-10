@@ -1,17 +1,28 @@
-<?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE mapper
   PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
   "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
 <mapper namespace="com.example.cucucook.mapper.SocialLoginMapper">
-     <insert id="insertSocialLogin" parameterType="com.example.cucucook.domain.SocialLogin">
-        INSERT INTO social_login (member_id, provider, provider_id, access_token, refresh_token, created_at, updated_at)
-        VALUES (#{memberId}, #{provider}, #{providerId}, #{accessToken}, #{refreshToken}, NOW(), NOW())
-    </insert>
 
-        <select id="findBySocialId" resultType="com.example.cucucook.domain.Member">
-        SELECT *
-        FROM member
-        WHERE social_id = #{findBySocialId}
-    </select>
+  <!-- 소셜 로그인 정보 삽입 -->
+<insert id="insertSocialLogin" parameterType="com.example.cucucook.domain.SocialLogin">
+  INSERT INTO social_login (social_login_id, provider_id, provider, member_id)
+  VALUES (CAST(#{socialLoginId} AS UUID), #{providerId}, #{provider}, #{memberId})
+</insert>
+
+
+  <!-- 소셜 로그인 정보 업데이트 -->
+<update id="updateSocialLogin" parameterType="com.example.cucucook.domain.SocialLogin">
+  UPDATE social_login
+  SET provider_id = #{providerId}, provider = #{provider}
+  WHERE social_login_id = #{socialLoginId}::uuid
+</update>
+
+  <!-- 소셜 로그인 정보 조회 -->
+  <select id="findSocialLoginByProviderId" resultType="com.example.cucucook.domain.SocialLogin">
+    SELECT * FROM social_login
+    WHERE provider_id = #{providerId} AND provider = #{provider}
+  </select>
+
 </mapper>

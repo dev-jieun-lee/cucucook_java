@@ -33,7 +33,7 @@ public class JwtTokenProvider {
     return Keys.hmacShaKeyFor(Base64.getDecoder().decode(secretKey)); // Base64로 인코딩된 문자열을 byte 배열로 변환
   }
 
-  // JWT 토큰 생성 메서드
+  // JWT 토큰 생성 메서드 (엑세스)
   public String createToken(String userId, String role) {
     Date now = new Date();
     Date validity = new Date(now.getTime() + 3600000); // 토큰 유효 시간: 1시간
@@ -47,6 +47,20 @@ public class JwtTokenProvider {
         .signWith(this.getKey()); // Key 객체와 알고리즘을 사용하여 서명
 
     return builder.compact(); // JWT 문자열 반환
+  }
+
+  // 리프레시 토큰 생성 메서드
+  public String createRefreshToken(String userId) {
+    long validityInMilliseconds = 604800000; // 7 days, 리프레시 토큰의 유효 기간 설정
+    Date now = new Date();
+    Date validity = new Date(now.getTime() + validityInMilliseconds);
+
+    return Jwts.builder()
+        .subject(userId) // 사용자 ID 설정
+        .issuedAt(now) // 발급 시간 설정
+        .expiration(validity) // 만료 시간 설정
+        .signWith(this.getKey())
+        .compact();
   }
 
   // JWT 토큰 유효성 검사 메서드
@@ -124,20 +138,6 @@ public class JwtTokenProvider {
   // TODO: 추가 구현 필요한 메서드
   public UserDetails loadUserByUserId(String userId) {
     throw new UnsupportedOperationException("Unimplemented method 'loadUserByUserId'");
-  }
-
-  // 리프레시 토큰 생성 메서드: 아직 구현되지 않음
-  public String createRefreshToken(String userId) {
-    long validityInMilliseconds = 604800000; // 7 days, 리프레시 토큰의 유효 기간 설정
-    Date now = new Date();
-    Date validity = new Date(now.getTime() + validityInMilliseconds);
-
-    return Jwts.builder()
-        .subject(userId) // 사용자 ID 설정
-        .issuedAt(now) // 발급 시간 설정
-        .expiration(validity) // 만료 시간 설정
-        .signWith(this.getKey())
-        .compact();
   }
 
 }
