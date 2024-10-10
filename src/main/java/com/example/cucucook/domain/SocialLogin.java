@@ -9,9 +9,11 @@ public class SocialLogin {
   private String provider;
   private String nickname;
   private String email;
+  private String phone;
   private int memberId;
 
   private boolean isSocialLogin;
+  public String setPhone;
 
   public boolean isSocialLogin() {
     return isSocialLogin;
@@ -78,5 +80,13 @@ public class SocialLogin {
 
   public void setMemberId(int memberId) {
     this.memberId = memberId;
+  }
+
+  public String getPhone() {
+    return phone;
+  }
+
+  public void setPhone(String phone) {
+    this.phone = phone;
   }
 }

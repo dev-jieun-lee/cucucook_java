@@ -55,4 +55,6 @@ public interface MemberService {
 
     Member validateMemberByUserId(String userId);
 
+    int getRemainingLockoutTime(String userId);
+
 }
