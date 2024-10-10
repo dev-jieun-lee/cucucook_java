@@ -141,7 +141,10 @@
         SELECT * FROM verification_code
         WHERE email = #{email} AND code = #{code}
     </select>
-
+  <!-- 이메일로 사용자 찾기 -->
+  <select id="findByEmail" parameterType="String" resultType="com.example.cucucook.domain.Member">
+    SELECT * FROM member WHERE email = #{email}
+  </select>
     <!-- 이메일로 인증 코드 찾기 -->
     <select id="findVerificationCodeByEmail" parameterType="String" resultType="com.example.cucucook.domain.VerificationCode">
         SELECT * FROM verification_code
