@@ -184,13 +184,6 @@
         LIMIT #{pageSize} OFFSET GREATEST(0, #{offset})
     </select>
 
-    <!-- 댓글 삭제 -->
-    <update id="deleteComment" parameterType="map">
-        UPDATE recipe_comment
-        SET del_yn = 'Y', upt_dt = NOW()
-        WHERE comment_id = #{commentId} AND member_id = #{memberId};
-    </update>
-
     <!-- 댓글 내용 또는 레시피 제목으로 검색 -->
     <select id="searchByKeyword" resultType="RecipeComment">
         SELECT rc.recipe_id,
