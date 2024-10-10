@@ -5,12 +5,10 @@ import java.util.List;
 
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
@@ -91,25 +89,6 @@ public class BoardController {
   @GetMapping(value = "/getBoardCategory")
   public HashMap<String, Object> getBoardCategory(@RequestParam String boardCategoryId) {
     return boardService.getBoardCategory(boardCategoryId);
-  }
-
-  // 카테고리 등록
-  @PostMapping(value = "/insertBoardCategory")
-  public HashMap<String, Object> insertBoardCategory(@RequestBody BoardCategory boardCategory) {
-    return boardService.insertBoardCategory(boardCategory);
-  }
-
-  // 카테고리 수정
-  @PutMapping(value = "/updateBoardCategory")
-  public HashMap<String, Object> updateBoardCategory(@RequestParam String boardCategoryId,
-      @RequestBody BoardCategory boardCategory) {
-    return boardService.updateBoardCategory(boardCategoryId, boardCategory);
-  }
-
-  // 카테고리 삭제
-  @DeleteMapping(value = "/deleteBoardCategory")
-  public ResponseEntity<HashMap<String, Object>> deleteBoardCategory(@RequestParam String boardCategoryId) {
-    return boardService.deleteBoardCategory(boardCategoryId);
   }
 
   // 첨부파일 목록 보기

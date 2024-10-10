@@ -46,7 +46,9 @@ public class JwtTokenFilter extends UsernamePasswordAuthenticationFilter {
     Cookie[] cookies = request.getCookies(); // 수정된 부분
     if (cookies != null) {
       for (Cookie cookie : cookies) {
-        if ("auth_token".equals(cookie.getName())) {
+
+        // refresh_token 으로 검사
+        if ("refresh_token".equals(cookie.getName())) {
           return cookie.getValue();
         }
       }
