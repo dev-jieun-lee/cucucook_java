@@ -41,34 +41,13 @@ public interface MypageMapper {
       @Param("offset") int offset,
       @Param("pageSize") int pageSize,
       @Param("memberId") int memberId,
+      @Param("search") String search,
+      @Param("searchType") String searchType,
       @Param("sortOption") String sortOption,
       @Param("sortDirection") String sortDirection);
 
   // 댓글 삭제
   void deleteComment(int memberId, String commentId);
-
-  // 댓글 검색
-  List<RecipeComment> searchByContent(@Param("keyword") String keyword,
-      @Param("offset") int offset,
-      @Param("pageSize") int pageSize,
-      @Param("sortOption") String sortOption,
-      @Param("sortDirection") String sortDirection);
-
-  List<RecipeComment> searchByRecipeTitle(@Param("keyword") String keyword,
-      @Param("offset") int offset,
-      @Param("pageSize") int pageSize,
-      @Param("sortOption") String sortOption,
-      @Param("sortDirection") String sortDirection);
-
-  // 댓글 및 레시피 제목 검색
-  List<RecipeComment> searchByKeyword(
-      @Param("memberId") int memberId,
-      @Param("keyword") String keyword,
-      @Param("searchType") String searchType,
-      @Param("offset") int offset,
-      @Param("pageSize") int pageSize,
-      @Param("sortOption") String sortOption,
-      @Param("sortDirection") String sortDirection);
 
   // 게시물//
   // 내가 쓴 게시물 가져오기
