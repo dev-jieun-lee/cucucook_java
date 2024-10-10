@@ -179,7 +179,7 @@ public class MemberController {
     // JWT 토큰 쿠키 삭제
     Cookie accessToken = new Cookie("access_token", null);
     Cookie refreshToken = new Cookie("refresh_token", null);
-    Cookie isRemember = new Cookie("is_remember", null);
+    Cookie isRemember = new Cookie("remember_login", null);
     accessToken.setHttpOnly(true);
     accessToken.setSecure(request.isSecure()); // HTTPS에서만 사용
     accessToken.setPath("/"); // 전체 경로에 대해 유효
@@ -428,11 +428,9 @@ public class MemberController {
   }
 
   // 자동로그인시 가져오는 회원정보
-  @PostMapping(value = "/getAutoLogin")
-  public ResponseEntity<?> getAutoLogin(@RequestBody Map<String, String> requestBody,
-      HttpServletResponse response, HttpServletRequest request) {
+  @GetMapping(value = "/getAutoLogin")
+  public ResponseEntity<?> getAutoLogin(HttpServletResponse response, HttpServletRequest request) {
     String refreshToken = getTokenFromCookies(request);
-    System.out.println("refreshToken" + refreshToken);
 
     if (refreshToken == null || !tokenProvider.validateToken(refreshToken)) {
       return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body("유효하지 않은 토큰");
@@ -447,8 +445,9 @@ public class MemberController {
     String accessToken = tokenProvider.createToken(userId, member.getRole());
 
     setTokenInCookie(response, accessToken, "access_token", true, true, "/",
-        60 * 60 * 24);
+        acessCookieExpired);
     // 응답 데이터 구성
+
     Map<String, String> responseBody = new HashMap<>();
     responseBody.put("message", "로그인 성공");
     responseBody.put("accessToken", accessToken);
