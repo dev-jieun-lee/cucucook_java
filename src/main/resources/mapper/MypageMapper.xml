@@ -155,34 +155,37 @@
 
     <!-- 내가 쓴 댓글 조회 -->
     <select id="getMyComments" resultType="com.example.cucucook.domain.RecipeComment">
-        SELECT rc.recipe_id,
-               rc.comment_id,
-               rc.member_id,
-               rc.comment,
-               rc.rate,
-               rc.reg_dt,
-               rc.upt_dt,
-               rc.status,
-               rc.p_comment_id,
-               rc.del_yn,
-               mr.title
+        SELECT  rc.recipe_id,
+                rc.comment_id,
+                rc.member_id,
+                rc.comment,
+                rc.rate,
+                rc.reg_dt,
+                rc.upt_dt,
+                rc.status,
+                rc.p_comment_id,
+                rc.del_yn,
+                mr.title
         FROM recipe_comment rc
         LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
         WHERE rc.member_id = #{memberId} AND rc.del_yn = 'N'
-        ORDER BY
-        <choose>
-            <when test="sortOption == 'recipeId'">
-                rc.recipe_id ${sortDirection}
-            </when>
-            <when test="sortOption == 'regDt'">
-                rc.reg_dt ${sortDirection}
-            </when>
-            <otherwise>
-                rc.comment_id ${sortDirection}
-            </otherwise>
-        </choose>
-        LIMIT #{pageSize} OFFSET GREATEST(0, #{offset})
+        <if test="search != '' and search != null">
+            <choose>
+                <when test="searchType == 'title'">
+                    AND mr.title LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'comment'">
+                    AND rc.comment LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'all'">
+                    AND (mr.title LIKE CONCAT('%', #{search}, '%') OR rc.comment LIKE CONCAT('%', #{search}, '%'))
+                </when>
+            </choose>
+        </if>
+        ORDER BY rc.reg_dt DESC
+        LIMIT #{pageSize} OFFSET #{offset}
     </select>
+
 
     <!-- 댓글 삭제 -->
     <update id="deleteComment" parameterType="map">
@@ -191,43 +194,6 @@
         WHERE comment_id = #{commentId} AND member_id = #{memberId};
     </update>
 
-    <!-- 댓글 내용 또는 레시피 제목으로 검색 -->
-    <select id="searchByKeyword" resultType="RecipeComment">
-        SELECT rc.recipe_id,
-               rc.comment_id,
-               rc.member_id,
-               rc.comment,
-               rc.rate,
-               rc.reg_dt,
-               rc.upt_dt,
-               rc.status,
-               rc.p_comment_id,
-               rc.del_yn,
-               mr.title
-        FROM recipe_comment rc
-        LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
-        WHERE rc.member_id = #{memberId} AND rc.del_yn = 'N'
-        <choose>
-            <!-- 댓글 내용으로 검색 -->
-            <when test="searchType == 'content'">
-                AND rc.comment ILIKE '%' || #{keyword} || '%'
-            </when>
-            <!-- 레시피 제목으로 검색 -->
-            <when test="searchType == 'title'">
-                AND rc.recipe_id IN (
-                    SELECT r.recipe_id from member_recipe r WHERE r.title ILIKE '%' || #{keyword} || '%'
-                )
-            </when>
-        </choose>
-        ORDER BY
-        <choose>
-            <when test="sortOption == 'regDt'">rc.reg_dt</when>
-            <when test="sortOption == 'recipeId'">rc.recipe_id</when>
-            <otherwise>rc.comment_id</otherwise>
-        </choose>
-        ${sortDirection}
-        LIMIT #{pageSize} OFFSET #{offset}
-    </select>
 
     <!-- 내가 쓴 게시글 조회 -->
     <select id="getMyBoards" resultType="com.example.cucucook.domain.Board">
@@ -271,20 +237,20 @@
     <select id="getMemberRecipeList" resultMap="memberRecipeResultMap">
         SELECT (SELECT name FROM member x WHERE x.member_id = a.member_id) as name,
                 recipe_id,
-               member_id,
-               recipe_category_id,
-               title,
-               "method",
-               img_id,
-               serving,
-               "level",
-               "time",
-               calory,
-               tip,
-               reg_dt,
-               upt_dt,
-               view_count,
-               comment_rate
+                member_id,
+                recipe_category_id,
+                title,
+                "method",
+                img_id,
+                serving,
+                "level",
+                "time",
+                calory,
+                tip,
+                reg_dt,
+                upt_dt,
+                view_count,
+                comment_rate
         FROM member_recipe a
         WHERE member_id = #{memberId}
         ORDER BY reg_dt DESC
