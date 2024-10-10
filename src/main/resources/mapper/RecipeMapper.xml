@@ -45,6 +45,7 @@
       <result property="imgFileSize" column="img_file_size"/>
       <result property="serverImgPath" column="server_img_path"/>
       <result property="webImgPath" column="web_img_path"/>
+      <result property="regDt" column="img_reg_dt"/>
     </association>    
 </resultMap>
 
@@ -86,6 +87,7 @@
       <result property="imgFileSize" column="img_file_size"/>
       <result property="serverImgPath" column="server_img_path"/>
       <result property="webImgPath" column="web_img_path"/>
+      <result property="regDt" column="img_reg_dt"/>
     </association>    
 </resultMap>
 
@@ -179,6 +181,7 @@
           ,d.img_file_size
           ,d.server_img_path
           ,d.web_img_path
+          ,d.reg_dt as img_reg_dt
       FROM member_recipe a
       JOIN recipe_category b ON a.recipe_category_id = b.recipe_category_id
       JOIN member c ON a.member_id = c.member_id
@@ -250,6 +253,7 @@
           ,d.img_file_size
           ,d.server_img_path
           ,d.web_img_path
+          ,d.reg_dt as img_reg_dt
       FROM member_recipe a
       JOIN recipe_category b ON a.recipe_category_id = b.recipe_category_id
       JOIN member c ON a.member_id = c.member_id
@@ -387,6 +391,7 @@
           ,b.img_file_size
           ,b.server_img_path
           ,b.web_img_path
+          ,b.reg_dt as img_reg_dt
       FROM member_recipe_process a
       LEFT JOIN member_recipe_images b on a.img_id = b.img_id
      WHERE a.recipe_id = #{recipeId}
@@ -406,6 +411,7 @@
           ,b.img_file_size
           ,b.server_img_path
           ,b.web_img_path
+          ,b.reg_dt as img_reg_dt
       FROM member_recipe_process a
       LEFT JOIN member_recipe_images b on a.img_id = b.img_id
      WHERE a.recipe_id = #{recipeId}
@@ -458,6 +464,7 @@
           ,a.img_file_size
           ,a.server_img_path
           ,a.web_img_path
+          ,a.reg_dt
       FROM member_recipe_images a
       LEFT JOIN member_recipe b on a.img_id = b.img_id and b.recipe_id = #{recipeId}
       LEFT JOIN member_recipe_process c on a.img_id = c.img_id and c.recipe_id = #{recipeId}
@@ -474,6 +481,7 @@
           ,img_file_size
           ,server_img_path
           ,web_img_path
+          ,reg_dt
       FROM member_recipe_images
      WHERE img_id = #{imgId}
   </select>
@@ -486,13 +494,15 @@
                 ,extension
                 ,img_file_size
                 ,server_img_path
-                ,web_img_path)
+                ,web_img_path
+                ,reg_dt)
           VALUES (#{memberRecipeImages.orgImgName}
                   ,#{memberRecipeImages.serverImgName}
                   ,#{memberRecipeImages.extension}
                   ,#{memberRecipeImages.imgFileSize}
                   ,#{memberRecipeImages.serverImgPath}
-                  ,#{memberRecipeImages.webImgPath})
+                  ,#{memberRecipeImages.webImgPath}
+                  ,TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS')
     RETURNING img_id
   </insert>
 
@@ -504,7 +514,7 @@
           ,extension = #{memberRecipeImages.extension}
           ,img_file_size = #{memberRecipeImages.imgFileSize}
           ,server_img_path = #{memberRecipeImages.serverImgPath}
-          ,web_img_path = #{memberRecipeImages.memberRecipe})
+          ,web_img_path = #{memberRecipeImages.webImgPath})
      WHERE img_id = #{imgId}
   </update>
 
