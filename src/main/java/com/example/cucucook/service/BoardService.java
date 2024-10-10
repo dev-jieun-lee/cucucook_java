@@ -4,10 +4,12 @@ import java.util.HashMap;
 import java.util.List;
 
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.BoardCategory;
+import com.example.cucucook.domain.BoardFiles;
 
 public interface BoardService {
 
@@ -22,10 +24,10 @@ public interface BoardService {
   public HashMap<String, Object> getBoardWithReplies(String boardId);
 
   // 게시판 등록
-  public HashMap<String, Object> insertBoard(Board board);
+  public HashMap<String, Object> insertBoard(Board board, List<MultipartFile> uploadFileList);
 
   // 게시판 수정
-  public HashMap<String, Object> updateBoard(String boardId, Board board);
+  public HashMap<String, Object> updateBoard(String boardId, Board board, List<MultipartFile> uploadFileList);
 
   // 게시판 삭제
   public HashMap<String, Object> deleteBoard(String boardId);
@@ -45,5 +47,8 @@ public interface BoardService {
 
   // 카테고리 삭제
   public ResponseEntity<HashMap<String, Object>> deleteBoardCategory(String boardCategoryId);
+
+  // 첨부파일 목록 가져오기
+  public ApiResponse<List<BoardFiles>> getBoardFilesList(String boardId);
 
 }
