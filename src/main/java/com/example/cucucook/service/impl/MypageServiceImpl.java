@@ -38,6 +38,7 @@ public class MypageServiceImpl implements MypageService {
         logger.info("회원 정보 업데이트 시작: memberId={}, name={}, email={}, phone={}",
                 member.getMemberId(), member.getName(), member.getEmail(), member.getPhone());
 
+        System.out.println(member);
         try {
             // 회원 정보 업데이트 로직
             memberMapper.updateMemberInfo(member);
