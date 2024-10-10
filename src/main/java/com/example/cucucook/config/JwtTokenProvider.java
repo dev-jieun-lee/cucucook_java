@@ -25,8 +25,10 @@ public class JwtTokenProvider {
 
   @Value("${jwt.secret}")
   private String secretKey; // JWT 비밀 키
-  @Value("${token.expired}")
-  private int tokenExpired;
+  @Value("${acessToken.expired}")
+  private int acessTokenExpired;
+  @Value("${refreshToken.expired}")
+  private int refreshTokenExpired;
   @Autowired
   private MemberMapper memberMapper;
 
@@ -38,7 +40,7 @@ public class JwtTokenProvider {
   // JWT 토큰 생성 메서드 (엑세스)
   public String createToken(String userId, String role) {
     Date now = new Date();
-    Date validity = new Date(now.getTime() + 3600000); // 토큰 유효 시간: 1시간
+    Date validity = new Date(now.getTime() + acessTokenExpired); // 토큰 유효 시간: 1시간
 
     // JwtBuilder를 사용하여 JWT 생성
     JwtBuilder builder = Jwts.builder()
@@ -53,7 +55,7 @@ public class JwtTokenProvider {
 
   // 리프레시 토큰 생성 메서드
   public String createRefreshToken(String userId) {
-    long validityInMilliseconds = 604800000; // 7 days, 리프레시 토큰의 유효 기간 설정
+    long validityInMilliseconds = refreshTokenExpired; // 7 days, 리프레시 토큰의 유효 기간 설정
     Date now = new Date();
     Date validity = new Date(now.getTime() + validityInMilliseconds);
 
