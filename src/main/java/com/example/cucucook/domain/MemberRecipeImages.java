@@ -32,4 +32,6 @@ public class MemberRecipeImages {
   // 웹이미지경로
   private String webImgPath;
 
+  // 등록일
+  private String regDt;
 }

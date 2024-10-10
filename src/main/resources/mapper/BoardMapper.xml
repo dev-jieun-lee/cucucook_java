@@ -255,4 +255,77 @@ FROM board
 WHERE board_category_id = #{boardCategoryId}
 </select>
 
+<!-- 첨부파일 정보 목록-->
+<select id="getBoardFilesList" resultType="BoardFiles">
+SELECT file_id
+      ,board_id
+      ,org_file_name
+      ,server_file_name
+      ,extension
+      ,file_size
+      ,server_file_path
+      ,web_file_path
+      ,reg_dt
+  FROM board_files
+ WHERE board_id = #{boardId}
+</select>
+
+<!-- 첨부파일 정보 상세 -->
+<select id="getBoardFiles" resultType="BoardFiles">
+  SELECT file_id
+        ,board_id
+        ,org_file_name
+        ,server_file_name
+        ,extension
+        ,file_size
+        ,server_file_path
+        ,web_file_path
+        ,reg_dt
+    FROM board_files
+  WHERE board_id = #{boardId}
+    AND file_id = #{file_id}
+</select>
+
+<!-- 첨부파일 정보 넣기 -->
+<insert id="insertBoardFiles" parameterType="BoardFiles">
+  INSERT INTO board_files
+              (board_id
+              ,org_file_name
+              ,server_file_name
+              ,extension
+              ,file_size
+              ,server_file_path
+              ,web_file_path
+              ,reg_dt)
+        VALUES (#{boardFiles.boardId}
+                ,#{boardFiles.orgFileName}
+                ,#{boardFiles.serverFileName}
+                ,#{boardFiles.extension}
+                ,#{boardFiles.fileSize}
+                ,#{boardFiles.serverFilePath}
+                ,#{boardFiles.webFilePath}
+                ,TO_CHAR(NOW(), 'YYYY-MM-DD HH24:MI:SS'))
+</insert>
+
+<!-- 첨부파일 정보 수정 -->
+<update id="updateBoardFiles" parameterType="BoardFiles">
+  UPDATE board_files
+      SET org_file_name = #{boardFiles.orgFileName}
+        ,server_file_name = #{boardFiles.serverFileName}
+        ,extension = #{boardFiles.extension}
+        ,file_size = #{boardFiles.fileSize}
+        ,server_file_path = #{boardFiles.serverFilePath}
+        ,web_file_path = #{boardFiles.webFilePath})
+    WHERE board_id = #{boardFiles.boardId}
+      AND file_id = #{boardFiles.fileId}
+</update>
+
+<!-- 첨부파일 정보 삭제 -->
+<delete id="deleteBoardFiles">
+  DELETE FROM board_files
+    WHERE board_id = #{boardId}
+      AND file_id = #{fileId}
+</delete>
+
+
 </mapper>

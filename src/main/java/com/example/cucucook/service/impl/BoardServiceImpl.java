@@ -1,7 +1,9 @@
 package com.example.cucucook.service.impl;
 
+import java.io.IOException;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.UUID;
@@ -10,10 +12,13 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Service;
+import org.springframework.web.multipart.MultipartFile;
 
 import com.example.cucucook.common.ApiResponse;
+import com.example.cucucook.common.FileUploadUtil;
 import com.example.cucucook.domain.Board;
 import com.example.cucucook.domain.BoardCategory;
+import com.example.cucucook.domain.BoardFiles;
 import com.example.cucucook.mapper.BoardMapper;
 import com.example.cucucook.service.BoardService;
 
@@ -22,6 +27,8 @@ public class BoardServiceImpl implements BoardService {
 
   @Autowired
   private BoardMapper boardMapper;
+  @Autowired
+  private FileUploadUtil fileUploadUtil;
 
   // 게시판 목록 조회
   @Override
@@ -98,8 +105,9 @@ public class BoardServiceImpl implements BoardService {
 
   // 게시판 글 등록
   @Override
-  public HashMap<String, Object> insertBoard(Board board) {
+  public HashMap<String, Object> insertBoard(Board board, List<MultipartFile> uploadFileList) {
     HashMap<String, Object> result = new HashMap<>();
+    String message;
 
     // UUID 생성 및 설정
     String uuid = UUID.randomUUID().toString();
@@ -117,20 +125,37 @@ public class BoardServiceImpl implements BoardService {
     // 실제 데이터베이스에 insert 처리 호출
     int rowsAffected = boardMapper.insertBoard(board);
 
+    int fileUploadResult = 0;
+    // 첨부파일 업로드
+    try {
+      if (!uploadFileList.isEmpty()) {
+        for (MultipartFile uploadFile : uploadFileList) {
+          if (uploadFile.getSize() > 0) {
+            String serverFileName = fileUploadUtil.uploadFile(uploadFile, "board/" + uuid);
+            BoardFiles boardFiles = intoBoardFile(uploadFile, serverFileName, uuid);
+            fileUploadResult = boardMapper.insertBoardFiles(boardFiles);
+          }
+        }
+      }
+    } catch (IOException e) {
+      fileUploadResult = 0;
+      System.err.println("An error occurred: " + e.getMessage());
+    }
     // 성공 여부에 따른 결과 처리
-    if (rowsAffected > 0) {
+    if (rowsAffected > 0 && ((fileUploadResult > 0 && !uploadFileList.isEmpty()) || uploadFileList.isEmpty())) {
       result.put("success", true);
-      result.put("message", "게시물이 성공적으로 등록되었습니다.");
+      message = "게시물이 성공적으로 등록되었습니다.";
     } else {
       result.put("success", false);
-      result.put("message", "게시물 등록에 실패했습니다.");
+      message = "게시물 등록에 실패했습니다.";
     }
+    result.put("message", message);
     return result;
   }
 
   // 게시판 글 수정
   @Override
-  public HashMap<String, Object> updateBoard(String boardId, Board board) {
+  public HashMap<String, Object> updateBoard(String boardId, Board board, List<MultipartFile> uploadFileList) {
     HashMap<String, Object> result = new HashMap<>();
 
     // 게시판 아이디 설정
@@ -147,14 +172,51 @@ public class BoardServiceImpl implements BoardService {
     // 게시글 수정
     int updateCount = boardMapper.updateBoard(board);
 
+    int fileUploadCnt = 0;
+
+    // 첨부파일 업로드
+    try {
+      // 새로 등록한파일 insert
+      if (!uploadFileList.isEmpty()) {
+        for (MultipartFile uploadFile : uploadFileList) {
+          if (uploadFile.getSize() > 0) {
+            String serverFileName = fileUploadUtil.uploadFile(uploadFile, "board/" + boardId);
+            BoardFiles boardFiles = intoBoardFile(uploadFile, serverFileName, boardId);
+            boardMapper.insertBoardFiles(boardFiles);
+            fileUploadCnt++;
+          }
+        }
+      }
+      // 사용자가 선택한 기등록된 파일 삭제
+      if (!board.getDelFileIds().isEmpty()) {
+        for (String fileId : board.getDelFileIds()) {
+          BoardFiles boardFiles = boardMapper.getBoardFiles(boardId, fileId);
+          fileUploadUtil.deleteFile(
+              boardFiles.getServerFilePath() + "/" + boardFiles.getServerFileName() + "." + boardFiles.getExtension(),
+              fileId);
+          boardMapper.deleteBoardFiles(boardId, fileId);
+          fileUploadCnt++;
+        }
+      }
+
+    } catch (IOException e) {
+      System.err.println("An error occurred: " + e.getMessage());
+      result.put("success", false);
+      result.put("message", "해당 게시글을 수정할 수 없습니다. 게시글 ID 또는 작성자 ID를 확인하세요.");
+      return result;
+    }
+
     // 수정이 성공했는지 여부 체크
-    if (updateCount > 0) {
+    if (updateCount > 0 && fileUploadCnt == uploadFileList.size()) {
       result.put("success", true);
+
       result.put("message", "게시글이 성공적으로 수정되었습니다.");
     } else {
       result.put("success", false);
+
       result.put("message", "해당 게시글을 수정할 수 없습니다. 게시글 ID 또는 작성자 ID를 확인하세요.");
     }
+
     return result;
   }
 
@@ -163,17 +225,37 @@ public class BoardServiceImpl implements BoardService {
   public HashMap<String, Object> deleteBoard(String boardId) {
     HashMap<String, Object> result = new HashMap<>();
 
+    int fileDeleteResult = 0;
+    List<BoardFiles> boardFilesList = boardMapper.getBoardFilesList(boardId);
+
+    // 첨부파일 삭제
+    try {
+      for (BoardFiles boardFiles : boardFilesList) {
+        fileUploadUtil
+            .deleteFile(
+                boardFiles.getServerFilePath() + "/" + boardFiles.getServerFileName() + "." + boardFiles.getExtension(),
+                boardFiles.getFileId());
+        fileDeleteResult = boardMapper.deleteBoardFiles(boardId, boardFiles.getFileId());
+      }
+    } catch (IOException e) {
+      System.err.println("An error occurred: " + e.getMessage());
+      result.put("success", false);
+      result.put("message", "해당 게시글을 삭제할 수 없습니다. 게시글 ID 또는 작성자 ID를 확인하세요.");
+      return result;
+    }
+
     // 게시글 삭제
     int updateCount = boardMapper.deleteBoard(boardId);
 
     // 성공했는지 여부 체크
-    if (updateCount > 0) {
+    if (updateCount > 0 && (boardFilesList.isEmpty() || (!boardFilesList.isEmpty() && fileDeleteResult > 0))) {
       result.put("success", true);
       result.put("message", "게시글이 성공적으로 삭제되었습니다.");
     } else {
       result.put("success", false);
       result.put("message", "해당 게시글을 삭제할 수 없습니다. 게시글 ID 또는 작성자 ID를 확인하세요.");
     }
+
     return result;
   }
 
@@ -302,6 +384,37 @@ public class BoardServiceImpl implements BoardService {
       result.put("errorCode", "ERR_CG_02");
       return new ResponseEntity<>(result, HttpStatus.INTERNAL_SERVER_ERROR);
     }
+  }
+
+  // 첨부파일 목록 가져오기
+  @Override
+  public ApiResponse<List<BoardFiles>> getBoardFilesList(String boardId) {
+    List<Object> result = new ArrayList<>();
+    String message;
+    boolean success;
+    HashMap<String, String> filesList;
+
+    List<BoardFiles> boardFilesList = boardMapper.getBoardFilesList(boardId);
+
+    message = (boardFilesList == null || boardFilesList.isEmpty()) ? "파일 목록이 없습니다." : "파일 목록 조회 성공";
+    success = boardFilesList != null && !boardFilesList.isEmpty();
+
+    return new ApiResponse<>(success, message, boardFilesList, null);
+  }
+
+  // boardFile에 정보 넣기
+  public BoardFiles intoBoardFile(MultipartFile file, String serverFileName, String boardId) {
+    BoardFiles boardFiles = new BoardFiles();
+    boardFiles.setBoardId(boardId);
+    boardFiles.setOrgFileName(fileUploadUtil.extractOriginalFileName(file.getOriginalFilename()));
+    boardFiles.setServerFileName(serverFileName);
+    boardFiles.setExtension(fileUploadUtil.extractExtension(file.getOriginalFilename(),
+        file.getContentType()));
+    boardFiles.setFileSize(Long.toString(file.getSize()));
+    boardFiles.setServerFilePath(fileUploadUtil.getFileDir("board/" + boardId));
+    boardFiles.setWebFilePath(fileUploadUtil.getFileWebDir("board/" + boardId));
+
+    return boardFiles;
   }
 
 }
