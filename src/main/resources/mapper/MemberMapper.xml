@@ -19,7 +19,7 @@
 
     <!-- 사용자 아이디를 기준으로 사용자를 조회 -->
     <select id="findByUserId" parameterType="String" resultType="com.example.cucucook.domain.Member">
-        SELECT member_id, user_id, name, phone, password, role, email, sms_noti, email_noti, failed_attempts
+        SELECT member_id, user_id, name, phone, password, role, email, sms_noti, email_noti, failed_attempts,lockout_time
         FROM member
         WHERE user_id = #{userId}
     </select>

@@ -57,6 +57,16 @@ public class MemberController {
       HttpServletRequest request) {
     String userId = loginRequest.getUserId();
 
+    // 잠금상태일 경우 로그인 시도
+    int remainingLockoutTime = memberService.getRemainingLockoutTime(loginRequest.getUserId());
+    if (remainingLockoutTime > 0) {
+      return ResponseEntity.status(HttpStatus.FORBIDDEN)
+          .body(Map.of(
+              "message", "계정이 잠겨 있습니다. 잠금이 해제될 때까지 기다려 주세요.",
+              "lockoutTime", remainingLockoutTime));
+
+    }
+
     try {
       // 서비스에서 로그인 처리 후 토큰 데이터를 반환받음
       Map<String, String> tokenData = memberService.login(loginRequest.getUserId(), loginRequest.getPassword());
@@ -75,6 +85,7 @@ public class MemberController {
       responseBody.put("name", tokenData.get("name")); // 이름 필드 추가
       responseBody.put("role", tokenData.get("role")); // 역할 필드 추가
       responseBody.put("failedAttempts", tokenData.get("failedAttempts")); // 실패 횟수 추가
+      responseBody.put("lockoutTime", tokenData.get("lockoutTime")); // 잠금시간 추가
 
       return ResponseEntity.ok().body(responseBody);
 
