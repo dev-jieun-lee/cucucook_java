@@ -60,6 +60,9 @@ public class Member implements Serializable {
   // 소셜로그인 플래그
   private boolean isSocialLogin;
 
+  // 자동로그인 여부
+  private boolean rememberLogin;
+
   public String getUserId() {
     return userId;
   }
