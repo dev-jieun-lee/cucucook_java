@@ -97,9 +97,4 @@ public class Member implements Serializable {
         throw new UnsupportedOperationException("Not supported yet.");
     }
 
-    public void setPhone(Object phone2) {
-        // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'setPhone'");
-    }
-
 }
