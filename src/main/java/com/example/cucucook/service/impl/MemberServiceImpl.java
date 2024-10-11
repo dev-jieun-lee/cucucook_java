@@ -1,6 +1,7 @@
 package com.example.cucucook.service.impl;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
@@ -20,9 +21,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import com.example.cucucook.common.ApiResponse;
 import com.example.cucucook.config.JwtTokenProvider;
-import com.example.cucucook.domain.KakaoProperties;
 import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.PasswordFindResponse;
+import com.example.cucucook.domain.SocialLoginProperties;
 import com.example.cucucook.domain.Token;
 import com.example.cucucook.domain.VerificationCode;
 import com.example.cucucook.exception.AccountLockedException;
@@ -44,7 +45,7 @@ public class MemberServiceImpl implements MemberService {
   private final SocialLoginMapper socialLoginMapper;
   private final PasswordEncoder passwordEncoder;
   private final EmailService emailService;
-  private final KakaoProperties kakaoProperties;
+  private final SocialLoginProperties kakaoProperties;
   private final TokenRepository tokenRepository;
   @Autowired
   private JwtTokenProvider tokenProvider;
@@ -57,7 +58,7 @@ public class MemberServiceImpl implements MemberService {
   private LoginAttemptService loginAttemptService;
 
   public MemberServiceImpl(MemberMapper memberMapper, PasswordEncoder passwordEncoder, EmailService emailService,
-      KakaoProperties kakaoProperties, LoginAttemptService loginAttemptService,
+      SocialLoginProperties kakaoProperties, LoginAttemptService loginAttemptService,
       SocialLoginMapper socialLoginMapper, TokenRepository tokenRepository, JwtTokenProvider tokenProvider) {
     this.memberMapper = memberMapper;
     this.passwordEncoder = passwordEncoder;
@@ -341,4 +342,24 @@ public class MemberServiceImpl implements MemberService {
   public void deleteMember(int memberId) {
     memberMapper.deleteMember(memberId);
   }
+
+  // 잠금상태일 경우 로그인 시도
+  @Override
+  public int getRemainingLockoutTime(String userId) {
+    Member member = memberMapper.findByUserId(userId);
+
+    // member가 존재하고, 잠금 시간이 설정되어 있을 경우 남은 시간을 계산하여 반환
+    if (member != null && member.getLockoutTime() != null) {
+      // 현재 시간과 잠금 시간의 차이를 계산하여 초 단위로 변환
+      LocalDateTime now = LocalDateTime.now();
+      LocalDateTime lockoutTime = member.getLockoutTime();
+
+      // 남은 잠금 시간을 초 단위로 반환
+      return (int) Duration.between(now, lockoutTime).getSeconds();
+    }
+
+    // 잠금 시간이 없으면 0을 반환
+    return 0;
+  }
+
 }
