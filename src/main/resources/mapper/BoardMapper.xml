@@ -283,7 +283,7 @@ SELECT file_id
         ,reg_dt
     FROM board_files
   WHERE board_id = #{boardId}
-    AND file_id = #{file_id}
+    AND file_id = #{fileId}
 </select>
 
 <!-- 첨부파일 정보 넣기 -->
