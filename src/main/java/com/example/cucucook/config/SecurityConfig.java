@@ -52,7 +52,7 @@ public class SecurityConfig {
                 "/api/recipe/deleteRecipeCategory")
             .authenticated()
             // 특정 권한만
-            .requestMatchers("/api/admin/**").hasAnyRole("ADMIN", "SUPER_ADMIN")
+            .requestMatchers("/api/admin/**").hasAnyAuthority("ADMIN", "SUPER_ADMIN")
             .anyRequest().permitAll() // 모든 요청 허용
         )
         .exceptionHandling(exceptionHandling -> exceptionHandling
