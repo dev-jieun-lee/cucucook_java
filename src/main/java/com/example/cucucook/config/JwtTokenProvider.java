@@ -5,12 +5,10 @@ import java.security.Key;
 import java.util.Base64;
 import java.util.Date;
 
-import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
 
-import com.example.cucucook.mapper.MemberMapper;
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 
@@ -25,8 +23,6 @@ public class JwtTokenProvider {
   private String secretKey; // JWT 비밀 키
   @Value("${token.expired}")
   private int tokenExpired;
-  @Autowired
-  private MemberMapper memberMapper;
 
   // 비밀 키를 Key 객체로 변환.
   private Key getKey() {
