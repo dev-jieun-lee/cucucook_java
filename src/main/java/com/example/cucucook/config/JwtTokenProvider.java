@@ -25,8 +25,6 @@ public class JwtTokenProvider {
   private String secretKey; // JWT 비밀 키
   @Value("${token.expired}")
   private int tokenExpired;
-  @Autowired
-  private MemberMapper memberMapper;
 
   // 비밀 키를 Key 객체로 변환.
   private Key getKey() {
