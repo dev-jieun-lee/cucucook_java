@@ -212,12 +212,14 @@ public class MypageServiceImpl implements MypageService {
   }
 
   @Override
-  public List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit) {
+  public List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit, String search, String searchType) {
 
     logger.info("Fetching member board list. memberId: {}, start: {}, limit: {}", memberId, start, limit);
+    System.out.println("/////////////////////////////////////" + search);
+    System.out.println(searchType);
 
     try {
-      List<MemberRecipe> recipes = mypageMapper.getMemberRecipeList(memberId, start, limit);
+      List<MemberRecipe> recipes = mypageMapper.getMemberRecipeList(memberId, start, limit, search, searchType);
       logger.info("Fetched {} recipes for memberId: {}", recipes.size(), memberId);
       return recipes;
     } catch (Exception e) {

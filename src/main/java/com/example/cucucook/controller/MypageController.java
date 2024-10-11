@@ -215,13 +215,15 @@ public class MypageController {
   public ResponseEntity<List<MemberRecipe>> getMemberRecipeList(
       @RequestParam int memberId,
       @RequestParam(defaultValue = "0") int start,
-      @RequestParam(defaultValue = "5") int limit) {
+      @RequestParam(defaultValue = "5") int limit,
+      @RequestParam String search,
+      @RequestParam String searchType) {
     // 로그로 컨트롤러 진입 확인
     logger.info("Received request to fetch member board list. memberId: {}, start: {}, limit: {}", memberId, start,
         limit);
 
     try {
-      List<MemberRecipe> recipes = mypageService.getMemberRecipeList(memberId, start, limit);
+      List<MemberRecipe> recipes = mypageService.getMemberRecipeList(memberId, start, limit, search, searchType);
       logger.info("Returning {} boards for memberId: {}", recipes.size(), memberId);
       return ResponseEntity.ok(recipes);
     } catch (Exception e) {

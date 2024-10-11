@@ -253,6 +253,13 @@
                 comment_rate
         FROM member_recipe a
         WHERE member_id = #{memberId}
+        <if test="search != '' and search != null">
+            <choose>
+                <when test="searchType == 'title'">
+                    AND title LIKE CONCAT('%', #{search}, '%')
+                </when>
+            </choose>
+        </if>
         ORDER BY reg_dt DESC
         LIMIT #{limit} OFFSET #{start}
     </select>
