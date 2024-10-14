@@ -313,18 +313,15 @@ public class MemberServiceImpl implements MemberService {
 
     if (verificationCode == null) {
       // 인증 코드가 존재하지 않음
-      System.out.println("인증 코드 검증 실패: 인증 코드가 존재하지 않습니다.");
       return false;
     }
 
     if (verificationCode.getExpiresAt().isBefore(LocalDateTime.now())) {
       // 인증 코드가 만료됨
-      System.out.println("인증 코드 검증 실패: 인증 코드가 만료되었습니다.");
       return false;
     }
 
     // 인증 성공
-    System.out.println("인증 코드 검증 성공: 인증 코드가 유효합니다.");
     return true;
   }
 

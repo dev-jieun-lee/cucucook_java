@@ -177,8 +177,6 @@ public class BoardServiceImpl implements BoardService {
 
     // 첨부파일 업로드
     try {
-      System.out.println("??????????????gggggggggggggggggg?????");
-      System.out.println(uploadFileList != null && !uploadFileList.isEmpty());
       // 새로 등록한파일 insert
       if (uploadFileList != null && !uploadFileList.isEmpty()) {
         for (MultipartFile uploadFile : uploadFileList) {
@@ -193,9 +191,7 @@ public class BoardServiceImpl implements BoardService {
       // 사용자가 선택한 기등록된 파일 삭제
       if (!board.getDelFileIds().isEmpty()) {
         for (String fileId : board.getDelFileIds()) {
-          System.out.println(fileId);
           BoardFiles boardFiles = boardMapper.getBoardFiles(boardId, fileId);
-          System.out.println(boardFiles);
           fileUploadUtil.deleteFile(
               boardFiles.getServerFilePath() + "/" + boardFiles.getServerFileName() + "." + boardFiles.getExtension(),
               fileId);
@@ -210,11 +206,6 @@ public class BoardServiceImpl implements BoardService {
       result.put("message", "해당 게시글을 수정할 수 없습니다. 게시글 ID 또는 작성자 ID를 확인하세요.");
       return result;
     }
-
-    System.out.println("???????????????!!!!!!!!!!!!!!????");
-    System.out.println("(uploadFileList != null && !uploadFileList.isEmpty()) "
-        + (uploadFileList != null && !uploadFileList.isEmpty()));
-    System.out.println((uploadFileList == null || uploadFileList.isEmpty()));
     // 수정이 성공했는지 여부 체크
     if (updateCount > 0 && ((uploadFileList != null && !uploadFileList.isEmpty())
         || (uploadFileList == null || uploadFileList.isEmpty()))) {

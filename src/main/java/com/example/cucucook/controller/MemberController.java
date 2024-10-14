@@ -232,7 +232,6 @@ public class MemberController {
   @PostMapping("/check-phone")
   public ResponseEntity<Boolean> checkPhoneNumber(@RequestBody PhoneRequest request) {
     boolean exists = memberService.checkPhoneExists(request.getPhone());
-    System.out.println("응답값 : " + exists);
     return ResponseEntity.ok(exists);
   }
 

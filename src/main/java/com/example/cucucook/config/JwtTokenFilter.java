@@ -35,8 +35,6 @@ public class JwtTokenFilter extends UsernamePasswordAuthenticationFilter {
       if (userDetails != null) {
         SecurityContextHolder.getContext().setAuthentication(new UsernamePasswordAuthenticationToken(userDetails, null,
             userDetails.getAuthorities()));
-      } else {
-        System.out.println("유효하지 않은 사용자 정보입니다. member_id: " + userId);
       }
     }
     chain.doFilter(request, response);
