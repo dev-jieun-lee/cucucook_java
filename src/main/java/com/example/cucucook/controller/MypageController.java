@@ -9,7 +9,6 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -94,33 +93,6 @@ public class MypageController {
     } catch (Exception e) {
       logger.error("컨트롤러 게시물 목록 조회 실패: 페이지 {}, 페이지 크기 {}", page, pageSize);
       return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body(null);
-    }
-  }
-
-  // 댓글 삭제
-  @DeleteMapping("/delete")
-  public ResponseEntity<String> deleteComment(
-      @RequestParam String memberId,
-      @RequestParam String commentId,
-      @RequestParam(required = false) String pcommentId) {
-    // logger.info("가져온 memberId 확인: {}, commentId 확인: {}, pcommentId 확인: {}",
-    // memberId, commentId, pcommentId);
-
-    try {
-      // 대댓글 여부 확인
-      if (pcommentId != null && !pcommentId.isEmpty()) {
-        logger.error("댓글 삭제 실패: 대댓글이 존재합니다. 댓글 ID {}", commentId);
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body("대댓글이 있어 댓글을 삭제할 수 없습니다.");
-      }
-
-      // 댓글 삭제 로직 호출
-      logger.info("컨트롤러 댓글 삭제 진입: memberId {}, commentId {}, pcommentId {}", memberId, commentId, pcommentId);
-      mypageService.deleteComment(memberId, commentId); // memberId도 서비스에 전달
-      logger.info("댓글 삭제 성공:  회원ID {}, 댓글 ID {}", memberId, commentId);
-      return ResponseEntity.ok("댓글이 삭제되었습니다.");
-    } catch (Exception e) {
-      logger.error("댓글 삭제 실패: 회원 ID {}, 댓글 ID {}, 오류: {}", memberId, commentId, e.getMessage(), e);
-      return ResponseEntity.status(HttpStatus.INTERNAL_SERVER_ERROR).body("댓글 삭제 실패");
     }
   }
 
@@ -244,18 +216,19 @@ public class MypageController {
     }
   }
 
-  // 찜 진입 시 정보 가져오기
+  // 찜 목록 또는 키워드 검색 API
   @GetMapping("/getRecipeLikeListOtherInfo")
   public List<MemberRecipe> getRecipeLikeListOtherInfo(@RequestParam("memberId") int memberId,
       @RequestParam(required = false) String recipeCategoryId,
+      @RequestParam(required = false) String keyword,
       @RequestParam(required = false) String orderby,
       @RequestParam(defaultValue = "10") int display,
       @RequestParam(defaultValue = "0") int start) {
     // 파라미터 로그 출력
     logger.info(
-        "Fetching liked recipes with params: memberId={}, recipeCategoryId={}, orderby={}, display={}, start={}",
-        memberId, recipeCategoryId, orderby, display, start);
+        "Fetching liked recipes with params: memberId={}, recipeCategoryId={}, keyword={}, orderby={}, display={}, start={}",
+        memberId, recipeCategoryId, keyword, orderby, display, start);
 
-    return mypageService.getRecipeLikeListOtherInfo(memberId, recipeCategoryId, orderby, display, start);
+    return mypageService.getRecipeLikeListOtherInfo(memberId, recipeCategoryId, keyword, orderby, display, start);
   }
 }

@@ -158,6 +158,8 @@ public class SocialLoginServiceImpl implements SocialLoginService {
       newMember.setPassword("default_password");
       newMember.setName(socialLogin.getNickname() != null ? socialLogin.getNickname() : "SocialUser");
       newMember.setSocialLogin(true); // 소셜 로그인 플래그 설정
+      newMember.setRole("1"); // 소셜 로그인 플래그 설정
+
       String mobile = (String) socialLogin.getPhone(); // phone을 String으로 변환
       newMember.setPhone(mobile != null ? mobile : "00000000000"); // 모바일 번호 설정
 
