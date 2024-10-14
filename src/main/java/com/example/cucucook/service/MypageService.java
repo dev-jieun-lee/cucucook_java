@@ -53,7 +53,7 @@ public interface MypageService {
   List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit, String search,
       String searchType);
 
-  // 찜 진입시 정보가져오기
+  // 통합된 찜한 레시피 목록 및 검색 기능 메서드
   List<MemberRecipe> getRecipeLikeListOtherInfo(int memberId, String recipeCategoryId, String orderby,
       int display,
       int start);

@@ -135,19 +135,6 @@ public class MypageServiceImpl implements MypageService {
     }
   }
 
-  // 삭제 로직
-  public void deleteComment(String memberId, String commentId) {
-    logger.info("서비스에서 댓글 삭제: memberId={}, commentId={}", memberId, commentId);
-
-    try {
-      logger.info("댓글 삭제를 위한 매퍼 호출 전: commentId={}, memberId={}", memberId, commentId);
-      mypageMapper.deleteComment(Integer.parseInt(memberId), commentId);
-      logger.info("서비스에서 댓글 삭제 성공: commentId={}", commentId);
-    } catch (Exception e) {
-      logger.error("서비스에서 댓글 삭제 실패: commentId={}, 오류={}", commentId, e.getMessage(), e);
-    }
-  }
-
   ///////// 게시판
   // 내가 쓴 게시판 목록 가져오기
   @Override
@@ -234,11 +221,10 @@ public class MypageServiceImpl implements MypageService {
     return mypageMapper.getRecipeLikeList(memberId, start, limit);
   }
 
-  // 찜 진입시 가져오기
+  // 통합된 찜한 레시피 목록 및 검색 기능 메서드
   @Override
   public List<MemberRecipe> getRecipeLikeListOtherInfo(int memberId, String recipeCategoryId,
-      String orderby,
-      int display, int start) {
-    return mypageMapper.getRecipeLikeListOtherInfo(memberId, recipeCategoryId, orderby, display, start);
+      String keyword, String orderby, int display, int start) {
+    return mypageMapper.getRecipeLikeListOtherInfo(memberId, recipeCategoryId, keyword, orderby, display, start);
   }
 }
