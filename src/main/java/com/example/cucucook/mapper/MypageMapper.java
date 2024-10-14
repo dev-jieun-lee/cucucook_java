@@ -71,10 +71,10 @@ public interface MypageMapper {
   // 회원 레시피 가져오기
   List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit, String search, String searchType);
 
-  // 찜페이지 진입시 정보가져오기
-  List<MemberRecipe> getRecipeLikeListOtherInfo(
-      @Param("memberId") int memberId,
+  // 통합된 찜한 레시피 리스트를 가져오는 메서드
+  List<MemberRecipe> getRecipeLikeListOtherInfo(@Param("memberId") int memberId,
       @Param("recipeCategoryId") String recipeCategoryId,
+      @Param("keyword") String keyword,
       @Param("orderby") String orderby,
       @Param("display") int display,
       @Param("start") int start);

@@ -1,82 +1,231 @@
-package com.example.cucucook.mapper;
+<?xml version="1.0" encoding="UTF-8" ?>
+<!DOCTYPE mapper
+  PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+  "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
 
-import java.util.List;
+<mapper namespace="com.example.cucucook.mapper.MypageMapper">
+  <resultMap id="memberRecipeResultMap" type="MemberRecipe">
+    <result property="recipeId" column="recipe_id"/>
+    <result property="memberId" column="member_id"/>
+    <result property="recipeCategoryId" column="recipe_category_id"/>
+    <result property="title" column="title"/>
+    <result property="recipeMethodId" column="recipe_method_id"/>
+    <result property="method" column="method"/>
+    <result property="methodEn" column="method_en"/>
+    <result property="imgId" column="img_id"/>
+    <result property="serving" column="serving"/>
+    <result property="recipeLevelId" column="recipe_level_id"/>
+    <result property="level" column="level"/>
+    <result property="levelEn" column="level_en"/>
+    <result property="time" column="time"/>
+    <result property="calory" column="calory"/>
+    <result property="tip" column="tip"/>
+    <result property="regDt" column="reg_dt"/>
+    <result property="uptDt" column="upt_dt"/>
+    <result property="viewCount" column="view_count"/>
+    <result property="recipeCategoryName" column="recipe_category_name"/>
+    <result property="recipeCategoryNameEn" column="recipe_category_name_en"/>
+    <result property="commentCount" column="comment_count"/>
+    <result property="commentRate" column="comment_rate"/>
+    <result property="likeCount" column="like_count"/>
 
-import org.apache.ibatis.annotations.Mapper;
-import org.apache.ibatis.annotations.Param;
+    <association property="member" javaType="Member">
+      <result property="userId" column="user_id"/>
+      <result property="name" column="name"/>
+      <result property="phone" column="phone"/>
+      <result property="role" column="role"/>
+      <result property="email" column="email"/>
+    </association>
 
-import com.example.cucucook.domain.Board;
-import com.example.cucucook.domain.MemberRecipe;
-import com.example.cucucook.domain.RecipeComment;
-import com.example.cucucook.domain.RecipeLike;
+    <association property="memberRecipeImages" javaType="MemberRecipeImages">
+      <result property="imgId" column="img_id"/>
+      <result property="orgImgName" column="org_img_name"/>
+      <result property="serverImgName" column="server_img_name"/>
+      <result property="extension" column="extension"/>
+      <result property="imgFileSize" column="img_file_size"/>
+      <result property="serverImgPath" column="server_img_path"/>
+      <result property="webImgPath" column="web_img_path"/>
+    </association>
+</resultMap>
+    <!-- 회원이 찜한 레시피 갯수 -->
+    <select id="getLikeCount" resultType="int">
+        SELECT COUNT(*)
+        FROM recipe_like
+        WHERE member_id = #{memberId}
+    </select>
 
-@Mapper
-public interface MypageMapper {
+    <!-- 회원이 쓴 댓글 갯수 -->
+    <select id="getReplyCount" resultType="int">
+        SELECT COUNT(*)
+        FROM recipe_comment
+        WHERE member_id = #{memberId}
+        AND del_yn = 'N'
+    </select>
 
-    // 회원이 쓴 글 갯수
-    int getMemberBoardCount(@Param("memberId") int memberId);
+    <!-- 회원이 쓴 글 갯수 -->
+    <select id="getWriteCount" resultType="int">
+        SELECT COUNT(*)
+        FROM board
+        WHERE member_id = #{memberId}
+    </select>
 
-    // 회원이 쓴 글 목록 (최신 5개 또는 페이지네이션 지원)
-    List<Board> getMemberBoardList(
-            @Param("memberId") int memberId,
-            @Param("start") Integer start,
-            @Param("display") Integer display);
+    <!-- 회원이 쓴 레시피 갯수 -->
+    <select id="getRecipeCount" resultType="int">
+        SELECT COUNT(*)
+        FROM member_recipe
+        WHERE member_id = #{memberId}
+    </select>
 
-    // 회원이 쓴 댓글 갯수
-    int getRecipeCommentCount(@Param("memberId") int memberId);
+    <!-- 회원이 쓴 글 목록 -->
+    <select id="getMemberBoardList" resultType="com.example.cucucook.domain.Board">
+        SELECT *
+        FROM board
+        WHERE member_id = #{memberId}
+        ORDER BY reg_dt DESC
+        LIMIT #{display}
+        OFFSET #{start}
+    </select>
 
-    // 회원이 찜한 레시피 갯수
-    int getMemberRecipeLikeCount(@Param("memberId") int memberId);
+    <!-- 회원이 쓴 댓글 목록 -->
+    <select id="getRecipeCommentList" resultType="com.example.cucucook.domain.RecipeComment">
+        SELECT *
+        FROM recipe_comment
+        WHERE member_id = #{memberId}
+        ORDER BY reg_dt DESC
+        LIMIT #{display}
+        OFFSET #{start}
+    </select>
 
-    // 회원 레시피 찜 목록
-    List<RecipeLike> getRecipeLikeList(@Param("memberId") int memberId, @Param("start") int start,
-            @Param("display") int display);
+    <!-- 회원 레시피 찜 목록 -->
+    <select id="getRecipeLikeList" resultType="com.example.cucucook.domain.RecipeLike">
+        SELECT rl.member_id, rl.recipe_id, rl.reg_dt, mr.title
+        FROM recipe_like rl
+        JOIN member_recipe mr ON rl.recipe_id = mr.recipe_id
+        WHERE rl.member_id = #{memberId}
+        ORDER BY rl.reg_dt DESC
+        LIMIT #{display}
+        OFFSET #{start}
+    </select>
 
-    // 회원 레시피 찜 보기
-    RecipeLike getRecipeLike(@Param("memberId") int memberId, @Param("recipeId") String recipeId);
+    <!-- 회원 레시피 찜 목록 (상세 정보 포함) -->
+    <select id="getRecipeLikeListOtherInfo" resultMap="memberRecipeResultMap">
+        SELECT a.recipe_id, a.member_id, a.title, a.view_count, a.reg_dt, a.upt_dt,
+        (SELECT COUNT(*) FROM recipe_comment x WHERE x.recipe_id = a.recipe_id AND x.del_yn = 'N') as comment_count,
+        a.comment_rate, (SELECT COUNT(*) FROM recipe_like x WHERE x.recipe_id = a.recipe_id) as like_count,
+        d.server_img_name, d.extension, d.web_img_path, c.user_id, c.name, c.phone, c.role, c.email
+        FROM recipe_like b
+        JOIN member_recipe a ON b.recipe_id = a.recipe_id
+        JOIN member c ON a.member_id = c.member_id
+        LEFT JOIN member_recipe_images d ON a.img_id = d.img_id
+        WHERE b.member_id = #{memberId}
+        <if test="keyword != null and keyword != ''">
+            AND a.title LIKE CONCAT('%', #{keyword}, '%')
+        </if>
+        ORDER BY ${orderby}
+        LIMIT #{display} OFFSET #{start}
+    </select>
 
-    // 댓글//
-    // 내가 쓴 댓글 가져오기
-    List<RecipeComment> getMyComments(
-            @Param("offset") int offset,
-            @Param("pageSize") int pageSize,
-            @Param("memberId") int memberId,
-            @Param("search") String search,
-            @Param("searchType") String searchType,
-            @Param("sortOption") String sortOption,
-            @Param("sortDirection") String sortDirection);
+    <!-- 내가 쓴 댓글 조회 -->
+    <select id="getMyComments" resultType="com.example.cucucook.domain.RecipeComment">
+        SELECT  rc.recipe_id,
+                rc.comment_id,
+                rc.member_id,
+                rc.comment,
+                rc.rate,
+                rc.reg_dt,
+                rc.upt_dt,
+                rc.status,
+                rc.p_comment_id,
+                rc.del_yn,
+                mr.title
+        FROM recipe_comment rc
+        LEFT JOIN member_recipe mr ON rc.recipe_id = mr.recipe_id
+        WHERE rc.member_id = #{memberId} AND rc.del_yn = 'N'
+        <if test="search != '' and search != null">
+            <choose>
+                <when test="searchType == 'title'">
+                    AND mr.title LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'comment'">
+                    AND rc.comment LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'all'">
+                    AND (mr.title LIKE CONCAT('%', #{search}, '%') OR rc.comment LIKE CONCAT('%', #{search}, '%'))
+                </when>
+            </choose>
+        </if>
+        ORDER BY rc.reg_dt DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
 
-    // 댓글 삭제
-    void deleteComment(int memberId, String commentId);
 
-    // 게시물//
-    // 내가 쓴 게시물 가져오기
-    List<Board> getMyBoards(
-            @Param("memberId") int memberId,
-            @Param("offset") int offset,
-            @Param("pageSize") int pageSize,
-            @Param("search") String search,
-            @Param("searchType") String searchType,
-            @Param("boardDivision") String boardDivision);
+    <!-- 내가 쓴 게시글 조회 -->
+    <select id="getMyBoards" resultType="com.example.cucucook.domain.Board">
+        SELECT
+            board_id,
+            board_division,
+            member_id,
+            title,
+            contents,
+            board_category_id,
+            reg_dt,
+            udt_dt,
+            status,
+            view_count,
+            p_board_id,
+            user_name
+        FROM BOARD
+        WHERE member_id = #{memberId}
+        <!-- AND board_division = #{boardDivision} -->
+        <if test="search != '' and search != null">
+            <choose>
+                <when test="searchType == 'title'">
+                    AND title LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'contents'">
+                    AND contents LIKE CONCAT('%', #{search}, '%')
+                </when>
+                <when test="searchType == 'all'">
+                    AND (title LIKE CONCAT('%', #{search}, '%') OR contents LIKE CONCAT('%', #{search}, '%'))
+                </when>
+            </choose>
+        </if>
+        <if test="boardDivision != '' and boardDivision != null and boardDivision != 'all'">
+            AND board_division = #{boardDivision}
+        </if>
+        ORDER BY reg_dt DESC
+        LIMIT #{pageSize} OFFSET #{offset}
+    </select>
 
-    // 회원정보 통계 가져오기
-    int getLikeCount(int memberId);
+    <!-- 나의 DIY 레시피 조회 -->
+    <select id="getMemberRecipeList" resultMap="memberRecipeResultMap">
+        SELECT (SELECT name FROM member x WHERE x.member_id = a.member_id) as name,
+                recipe_id,
+                member_id,
+                recipe_category_id,
+                title,
+                "method",
+                img_id,
+                serving,
+                "level",
+                "time",
+                calory,
+                tip,
+                reg_dt,
+                upt_dt,
+                view_count,
+                comment_rate
+        FROM member_recipe a
+        WHERE member_id = #{memberId}
+        <if test="search != '' and search != null">
+            <choose>
+                <when test="searchType == 'title'">
+                    AND title LIKE CONCAT('%', #{search}, '%')
+                </when>
+            </choose>
+        </if>
+        ORDER BY reg_dt DESC
+        LIMIT #{limit} OFFSET #{start}
+    </select>
 
-    int getWriteCount(int memberId);
-
-    int getReplyCount(int memberId);
-
-    int getRecipeCount(int memberId);
-
-    // 회원 레시피 가져오기
-    List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit, String search, String searchType);
-
-    // 찜페이지 진입시 정보가져오기
-    List<MemberRecipe> getRecipeLikeListOtherInfo(
-            @Param("memberId") int memberId,
-            @Param("recipeCategoryId") String recipeCategoryId,
-            @Param("orderby") String orderby,
-            @Param("display") int display,
-            @Param("start") int start);
-
-}
+</mapper>
