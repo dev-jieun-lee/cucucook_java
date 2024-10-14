@@ -38,9 +38,6 @@ public interface MypageService {
   Map<String, Object> getMyComments(int page, int pageSize, int memberId, String sortOption,
       String sortDirection, String search, String searchType);
 
-  // 댓글 삭제
-  void deleteComment(String memberId, String commentId);
-
   // 내가 쓴 글
   // 내가 쓴 게시글 조회
   Map<String, Object> getMyBoards(int memberId, int page, int pageSize, String boardDivision, String search,
@@ -53,8 +50,7 @@ public interface MypageService {
   List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit, String search,
       String searchType);
 
-  // 찜 진입시 정보가져오기
-  List<MemberRecipe> getRecipeLikeListOtherInfo(int memberId, String recipeCategoryId, String orderby,
-      int display,
-      int start);
+  // 통합된 찜한 레시피 목록 및 검색 기능 메서드
+  List<MemberRecipe> getRecipeLikeListOtherInfo(int memberId, String recipeCategoryId,
+      String keyword, String orderby, int display, int start);
 }

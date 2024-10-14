@@ -237,8 +237,7 @@ public class MypageServiceImpl implements MypageService {
   // 찜 진입시 가져오기
   @Override
   public List<MemberRecipe> getRecipeLikeListOtherInfo(int memberId, String recipeCategoryId,
-      String orderby,
-      int display, int start) {
-    return mypageMapper.getRecipeLikeListOtherInfo(memberId, recipeCategoryId, orderby, display, start);
+      String keyword, String orderby, int display, int start) {
+    return mypageMapper.getRecipeLikeListOtherInfo(memberId, recipeCategoryId, keyword, orderby, display, start);
   }
 }
