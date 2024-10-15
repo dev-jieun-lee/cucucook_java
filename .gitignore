@@ -37,6 +37,8 @@ cucucook_key.pem
 
 #프로퍼티 안올리기
 application-secret.properties
+application-local.properties
+application-real_server.properties
 
 #로그폴더 안올리기
 /log
