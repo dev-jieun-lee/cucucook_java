@@ -135,19 +135,6 @@ public class MypageServiceImpl implements MypageService {
     }
   }
 
-  // 삭제 로직
-  public void deleteComment(String memberId, String commentId) {
-    logger.info("서비스에서 댓글 삭제: memberId={}, commentId={}", memberId, commentId);
-
-    try {
-      logger.info("댓글 삭제를 위한 매퍼 호출 전: commentId={}, memberId={}", memberId, commentId);
-      mypageMapper.deleteComment(Integer.parseInt(memberId), commentId);
-      logger.info("서비스에서 댓글 삭제 성공: commentId={}", commentId);
-    } catch (Exception e) {
-      logger.error("서비스에서 댓글 삭제 실패: commentId={}, 오류={}", commentId, e.getMessage(), e);
-    }
-  }
-
   ///////// 게시판
   // 내가 쓴 게시판 목록 가져오기
   @Override
@@ -215,8 +202,6 @@ public class MypageServiceImpl implements MypageService {
   public List<MemberRecipe> getMemberRecipeList(int memberId, int start, int limit, String search, String searchType) {
 
     logger.info("Fetching member board list. memberId: {}, start: {}, limit: {}", memberId, start, limit);
-    System.out.println("/////////////////////////////////////" + search);
-    System.out.println(searchType);
 
     try {
       List<MemberRecipe> recipes = mypageMapper.getMemberRecipeList(memberId, start, limit, search, searchType);
