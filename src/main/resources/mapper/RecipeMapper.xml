@@ -756,7 +756,9 @@
       </if>
     </where>
     ORDER BY reg_dt DESC
+    <if test="display != 0">
     LIMIT #{display} OFFSET #{start}
+    </if>
   </select>
 
   <!-- 레시피 카테고리 보기-->
