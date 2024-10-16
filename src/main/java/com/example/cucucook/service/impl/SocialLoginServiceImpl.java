@@ -16,6 +16,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.LinkedMultiValueMap;
@@ -40,6 +41,9 @@ public class SocialLoginServiceImpl implements SocialLoginService {
   private final SocialLoginMapper socialLoginMapper;
   private final TokenMapper tokenMapper;
   private static final Logger logger = LoggerFactory.getLogger(SocialLoginController.class);
+
+  @Autowired
+  private PasswordEncoder passwordEncoder;
 
   @Value("${kakao.client.id}")
   private String kakaoClientId;
@@ -155,7 +159,7 @@ public class SocialLoginServiceImpl implements SocialLoginService {
       Member newMember = new Member();
       newMember.setUserId(socialLogin.getProviderId()); // 사용자 ID는 소셜 로그인에서 제공받은 providerId로 설정
       newMember.setEmail(socialLogin.getEmail());
-      newMember.setPassword("default_password");
+      newMember.setPassword(passwordEncoder.encode("default_password"));
       newMember.setName(socialLogin.getNickname() != null ? socialLogin.getNickname() : "SocialUser");
       newMember.setSocialLogin(true); // 소셜 로그인 플래그 설정
       newMember.setRole("1"); // 소셜 로그인 플래그 설정
@@ -189,7 +193,7 @@ public class SocialLoginServiceImpl implements SocialLoginService {
   public Member createMember(SocialLogin socialLogin) {
     Member member = new Member();
     member.setUserId(socialLogin.getProviderId());
-    member.setPassword("default_password"); // 소셜 로그인 시 기본 비밀번호 설정
+    member.setPassword(passwordEncoder.encode("default_password")); // 소셜 로그인 시 기본 비밀번호 설정
 
     // 이름 필드가 비어 있을 경우 기본값으로 설정
     String memberName = socialLogin.getNickname() != null && !socialLogin.getNickname().trim().isEmpty()
