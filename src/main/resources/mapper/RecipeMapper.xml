@@ -755,7 +755,12 @@
         </choose>
       </if>
     </where>
+    <if test="display != 0">
     ORDER BY reg_dt DESC
+    </if>
+    <if test="display == 0">
+    ORDER BY reg_dt
+    </if>
     <if test="display != 0">
     LIMIT #{display} OFFSET #{start}
     </if>
