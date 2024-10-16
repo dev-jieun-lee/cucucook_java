@@ -460,13 +460,14 @@ public class RecipeServiceImpl implements RecipeService {
 
         if (recipeProcessItemsImageList.get(i) != null && recipeProcessItemsImageList.get(i).getSize() > 0) {
           // 기존파일 삭제
-          MemberRecipeImages memberRecipeImages = recipeMapper
-              .getMemberRecipeImages(recipeProcessItemsImgIdList.get(i));
-          fileUploadUtil
-              .deleteFile(memberRecipeImages.getServerImgPath() + "/" + memberRecipeImages.getServerImgName() + "."
-                  + memberRecipeImages.getExtension(), memberRecipeImages.getServerImgPath());
-          recipeMapper.deleteMemberRecipeImages(recipeProcessItemsImgIdList.get(i));
-
+          if (!"".equals(recipeProcessItemsImgIdList.get(i))) {
+            MemberRecipeImages memberRecipeImages = recipeMapper
+                .getMemberRecipeImages(recipeProcessItemsImgIdList.get(i));
+            fileUploadUtil
+                .deleteFile(memberRecipeImages.getServerImgPath() + "/" + memberRecipeImages.getServerImgName() + "."
+                    + memberRecipeImages.getExtension(), memberRecipeImages.getServerImgPath());
+            recipeMapper.deleteMemberRecipeImages(recipeProcessItemsImgIdList.get(i));
+          }
           // 새로 업로드한 이미지 넣기
           String serverFileName = fileUploadUtil.uploadFile(recipeProcessItemsImageList.get(i),
               "recipe/" + recipeId);
