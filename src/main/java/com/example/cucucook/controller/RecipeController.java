@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MaxUploadSizeExceededException;
 import org.springframework.web.multipart.MultipartFile;
 
 import com.example.cucucook.common.ApiResponse;
@@ -24,7 +25,6 @@ import com.example.cucucook.domain.RecipeCategory;
 import com.example.cucucook.domain.RecipeComment;
 import com.example.cucucook.domain.RecipeLike;
 import com.example.cucucook.service.RecipeService;
-import com.fasterxml.jackson.core.JsonProcessingException;
 
 import lombok.extern.slf4j.Slf4j;
 
@@ -86,7 +86,7 @@ public class RecipeController {
       @RequestPart(value = "thumbnailImage", required = false) MultipartFile thumbnailImage,
       @RequestParam("recipeProcessItems.contents") List<String> recipeProcessItemsContentsList,
       @RequestPart(value = "recipeProcessItems.image", required = false) List<MultipartFile> recipeProcessItemsImageList)
-      throws JsonProcessingException, Exception {
+      throws MaxUploadSizeExceededException, Exception {
 
     return recipeService.insertMemberRecipe(memberRecipe, memberRecipeIngredientList,
         thumbnailImage, recipeProcessItemsContentsList, recipeProcessItemsImageList);
@@ -102,7 +102,7 @@ public class RecipeController {
       @RequestParam("recipeProcessItems.imgId") List<String> recipeProcessItemsImgIdList,
       @RequestParam("recipeProcessItems.contents") List<String> recipeProcessItemsContentsList,
       @RequestPart(value = "recipeProcessItems.image", required = false) List<MultipartFile> recipeProcessItemsImageList)
-      throws JsonProcessingException, Exception {
+      throws MaxUploadSizeExceededException, Exception {
 
     return recipeService.updateMemberRecipe(recipeId, memberRecipe, memberRecipeIngredientList, thumbnailImage,
         recipeProcessItemsImgIdList, recipeProcessItemsContentsList, recipeProcessItemsImageList);
