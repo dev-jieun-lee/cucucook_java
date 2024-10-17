@@ -199,32 +199,60 @@
 
     <!-- 나의 DIY 레시피 조회 -->
     <select id="getMemberRecipeList" resultMap="memberRecipeResultMap">
-        SELECT (SELECT name FROM member x WHERE x.member_id = a.member_id) as name,
-                recipe_id,
-                member_id,
-                recipe_category_id,
-                title,
-                "method",
-                img_id,
-                serving,
-                "level",
-                "time",
-                calory,
-                tip,
-                reg_dt,
-                upt_dt,
-                view_count,
-                comment_rate
+      SELECT a.recipe_id
+            ,a.member_id
+            ,a.recipe_category_id
+            ,a.title
+            ,(SELECT x.name
+                FROM recipe_category x
+              WHERE x.recipe_category_id = a.method) as method
+            ,(SELECT x.name_en
+                FROM recipe_category x
+              WHERE x.recipe_category_id = a.method) as method_en
+            ,a.img_id
+            ,a.serving
+            ,(SELECT x.name
+                FROM recipe_category x
+              WHERE x.recipe_category_id = a.level) as level
+            ,(SELECT x.name_en
+                FROM recipe_category x
+              WHERE x.recipe_category_id = a.level) as level_en
+            ,a.time
+            ,a.calory
+            ,a.tip
+            ,a.reg_dt
+            ,a.upt_dt
+            ,a.view_count
+            ,b.name AS recipe_category_name
+            ,b.name_en AS recipe_category_name_en
+            ,c.user_id
+            ,c.name
+            ,c.phone
+            ,c.role
+            ,c.email
+            ,(SELECT COUNT(*) FROM recipe_comment x WHERE x.recipe_id = a.recipe_id and x.del_yn = 'N') as comment_count
+            ,a.comment_rate
+            ,(SELECT COUNT(*) FROM recipe_like x WHERE x.recipe_id = a.recipe_id) as like_count
+            ,d.org_img_name
+            ,d.server_img_name
+            ,d.extension
+            ,d.img_file_size
+            ,d.server_img_path
+            ,d.web_img_path
+            ,d.reg_dt as img_reg_dt
         FROM member_recipe a
-        WHERE member_id = #{memberId}
+        JOIN recipe_category b ON a.recipe_category_id = b.recipe_category_id
+        JOIN member c ON a.member_id = c.member_id
+        LEFT JOIN member_recipe_images d on a.img_id = d.img_id
+        WHERE a.member_id = #{memberId}
         <if test="search != '' and search != null">
             <choose>
                 <when test="searchType == 'title'">
-                    AND title LIKE CONCAT('%', #{search}, '%')
+                    AND a.title LIKE CONCAT('%', #{search}, '%')
                 </when>
             </choose>
         </if>
-        ORDER BY reg_dt DESC
+        ORDER BY a.reg_dt DESC
         LIMIT #{limit} OFFSET #{start}
     </select>
 
