@@ -360,9 +360,14 @@ public class MemberController {
   // 이메일 인증 코드 발송
   @PostMapping("/sendVerificationCode")
   public ResponseEntity<?> sendVerificationCode(@RequestBody Map<String, String> payload) {
-    String email = payload.get("email");
+    String email = (String) payload.get("email");
+    boolean skipEmailCheck = false; // 기본값 설정
+    if (payload.containsKey("skipEmailCheck")) {
+      skipEmailCheck = Boolean.parseBoolean(payload.get("skipEmailCheck").toString());
+    } // 값 처리
+
     try {
-      memberService.sendVerificationCode(email);
+      memberService.sendVerificationCode(email, skipEmailCheck);
       return ResponseEntity.ok("Verification code sent successfully");
     } catch (EmailAlreadyRegisteredException e) {
       return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 가입된 이메일입니다.");

@@ -42,7 +42,7 @@ public interface MemberService {
     PasswordFindResponse findPassword(Member member) throws Exception;
 
     // 이메일 인증코드 발송
-    void sendVerificationCode(String email);
+    void sendVerificationCode(String email, boolean skipEmailCheck);
 
     boolean verifyEmailCode(String email, String code);
 
