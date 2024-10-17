@@ -31,6 +31,7 @@ import com.example.cucucook.exception.AccountLockedException;
 import com.example.cucucook.exception.InvalidPasswordException;
 import com.example.cucucook.service.MemberService;
 import com.example.cucucook.service.TokenService;
+import com.example.cucucook.service.impl.MemberServiceImpl.EmailAlreadyRegisteredException;
 
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
@@ -363,6 +364,8 @@ public class MemberController {
     try {
       memberService.sendVerificationCode(email);
       return ResponseEntity.ok("Verification code sent successfully");
+    } catch (EmailAlreadyRegisteredException e) {
+      return ResponseEntity.status(HttpStatus.CONFLICT).body("이미 가입된 이메일입니다.");
     } catch (Exception e) {
       return ResponseEntity.status(HttpStatus.BAD_REQUEST)
           .body("Failed to send verification code: " + e.getMessage());

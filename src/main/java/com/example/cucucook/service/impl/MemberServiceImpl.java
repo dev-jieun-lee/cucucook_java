@@ -286,22 +286,27 @@ public class MemberServiceImpl implements MemberService {
   // 이메일 인증코드 발송
   @Override
   public void sendVerificationCode(String email) {
+    // 1. 이메일 중복 확인
+    boolean emailExists = memberMapper.existsByEmail(email);
+    if (emailExists) {
+      throw new EmailAlreadyRegisteredException("이미 가입된 이메일입니다.");
+    }
+
+    // 2. 인증 코드 생성 및 저장
     String code = generateVerificationCode();
     VerificationCode existingCode = memberMapper.findVerificationCodeByEmail(email);
 
     if (existingCode != null) {
-      // 이미 존재하는 이메일이 있다면 인증 코드를 업데이트합니다.
       existingCode.setCode(code);
       existingCode.setCreatedAt(LocalDateTime.now());
       existingCode.setExpiresAt(LocalDateTime.now().plusMinutes(15));
       memberMapper.updateVerificationCode(existingCode);
     } else {
-      // 이메일이 없으면 새로운 인증 코드를 생성합니다.
       VerificationCode newCode = new VerificationCode(email, code, LocalDateTime.now().plusMinutes(15));
       memberMapper.saveVerificationCode(newCode);
     }
 
-    // 이메일 발송
+    // 3. 이메일 발송
     emailService.send(email, "Your verification code", "Your code: " + code);
   }
 
@@ -359,4 +364,9 @@ public class MemberServiceImpl implements MemberService {
     return 0;
   }
 
+  public class EmailAlreadyRegisteredException extends RuntimeException {
+    public EmailAlreadyRegisteredException(String message) {
+      super(message);
+    }
+  }
 }
