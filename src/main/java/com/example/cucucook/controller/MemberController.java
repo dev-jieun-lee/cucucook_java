@@ -328,14 +328,6 @@ public class MemberController {
             new PasswordFindResponse(false, "아이디와 이메일이 일치하지 않습니다.", null, null));
       }
 
-      // 인증 코드 검증
-      boolean isCodeValid = memberService.verifyEmailCode(member.getEmail(), member.getVerificationCode());
-      if (!isCodeValid) {
-        logger.warn("인증 코드 검증 실패: Email={}, 입력된 코드={}", member.getEmail(), member.getVerificationCode());
-        return ResponseEntity.status(400).body(
-            new PasswordFindResponse(false, "인증 코드가 올바르지 않습니다.", null, null));
-      }
-
       // 비밀번호 찾기 로직
       PasswordFindResponse response = memberService.findPassword(member);
 
