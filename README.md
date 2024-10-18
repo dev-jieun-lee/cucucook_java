@@ -1,4 +1,4 @@
-# Cucucook
+# Cucucook (JAVA)
 ![KakaoTalk_20241016_214145868](https://github.com/user-attachments/assets/6f5447e4-7bd7-4f47-aa16-34d5f4e03fab)
 
 
