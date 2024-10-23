@@ -1,5 +1,6 @@
 package com.example.cucucook.controller;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
@@ -28,6 +29,7 @@ import com.example.cucucook.domain.Member;
 import com.example.cucucook.domain.SocialLogin;
 import com.example.cucucook.service.SocialLoginService;
 
+import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 
@@ -111,6 +113,17 @@ public class SocialLoginController {
 
       // 1. 토큰 생성 및 저장
       Map<String, String> tokens = socialLoginService.saveTokensForMember(member);
+
+      // 쿠키에 토큰 저장
+      setTokenInCookie(response, tokens.get("accessToken"), "access_token", true, request.isSecure(), "/", 3600);
+      setTokenInCookie(response, tokens.get("refreshToken"), "refresh_token", true, request.isSecure(), "/", 1209600);
+
+      logger.info("쿠키 설정 후 응답 준비: 쿠키가 응답에 추가되었습니다.");
+      logger.info("쿠키세팅확인: response: {}, accessToken: {}, refreshToken: {}", response,
+          tokens.get("accessToken"), tokens.get("refreshToken"));
+      logger.info("Response Status: {}", response.getStatus());
+      Collection<String> headerNames = response.getHeaderNames();
+      headerNames.forEach(header -> logger.info("Header: {} Value: {}", header, response.getHeader(header)));
 
       // 2. 사용자 정보와 함께 두 개의 토큰을 반환
       Map<String, Object> responseBody = new HashMap<>();
@@ -288,6 +301,21 @@ public class SocialLoginController {
     }
 
     return null; // 실패 시 null 반환
+  }
+
+  // 토큰 쿠키 설정 메서드
+  private void setTokenInCookie(HttpServletResponse response, String token, String name, boolean isHttpOnly,
+      boolean secure, String path, Integer maxAge) {
+    Cookie cookie = new Cookie(name, token);
+    cookie.setHttpOnly(isHttpOnly);
+    cookie.setSecure(secure);
+    cookie.setPath(path);
+    if (maxAge != null) {
+      cookie.setMaxAge(maxAge);
+    }
+    response.addCookie(cookie);
+    logger.info("쿠키 설정: name={}, token={}, HttpOnly={}, Secure={}, Path={}, MaxAge={}", name, token, isHttpOnly, secure,
+        path, maxAge);
   }
 
 }
