@@ -37,11 +37,6 @@
 )
 ![StyledComponents Badge](https://img.shields.io/badge/-StyledComponents-DB7093?style=flat-square&logo=styledcomponents&logoColor=white
 )
-![Pnpm Badge](https://img.shields.io/badge/-Pnpm-F69220?style=flat-square&logo=pnpm&logoColor=white
-)
-![Node.js Badge](https://img.shields.io/badge/-Node.js-5FA04E?style=flat-square&logo=nodedotjs&logoColor=white
-)
-
 
 &emsp; Back-end : ![Spring Boot Badge](https://img.shields.io/badge/-Spring%20boot-6DB33F?style=flat-square&logo=springboot&logoColor=white
 )
@@ -51,7 +46,7 @@
 )
 ![Java Badge](https://img.shields.io/badge/-Java-5382a1?style=flat-square&logoColor=white)
 
-&emsp; 서버 & 상태관리 : ![Amazon Web Services Badge](https://img.shields.io/badge/-Amazon%20Web%20Services-232F3E?style=flat-square&logo=amazonwebservices&logoColor=white
+&emsp; 서버 & 코드관리 : ![Amazon Web Services Badge](https://img.shields.io/badge/-Amazon%20Web%20Services-232F3E?style=flat-square&logo=amazonwebservices&logoColor=white
 )
 ![Ubuntu Badge](https://img.shields.io/badge/-Ubuntu-E95420?style=flat-square&logo=ubuntu&logoColor=white
 )
